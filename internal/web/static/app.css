@@ -104,9 +104,9 @@ strong, b { font-weight: var(--weight-emphasis); }
 .breadcrumb__sep { color: var(--muted); padding-inline: var(--space-1); }
 /* The air-now and 24h sentences sit under the h1, above the readouts. */
 .area-now, .area-day { margin-block: var(--space-2) 0; }
-/* Touch phones: summary after the map, before #below-map (reordered in the .frame grid). */
+/* Touch phones: summary and no-coverage notice after the map, before #below-map (reordered in the .frame grid). */
 @media (hover: none) {
-  .frame > .area-summary { order: 1; }
+  .frame > .area-summary, .frame > .notice { order: 1; }
   .frame:has(> .area-summary) > #below-map { order: 2; }
 }
 .area-day { color: var(--fg-2); }
@@ -985,8 +985,8 @@ html:has(> body.embed) { block-size: 100%; }
   .map-shell:has(.map--hero) { max-inline-size: none; block-size: auto; max-block-size: none; }
   /* 5.75rem is the measured 92px of chrome above the map; 20px is the pull tab. */
   .map--hero { aspect-ratio: auto; block-size: calc(100svh - 5.75rem - 20px); min-block-size: 12rem; }
-  /* 6rem measured chrome above the map; 20px is the pull tab. */
-  .map--wide { block-size: calc(100svh - 6rem - 20px); min-block-size: 12rem; }
+  /* 7rem: measured 6rem of chrome above the map left the pull tab on the fold; 20px is the pull tab. */
+  .map--wide { block-size: calc(100svh - 7rem - 20px); min-block-size: 12rem; }
 
   /* Slimmer than the portrait 48px bar: landscape has no height to spare. */
   .masthead { block-size: 40px; min-block-size: 40px; }
