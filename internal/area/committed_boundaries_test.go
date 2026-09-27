@@ -357,3 +357,45 @@ func TestCountryBoundaryCoversEveryOblast(t *testing.T) {
 		}
 	}
 }
+
+// TestCountryBoundaryDoesNotOverlapNeighbours asserts bulgaria.geojson's
+// ST_Intersection area with each Natural Earth neighbour file is ~0. Without
+// this, FilterByBoundary's ORDER BY country_code LIMIT 1 tiebreak always picks
+// BG in any overlap strip (BG sorts first alphabetically), silently stealing
+// Romanian, Greek and Turkish sensors near the border.
+func TestCountryBoundaryDoesNotOverlapNeighbours(t *testing.T) {
+	ctx, pool := migrated(t)
+
+	if _, err := area.Import(ctx, pool, "../../data/boundaries/bulgaria.geojson", area.NationalBoundaryKind); err != nil {
+		t.Fatalf("Import(bulgaria.geojson): %v", err)
+	}
+
+	const maxOverlapKM2 = 0.01
+
+	for _, neighbour := range []string{
+		"greece", "north-macedonia", "romania", "serbia", "turkey",
+	} {
+		path := "../../data/boundaries/" + neighbour + ".geojson"
+		if _, err := area.Import(ctx, pool, path, area.NationalBoundaryKind); err != nil {
+			t.Fatalf("Import(%s): %v", path, err)
+		}
+	}
+
+	for _, neighbour := range []string{
+		"greece", "north-macedonia", "romania", "serbia", "turkey",
+	} {
+		var areaKM2 float64
+		err := pool.QueryRow(ctx, `
+			SELECT COALESCE(ST_Area(
+				ST_Intersection(bg.geom::geometry, nb.geom::geometry)::geography
+			), 0) / 1e6
+			FROM area bg, area nb
+			WHERE bg.slug = 'bulgaria' AND nb.slug = $1`, neighbour).Scan(&areaKM2)
+		if err != nil {
+			t.Fatalf("ST_Intersection area for %s: %v", neighbour, err)
+		}
+		if areaKM2 > maxOverlapKM2 {
+			t.Errorf("bulgaria overlaps %s by %.5f km^2, want <= %.2f km^2", neighbour, areaKM2, maxOverlapKM2)
+		}
+	}
+}
