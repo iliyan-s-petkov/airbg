@@ -55,6 +55,14 @@ for (const vp of VIEWPORTS) {
         // Area chrome varies above the map; the guarantee is for the map at the
         // top, same convention the old strip spec used.
         if (path.includes('/area/')) {
+          // The switcher and sensorbar hydrate above the map; scrolling first let them push it down (CI: 767.5 > 740).
+          await expect(page.locator('[data-island="sensorbar"] .switcher__opt').first()).toBeVisible()
+          await expect.poll(async () => {
+            const top = () => page.evaluate(() => document.querySelector('.map-shell').getBoundingClientRect().top + scrollY)
+            const a = await top()
+            await page.waitForTimeout(200)
+            return a === await top()
+          }).toBe(true)
           await page.evaluate(() => document.querySelector('.map-shell').scrollIntoView({ block: 'start', behavior: 'instant' }))
         }
         if (legendState === 'open') await openLegend(page)
