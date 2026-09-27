@@ -35,16 +35,38 @@ rejected at import rather than imported invisibly. The `country` kind is
 excluded from `area_sensor`, so these do not become browsable areas: a foreign
 sensor appears in the hex grid and in no oblast or city aggregate.
 
-**Source:** [Natural Earth](https://www.naturalearthdata.com/) 1:10m Admin 0 –
-Countries, geometry unmodified, one feature per `ADM0_A3` (`BGR`, `GRC`, `MKD`,
-`ROU`, `SRB`, `TUR`). Natural Earth is public domain, so these are committed
-here rather than left as a deployment step. All six come from the same release,
-which matters: mixing releases can leave a sliver of unclaimed or doubly-claimed
-territory along a shared border.
+**Source:** Five of the six — `greece.geojson`, `north-macedonia.geojson`,
+`romania.geojson`, `serbia.geojson`, `turkey.geojson` — are
+[Natural Earth](https://www.naturalearthdata.com/) 1:10m Admin 0 Countries,
+geometry unmodified, one feature per `ADM0_A3` (`GRC`, `MKD`, `ROU`, `SRB`,
+`TUR`). Natural Earth is public domain, so these are committed here rather
+than left as a deployment step.
+
+`bulgaria.geojson` is **not** from that release. It was regenerated
+2026-09-27 as the union of the 28 `oblasti.geojson` features (OSM, ODbL 1.0;
+`ST_Union` then `ST_MakeValid` in a scratch PostGIS container, holes left by
+per-oblast simplification seams smaller than 1 km² dropped). The Natural
+Earth coastline cut into the Black Sea coast by 0.25–0.45 km, dropping two
+live sensors — 7669 (Pomorie) and 32826 (Sinemorets) — that
+`FilterByBoundary`'s `ST_Covers` silently rejected as outside Bulgaria. See
+`docs/boundary-regeneration.md` for the rebuild steps and
+`internal/area/area_test.go`'s `TestImportCommittedBulgariaBoundary` for the
+regression coverage.
+
+Mixing a Natural Earth boundary for the five neighbours with an OSM-derived
+one for Bulgaria means the shared borders no longer come from the same
+survey/vintage: `bulgaria.geojson` now overlaps `greece.geojson` by ~144 km²,
+`romania.geojson` by ~81 km², `turkey.geojson` by ~67 km², `serbia.geojson` by
+~14 km² and `north-macedonia.geojson` by ~1 km², all thin strips along the
+shared border. `FilterByBoundary`'s tiebreak (`ORDER BY country_code LIMIT 1`)
+sorts `BG` before all five, so a sensor that happens to fall inside one of
+these overlap strips is now stamped `BG` rather than its true neighbour. No
+known sensor sits in one of these strips today, but a future regeneration of
+the neighbour files should redo this overlap check.
 
 | file | geometry | vertices | size |
 |---|---|---|---|
-| `bulgaria.geojson` | Polygon | 879 | 19 KB |
+| `bulgaria.geojson` | MultiPolygon, 10 parts | 1,642 | 35 KB |
 | `greece.geojson` | MultiPolygon, 74 parts | 12,192 | 142 KB |
 | `north-macedonia.geojson` | Polygon | 726 | 9 KB |
 | `romania.geojson` | Polygon | 2,396 | 28 KB |
@@ -52,16 +74,20 @@ territory along a shared border.
 | `turkey.geojson` | MultiPolygon, 6 parts | 7,280 | 85 KB |
 
 Greece is a MultiPolygon because of the islands, and dropping the small parts to
-save bytes would drop the sensors on them.
+save bytes would drop the sensors on them. Bulgaria's 10 parts are the
+mainland plus nine small real exclaves already present in `burgas-oblast`'s
+own OSM geometry (each well under 1 km², none a union artifact — see
+`docs/boundary-regeneration.md`).
 
 Verified by point-in-polygon before committing: Sofia, Varna, Plovdiv, Musala,
-and the far-eastern coastal towns Balchik and Shabla fall inside Bulgaria;
-London falls inside none of the six; and Athens, Skopje, Bucharest, Belgrade and
-Istanbul each fall inside exactly one — no overlap along any shared border, which
-is the property `FilterByBoundary` would otherwise have to resolve with its
-`ORDER BY country_code LIMIT 1` tiebreak on every cycle. The neighbour checks
-matter — Bulgaria's bounding box overlaps all five, so a box test would wrongly
-accept every one of them.
+the far-eastern coastal towns Balchik and Shabla, and now Pomorie and
+Sinemorets fall inside Bulgaria; London falls inside none of the six; and
+Athens, Skopje, Bucharest, Belgrade and Istanbul each fall inside exactly
+one — except within the shared-border overlap strips noted above, which is
+exactly the case `FilterByBoundary` resolves with its `ORDER BY country_code
+LIMIT 1` tiebreak on every cycle. The neighbour checks matter — Bulgaria's
+bounding box overlaps all five, so a box test would wrongly accept every one
+of them.
 
 ### Not to be confused with the test fixture
 
