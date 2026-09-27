@@ -62,41 +62,49 @@ export function createScaleDialog(doc, { closeLabel, sourceLabel, disclaimer, la
   close.addEventListener('click', () => el.close())
   el.appendChild(close)
 
+  function paint(scale) {
+    const info = scaleInfo(scale, lang)
+    if (!info) return false
+    heading.textContent = info.unit ? `${info.name}, ${info.unit}` : info.name
+    notes.textContent = info.notes
+    notes.hidden = !info.notes
+
+    list.replaceChildren()
+    for (const row of info.rows) {
+      const item = doc.createElement('li')
+      item.className = 'scaleinfo__band'
+      item.appendChild(swatch(doc, row.colour))
+
+      const name = doc.createElement('span')
+      name.className = 'scaleinfo__band-name'
+      name.textContent = row.label
+      item.appendChild(name)
+
+      const range = doc.createElement('span')
+      range.className = 'scaleinfo__band-range'
+      range.textContent = row.range
+      item.appendChild(range)
+
+      list.appendChild(item)
+    }
+
+    // A table that cites nobody gets no link at all rather than one pointing
+    // nowhere: the weather bands orient a reader and claim no authority, and
+    // a dead "official guideline" would claim one for them.
+    source.hidden = !info.source
+    if (info.source) source.href = info.source
+    else source.removeAttribute('href')
+    return true
+  }
+
   return {
     el,
+    // Paints without opening, so the source link has an href before the (i) is clicked.
+    prime(scale) {
+      paint(scale)
+    },
     show(scale) {
-      const info = scaleInfo(scale, lang)
-      if (!info) return
-      heading.textContent = info.unit ? `${info.name}, ${info.unit}` : info.name
-      notes.textContent = info.notes
-      notes.hidden = !info.notes
-
-      list.replaceChildren()
-      for (const row of info.rows) {
-        const item = doc.createElement('li')
-        item.className = 'scaleinfo__band'
-        item.appendChild(swatch(doc, row.colour))
-
-        const name = doc.createElement('span')
-        name.className = 'scaleinfo__band-name'
-        name.textContent = row.label
-        item.appendChild(name)
-
-        const range = doc.createElement('span')
-        range.className = 'scaleinfo__band-range'
-        range.textContent = row.range
-        item.appendChild(range)
-
-        list.appendChild(item)
-      }
-
-      // A table that cites nobody gets no link at all rather than one pointing
-      // nowhere: the weather bands orient a reader and claim no authority, and
-      // a dead "official guideline" would claim one for them.
-      source.hidden = !info.source
-      if (info.source) source.href = info.source
-      else source.removeAttribute('href')
-
+      if (!paint(scale)) return
       // showModal throws if it is already open — repainting an open dialog is
       // what a metric switch behind it does.
       if (!el.open) el.showModal()
