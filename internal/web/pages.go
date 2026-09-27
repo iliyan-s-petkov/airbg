@@ -104,6 +104,16 @@ func (rr *Renderer) handleIndex(w http.ResponseWriter, r *http.Request) {
 	lang, path := rr.cat.LangFromPath(r.URL.Path)
 	data := rr.newPageData(lang, path, snap.GeneratedAt)
 	data.Areas = rr.areaRows(snap, lang, "oblast")
+	// /areas shares this handler with / — same snapshot, same rows — but the
+	// two are different search results and must not share a title (OpenProject
+	// #605, #602 audit finding a).
+	if path == "/areas" {
+		data.Title = composeTitle(rr.cat.T(lang, "seo.areas.title"), rr.cat.T(lang, "site.title"))
+		data.Description = rr.cat.T(lang, "seo.areas.description")
+	} else {
+		data.Title = composeTitle(rr.cat.T(lang, "seo.home.title"), rr.cat.T(lang, "site.title"))
+		data.Description = rr.cat.T(lang, "seo.home.description")
+	}
 	rr.render(w, r, http.StatusOK, "index", data)
 }
 
@@ -126,7 +136,43 @@ func (rr *Renderer) handleArea(w http.ResponseWriter, r *http.Request) {
 	data := rr.newPageData(lang, path, snap.GeneratedAt)
 	row := rr.rowFrom(meta, lang)
 	data.Area = &row
+	data.Title, data.Description = rr.areaSEO(row, lang)
 	rr.render(w, r, http.StatusOK, "area", data)
+}
+
+// areaSEO builds the title and description for one area page, per kind — the
+// three shapes seo-copy.md §2/§4 defines. Static descriptions only (no live
+// numbers): OpenProject #605 ships the always-true variant, the live one
+// behind a flag later.
+func (rr *Renderer) areaSEO(row AreaRow, lang string) (title, description string) {
+	brand := rr.cat.T(lang, "site.title")
+	switch row.Kind {
+	case "oblast":
+		label := rr.oblastForm(row.Slug, lang, row.Name, "seo.oblast.label")
+		inline := rr.oblastForm(row.Slug, lang, row.Name, "seo.oblast.inline")
+		core := strings.ReplaceAll(rr.cat.T(lang, "seo.oblast.title"), "{label}", label)
+		desc := strings.ReplaceAll(rr.cat.T(lang, "seo.oblast.description"), "{inline}", inline)
+		return composeTitle(core, brand), desc
+	case "city":
+		core := strings.ReplaceAll(rr.cat.T(lang, "seo.city.title"), "{name}", row.Name)
+		desc := strings.ReplaceAll(rr.cat.T(lang, "seo.city.description"), "{name}", row.Name)
+		return composeTitle(core, brand), desc
+	default: // "neighbourhood" — the 24 Sofia districts; no other kind exists.
+		core := strings.ReplaceAll(rr.cat.T(lang, "seo.district.title"), "{name}", row.Name)
+		desc := strings.ReplaceAll(rr.cat.T(lang, "seo.district.description"), "{name}", row.Name)
+		return composeTitle(core, brand), desc
+	}
+}
+
+// oblastForm resolves an oblast's label or inline form: the per-slug override
+// key when the catalogue has one (sofiyska-oblast, sofiya-grad-oblast — the
+// two whose surface form isn't "{base key} {name}" — see seo-copy.md §0), the
+// templated default otherwise.
+func (rr *Renderer) oblastForm(slug, lang, name, baseKey string) string {
+	if key := baseKey + "." + slug; rr.cat.Has(lang, key) {
+		return rr.cat.T(lang, key)
+	}
+	return strings.ReplaceAll(rr.cat.T(lang, baseKey), "{name}", name)
 }
 
 // handleAbout serves the data caveats — what the map does not tell you on the
@@ -149,7 +195,10 @@ func (rr *Renderer) handleAbout(w http.ResponseWriter, r *http.Request) {
 	}
 
 	lang, path := rr.cat.LangFromPath(r.URL.Path)
-	rr.render(w, r, http.StatusOK, "about", rr.newPageData(lang, path, generatedAt))
+	data := rr.newPageData(lang, path, generatedAt)
+	data.Title = composeTitle(rr.cat.T(lang, "seo.about_data.title"), rr.cat.T(lang, "site.title"))
+	data.Description = rr.cat.T(lang, "seo.about_data.description")
+	rr.render(w, r, http.StatusOK, "about", data)
 }
 
 // handleEmbed serves the map on its own, for an <iframe> on someone else's
