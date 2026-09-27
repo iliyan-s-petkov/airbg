@@ -303,3 +303,57 @@ func TestBoundariesDoNotSwapCoordinates(t *testing.T) {
 		t.Errorf("oblast latitude extent %v..%v outside Bulgaria's 41..45", minLat, maxLat)
 	}
 }
+
+// TestCountryBoundaryCoversEveryOblast is the structural check that
+// bulgaria.geojson is actually the union of oblasti.geojson: a point
+// guaranteed to sit inside each of the 28 oblasti (ST_PointOnSurface, not the
+// centroid — a concave oblast's centroid can fall outside its own polygon)
+// must also be covered by the country boundary. A seam or gap left over from
+// unioning the 28 parts would show up here as a specific oblast failing,
+// which is more actionable than a single national area-sum check.
+func TestCountryBoundaryCoversEveryOblast(t *testing.T) {
+	ctx, pool := migrated(t)
+
+	if _, err := area.Import(ctx, pool, "../../data/boundaries/bulgaria.geojson", area.NationalBoundaryKind); err != nil {
+		t.Fatalf("Import(bulgaria.geojson): %v", err)
+	}
+	if _, err := area.Import(ctx, pool, "../../data/boundaries/oblasti.geojson", "oblast"); err != nil {
+		t.Fatalf("Import(oblasti.geojson): %v", err)
+	}
+
+	rows, err := pool.Query(ctx,
+		`SELECT slug FROM area WHERE kind = 'oblast' ORDER BY slug`)
+	if err != nil {
+		t.Fatalf("query oblast slugs: %v", err)
+	}
+	var slugs []string
+	for rows.Next() {
+		var slug string
+		if err := rows.Scan(&slug); err != nil {
+			t.Fatalf("scan: %v", err)
+		}
+		slugs = append(slugs, slug)
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		t.Fatalf("rows: %v", err)
+	}
+	if len(slugs) != 28 {
+		t.Fatalf("got %d oblasti, want 28", len(slugs))
+	}
+
+	for _, slug := range slugs {
+		var covered bool
+		err := pool.QueryRow(ctx, `
+			SELECT ST_Covers(
+				(SELECT geom FROM area WHERE slug = 'bulgaria'),
+				ST_PointOnSurface((SELECT geom::geometry FROM area WHERE slug = $1))::geography
+			)`, slug).Scan(&covered)
+		if err != nil {
+			t.Fatalf("ST_Covers for %s: %v", slug, err)
+		}
+		if !covered {
+			t.Errorf("oblast %q has a point-on-surface not covered by the country boundary — seam or gap left by the union", slug)
+		}
+	}
+}
