@@ -115,6 +115,66 @@ describe('mountLayers', () => {
   })
 })
 
+// The panel is capped against whatever is actually visible, not just the
+// layout viewport the kit's CSS max-block-size sees — see layersfit.js.
+describe('fitting the open panel to what is visible', () => {
+  const fakeWin = () => {
+    const vv = {
+      offsetTop: 0, height: 300,
+      listeners: {},
+      addEventListener(type, fn) { this.listeners[type] = fn },
+      removeEventListener(type, fn) { if (this.listeners[type] === fn) delete this.listeners[type] },
+    }
+    return {
+      visualViewport: vv,
+      innerHeight: 300,
+      listeners: {},
+      addEventListener(type, fn) { this.listeners[type] = fn },
+      removeEventListener(type, fn) { if (this.listeners[type] === fn) delete this.listeners[type] },
+    }
+  }
+
+  it('sets a max-block-size on open, against the fake window it is given', () => {
+    const el = frame()
+    const win = fakeWin()
+    const ui = mountLayers(el, { label: 'Layers' }, document, win)
+    ui.panel.getBoundingClientRect = () => ({ top: 50 })
+    el.getBoundingClientRect = () => ({ bottom: 250 })
+    ui.button.click()
+    // frameBottom 250, visibleBottom 300 -> min is 250; 250 - 50 - 8 = 192.
+    expect(ui.panel.style.maxBlockSize).toBe('192px')
+  })
+
+  it('listens for visualViewport and window resize while open, and stops on close', () => {
+    const el = frame()
+    const win = fakeWin()
+    const ui = mountLayers(el, { label: 'Layers' }, document, win)
+    ui.panel.getBoundingClientRect = () => ({ top: 0 })
+    el.getBoundingClientRect = () => ({ bottom: 300 })
+    ui.button.click()
+    expect(typeof win.visualViewport.listeners.resize).toBe('function')
+    expect(typeof win.visualViewport.listeners.scroll).toBe('function')
+    expect(typeof win.listeners.resize).toBe('function')
+    ui.button.click()
+    expect(win.visualViewport.listeners.resize).toBeUndefined()
+    expect(win.visualViewport.listeners.scroll).toBeUndefined()
+    expect(win.listeners.resize).toBeUndefined()
+  })
+
+  it('re-fits when the visualViewport reports a resize (toolbar showing)', () => {
+    const el = frame()
+    const win = fakeWin()
+    const ui = mountLayers(el, { label: 'Layers' }, document, win)
+    ui.panel.getBoundingClientRect = () => ({ top: 0 })
+    el.getBoundingClientRect = () => ({ bottom: 300 })
+    ui.button.click()
+    expect(ui.panel.style.maxBlockSize).toBe('292px') // min(300,300) - 0 - 8
+    win.visualViewport.height = 150
+    win.visualViewport.listeners.resize()
+    expect(ui.panel.style.maxBlockSize).toBe('142px') // min(300,150) - 0 - 8
+  })
+})
+
 // The seam that keeps this module from holding a second copy of the style.
 describe('groupsIn', () => {
   it('returns the style\'s groups in the reading order, not the style\'s', () => {

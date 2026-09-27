@@ -25,6 +25,7 @@
 // CSP's style-src has no 'unsafe-inline'.
 
 import { safeStorage } from './storage.js'
+import { fitLayers } from './layersfit.js'
 
 const SVG_NS = 'http://www.w3.org/2000/svg'
 
@@ -86,7 +87,7 @@ export function writeState(state, storage = safeStorage()) {
 // and whose camera calls are one blob is a control no test can reach.
 //
 // It starts hidden. installLayers reveals it once the panel holds something.
-export function mountLayers(frame, { label }, doc = document) {
+export function mountLayers(frame, { label }, doc = document, win = window) {
   const root = document.createElement('div')
   root.className = 'colmenu map__layers'
   root.hidden = true
@@ -119,11 +120,35 @@ export function mountLayers(frame, { label }, doc = document) {
   panel.id = id
   button.setAttribute('aria-controls', id)
 
+  // Re-fit while open: the phone toolbar and page scroll change what is visible.
+  const refit = () => fitLayers(panel, frame, win)
+  let unfit = null
+  const startFit = () => {
+    refit()
+    const vv = win.visualViewport
+    vv?.addEventListener('resize', refit)
+    vv?.addEventListener('scroll', refit)
+    win.addEventListener('resize', refit)
+    win.addEventListener('scroll', refit, { passive: true })
+    unfit = () => {
+      vv?.removeEventListener('resize', refit)
+      vv?.removeEventListener('scroll', refit)
+      win.removeEventListener('resize', refit)
+      win.removeEventListener('scroll', refit)
+    }
+  }
+  const stopFit = () => {
+    unfit?.()
+    unfit = null
+  }
+
   // One record of one state: aria-expanded already carries whether the panel is
   // open, so nothing toggles a class beside it.
   const open = (yes) => {
     button.setAttribute('aria-expanded', String(yes))
     panel.hidden = !yes
+    if (yes) startFit()
+    else stopFit()
   }
   button.addEventListener('click', () => open(button.getAttribute('aria-expanded') !== 'true'))
   // Escape closes and returns focus to the button; a click outside closes
