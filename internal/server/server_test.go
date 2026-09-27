@@ -622,7 +622,9 @@ func TestSeriesAdmissionCapComesFromConfiguredMaxInflight(t *testing.T) {
 			t.Error("Run did not return within 10s of cancellation")
 		}
 	})
+	// /healthz is private-only; the public listener binds in its own goroutine.
 	waitReady(t, private)
+	waitDial(t, public)
 
 	// period=7d is not the default combination ("24h"), and AreaSeries is
 	// empty for "sofia", so this request cannot be served from the snapshot
@@ -646,6 +648,8 @@ func TestSeriesAdmissionCapComesFromConfiguredMaxInflight(t *testing.T) {
 
 	select {
 	case <-st.started:
+	case err := <-firstErr:
+		t.Fatalf("the first request finished before reaching AreaSeries: %v", err)
 	case <-time.After(5 * time.Second):
 		t.Fatal("the first request never reached AreaSeries; it never occupied the admission slot")
 	}
