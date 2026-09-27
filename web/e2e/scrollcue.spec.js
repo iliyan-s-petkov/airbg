@@ -130,6 +130,11 @@ for (const vp of FOLD_VIEWPORTS) {
       await expect(cue).toBeVisible()
       const box = await cue.boundingBox()
       expect(box.y + box.height).toBeLessThanOrEqual(vp.height)
+      // The area summary sits below the map on touch phones.
+      if (path.includes('/area/')) {
+        const summary = await page.locator('.area-summary').boundingBox()
+        expect(summary.y).toBeGreaterThan(box.y)
+      }
       // The fixture's chrome is shorter than prod's, so also pin the area shrink rule itself,
       // with the sensor bar removed as on an uncovered area.
       if (path.includes('/area/') && vp.height > vp.width) {
@@ -185,6 +190,12 @@ test('the pull tab is not shown on a 1280x800 desktop', async ({ ctx }) => {
     await page.goto(path)
     await expect(page.locator('#map, #area-map').first()).toBeVisible()
     await expect(page.locator('a.scroll-cue')).toBeHidden()
+    // On desktop the area summary stays under the title, above the map.
+    if (path.includes('/area/')) {
+      const summary = await page.locator('.area-summary').boundingBox()
+      const map = await page.locator('#area-map').boundingBox()
+      expect(summary.y + summary.height).toBeLessThanOrEqual(map.y)
+    }
   }
   await page.close()
 })

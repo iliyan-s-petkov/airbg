@@ -104,6 +104,11 @@ strong, b { font-weight: var(--weight-emphasis); }
 .breadcrumb__sep { color: var(--muted); padding-inline: var(--space-1); }
 /* The air-now and 24h sentences sit under the h1, above the readouts. */
 .area-now, .area-day { margin-block: var(--space-2) 0; }
+/* Touch phones: summary after the map, before #below-map (reordered in the .frame grid). */
+@media (hover: none) {
+  .frame > .area-summary { order: 1; }
+  .frame:has(> .area-summary) > #below-map { order: 2; }
+}
 .area-day { color: var(--fg-2); }
 /* Parent/children/nearest link blocks, after the readouts island. */
 .area-links { margin-block-start: var(--space-6); }
@@ -736,6 +741,12 @@ html:has(> body.embed) { block-size: 100%; }
       block-size: calc(100svh - var(--phone-chrome-area) - 20px); min-block-size: 55svh;
     }
   }
+  /* Portrait touch phones: a one-column grid so .area-summary can move below the map. */
+  @media (hover: none) {
+    .frame:has(> .area-summary) { display: grid; grid-template-columns: minmax(0, 1fr); }
+    /* The kit's margin-inline:auto makes a grid item shrink-to-fit the canvas; fill the track. */
+    .frame:has(> .area-summary) > .map-shell { inline-size: 100%; }
+  }
 
   /* Row instead of column, reversed: the DOM runs high to low, and a phone
      row must read low to high, left to right. */
@@ -1071,7 +1082,8 @@ html:has(> body.embed) { block-size: 100%; }
   .frame:has(> .page-head:not(.page-head--compact)) > .map-shell,
   .frame:has(> .page-head:not(.page-head--compact)) > .scroll-cue,
   .frame:has(> .page-head:not(.page-head--compact)) > #below-map,
-  .frame:has(> .page-head:not(.page-head--compact)) > [id$="-alt"] { grid-column: 1 / -1; }
+  .frame:has(> .page-head:not(.page-head--compact)) > [id$="-alt"],
+  .frame:has(> .page-head:not(.page-head--compact)) > .area-summary { grid-column: 1 / -1; }
   .page-head:not(.page-head--compact) { padding-block: 0; }
   .page-head:not(.page-head--compact) h1 { font-size: var(--text-body); margin: 0; }
   /* The city boundary note is a sentence, not a header-row label; it does not
