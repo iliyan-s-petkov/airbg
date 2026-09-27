@@ -275,7 +275,5 @@
 {{/* The "more below" strip under the map; web/src/lib/scrollcue.js scrolls to #below-map. */}}
 {{define "scrollCue"}}<a class="scroll-cue" href="#below-map" aria-label="{{.T "map.more_below"}}"><svg class="scroll-cue__chevron" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false"><path fill="none" stroke="currentColor" stroke-width="2" d="M3 6l5 5 5-5"/></svg></a>{{end}}
 
-{{/* Fixed bottom-right, phone only: returns to the map once it has scrolled
-     out of view. web/src/lib/backtomap.js drives .back-to-map--visible;
-     fullscreen/faux-full and desktop hiding are app.css's job. */}}
+{{/* Phone-only return to the map once it is off-screen; web/src/lib/backtomap.js. */}}
 {{define "backToMap"}}<button type="button" class="back-to-map" aria-label="{{.T "map.back_to_map"}}"><svg class="back-to-map__ico" viewBox="0 0 16 16" width="18" height="18" aria-hidden="true" focusable="false"><path fill="none" stroke="currentColor" stroke-width="2" d="M3 10l5-5 5 5"/></svg></button>{{end}}

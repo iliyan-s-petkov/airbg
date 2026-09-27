@@ -82,6 +82,20 @@ describe('createBackToMap', () => {
     expect(shell.getAttribute('tabindex')).toBe('-1')
   })
 
+  it('focuses the map canvas when there is one, as the sensor panel close does', () => {
+    const { btn, shell } = page()
+    const canvas = document.createElement('canvas')
+    canvas.className = 'maplibregl-canvas'
+    shell.querySelector('#map').append(canvas)
+    shell.scrollIntoView = vi.fn()
+    canvas.focus = vi.fn()
+    const e = env()
+    createBackToMap({ doc: e.doc, win: e.win, IO: e.IO })
+    btn.click()
+    expect(canvas.focus).toHaveBeenCalledWith({ preventScroll: true })
+    expect(shell.hasAttribute('tabindex')).toBe(false)
+  })
+
   it('jumps without animation under prefers-reduced-motion', () => {
     const { btn, shell } = page()
     shell.scrollIntoView = vi.fn()

@@ -1,8 +1,5 @@
-// Phone-only "back to map" button (OpenProject #612): fades in once
-// .map-shell has scrolled fully out of view and returns the reader to it.
-// Fullscreen/faux-full hiding is CSS's job (`.map-shell:has(...) ~
-// .back-to-map` in app.css), same as the pull tab's own fullscreen rule; this
-// module only tracks intersection and hover capability.
+// Phone-only "back to map" button (#612), shown while .map-shell is fully off-screen.
+// Desktop and fullscreen hiding live in app.css.
 export function createBackToMap({ doc = document, win = window, IO = win.IntersectionObserver } = {}) {
   const btn = doc.querySelector('.back-to-map')
   const shell = doc.querySelector('.map-shell')
@@ -18,8 +15,10 @@ export function createBackToMap({ doc = document, win = window, IO = win.Interse
   btn.addEventListener('click', () => {
     const reduce = mq('(prefers-reduced-motion: reduce)')
     shell.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' })
-    if (!shell.hasAttribute('tabindex')) shell.setAttribute('tabindex', '-1')
-    shell.focus?.({ preventScroll: true })
+    // Same focus target as the sensor panel's close; the bare shell until the map loads.
+    const target = shell.querySelector('.maplibregl-canvas') ?? shell
+    if (target === shell && !shell.hasAttribute('tabindex')) shell.setAttribute('tabindex', '-1')
+    target.focus?.({ preventScroll: true })
   })
 
   return { observer }

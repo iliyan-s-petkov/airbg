@@ -1,16 +1,13 @@
 import { test, expect } from './fixtures.js'
 
-// OpenProject #612: a small round "back to map" button, fixed bottom-right,
-// that appears on phones once the map has scrolled fully out of view.
+// #612: phone-only back-to-map button, shown once the map is fully off-screen.
 const PHONES = [
   { name: '393x873', viewport: { width: 393, height: 873 }, isMobile: true, hasTouch: true },
   { name: '873x393', viewport: { width: 873, height: 393 }, isMobile: true, hasTouch: true },
 ]
 const DESKTOP = { name: '1440x900', viewport: { width: 1440, height: 900 } }
 
-// Fixture pages are short (four seeded sensors); pad the foot of the page so
-// scrolling to the document end can actually clear the map's bottom edge,
-// same as a production page with a full sensor list would.
+// Fixture pages are too short to scroll the map off-screen; pad the footer like a full prod page.
 async function padPageFoot(page) {
   // A <style> tag trips the CSP (style-src 'self'); set the property directly.
   await page.evaluate(() => { document.querySelector('.footer').style.paddingBottom = '1200px' })
