@@ -11,9 +11,8 @@ const VIEWPORTS = [
 
 const PAGES = ['/', '/area/sofia']
 
-// sofia-oblast: same fixture footprint as sofia but kind "oblast", so no
-// .notice-inline city boundary note — the covered-area chrome without it.
-const FOLD_PAGES = ['/', '/area/sofia-oblast']
+// sofia is a city (boundary note, tallest chrome); sofia-oblast has no note.
+const FOLD_PAGES = ['/', '/area/sofia', '/area/sofia-oblast']
 const FOLD_VIEWPORTS = [
   { name: '393x873', width: 393, height: 873 },
   { name: '873x393', width: 873, height: 393 },
@@ -131,6 +130,17 @@ for (const vp of FOLD_VIEWPORTS) {
       await expect(cue).toBeVisible()
       const box = await cue.boundingBox()
       expect(box.y + box.height).toBeLessThanOrEqual(vp.height)
+      // The fixture's chrome is shorter than prod's, so also pin the area shrink rule itself,
+      // with the sensor bar removed as on an uncovered area.
+      if (path.includes('/area/') && vp.height > vp.width) {
+        const { h, cap } = await page.evaluate(() => {
+          document.querySelector('[data-island="sensorbar"]')?.remove()
+          const rem = parseFloat(getComputedStyle(document.documentElement).fontSize)
+          const h = document.querySelector('.map--wide').getBoundingClientRect().height
+          return { h, cap: Math.max(innerHeight - 22 * rem - 20, innerHeight * 0.55) }
+        })
+        expect(h).toBeLessThanOrEqual(cap + 1)
+      }
       await ctx.close()
     })
   }
