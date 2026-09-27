@@ -223,7 +223,14 @@ test.describe('phone layout does not widen the viewport', () => {
     }).toBeLessThanOrEqual(44)
     const bg = await note.evaluate((el) => getComputedStyle(el).backgroundColor)
     expect(bg).toBe('rgba(0, 0, 0, 0)')
-    const noteBox = await note.boundingBox()
+    // Unhide and measure in one page-side call: the unmocked /api/v1/wind 503
+    // can flip `hidden` back between two round trips, and a separate
+    // boundingBox() call is a second round trip.
+    const noteBox = await note.evaluate((el) => {
+      el.hidden = false
+      const r = el.getBoundingClientRect()
+      return { x: r.x, y: r.y, width: r.width, height: r.height }
+    })
     const mapBox = await map.boundingBox()
     expect(mapBox.x + mapBox.width - (noteBox.x + noteBox.width)).toBeLessThanOrEqual(8)
     const locateBox = await page.locator('.map-locate').boundingBox()
