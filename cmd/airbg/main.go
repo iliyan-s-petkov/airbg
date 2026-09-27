@@ -10,6 +10,9 @@ import (
 	"strconv"
 	"syscall"
 	"time"
+	// Embeds the IANA zoneinfo database, so time.LoadLocation("Europe/Sofia")
+	// resolves even on a base image with no /usr/share/zoneinfo.
+	_ "time/tzdata"
 
 	"airbg.org/internal/area"
 	"airbg.org/internal/backfill"

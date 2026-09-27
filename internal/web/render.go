@@ -70,6 +70,13 @@ type Renderer struct {
 	sitemapMu   sync.Mutex
 	sitemapAt   time.Time
 	sitemapBody []byte
+
+	// sofiaLoc is the zone every area sentence's {time} is printed in
+	// (Europe/Sofia), loaded once at construction. Falls back to UTC if the
+	// zoneinfo database is somehow unavailable despite the time/tzdata
+	// import in cmd/airbg — a wrong zone is a display bug, not a reason to
+	// fail startup.
+	sofiaLoc *time.Location
 }
 
 // NewRenderer builds the page renderer.
@@ -112,6 +119,12 @@ func NewRenderer(cat *i18n.Catalogue, holder *snapshot.Holder, cfg config.Config
 	rr.assets, _ = LoadAssets()
 	rr.static = LoadStaticAssets()
 
+	loc, err := time.LoadLocation("Europe/Sofia")
+	if err != nil {
+		loc = time.UTC
+	}
+	rr.sofiaLoc = loc
+
 	rr.embedCSP = httpx.EmbedCSP(cfg.Listen.CSP)
 
 	// "embed" is parsed with base.gohtml like the rest, and then redefines
@@ -137,9 +150,37 @@ type PageData struct {
 	RequestPath string // language-stripped, e.g. "/area/sofia"
 	BaseURL     string
 	GeneratedAt time.Time
+	// Now is the wall-clock time of THIS request, distinct from GeneratedAt
+	// (the snapshot's own build time): the area-page sentence's "stale"
+	// state is how far Now has drifted past GeneratedAt, not a property of
+	// the snapshot itself. Set once in newPageData so a test can pin both
+	// independently.
+	Now time.Time
 
 	Areas []AreaRow
 	Area  *AreaRow
+
+	// Directory is the /areas province-by-province link tree (§3 of the
+	// SEO6 plan). Set only for the /areas route; nil everywhere else, which
+	// is what keeps it off the home page's lighter render.
+	Directory []DirGroup
+
+	// AreaCrumbs is the breadcrumb chain for an area page: Map, then each
+	// ancestor root-first, then the current area last with no URL. Empty for
+	// every other page.
+	AreaCrumbs []Crumb
+	// AreaParentBlock, AreaChildrenBlock and AreaNearestBlock are the
+	// nav.area-links blocks below the readouts strip — see buildAreaLinks.
+	// Each nil when that block has nothing to show.
+	AreaParentBlock   *AreaLinkBlock
+	AreaChildrenBlock *AreaLinkBlock
+	AreaNearestBlock  *AreaLinkBlock
+	// AreaNowHTML and AreaDayHTML are the air-now and 24h sentences, fully
+	// rendered server HTML including one <p> each — see areaNowHTML and
+	// areaDayHTML. AreaDayHTML is empty when the state does not call for it
+	// (stale, uncovered, no value, or no DayRange).
+	AreaNowHTML template.HTML
+	AreaDayHTML template.HTML
 
 	TitleKey string
 	BodyKey  string
@@ -229,6 +270,9 @@ type PageData struct {
 	PanelHostClass string
 
 	cat *i18n.Catalogue
+	// sofiaLoc is the zone the area sentences' {time} placeholders are
+	// printed in — see Renderer.sofiaLoc.
+	sofiaLoc *time.Location
 }
 
 type AreaRow struct {
@@ -265,6 +309,11 @@ type AreaRow struct {
 	// The attribution the snapshot published. Exactly one is ever set.
 	Source   string
 	BySource map[string]snapshot.SourceEntry
+	// ParentSlug mirrors snapshot.AreaMeta.ParentSlug — see ParentChain.
+	ParentSlug string
+	// Day is the 24h min/max range, or nil — see snapshot.DayRange and
+	// PageData.AreaDay.
+	Day *snapshot.DayRange
 }
 
 // Readout is one cell of the country summary strip: what was measured, the
@@ -682,8 +731,13 @@ func (p PageData) AreaMetricUnitsAttr() string {
 // metric, the period and this, so it has to arrive as its own string; the
 // readouts strip uses the same two keys for the same reason.
 func (p PageData) AreaTier() string {
-	if p.Area != nil && p.Area.Kind == "city" {
-		return p.T("area.tier_city")
+	if p.Area != nil {
+		switch p.Area.Kind {
+		case "city":
+			return p.T("area.tier_city")
+		case "neighbourhood":
+			return p.T("area.tier_district")
+		}
 	}
 	return p.T("areas.tier")
 }
@@ -806,7 +860,8 @@ func (rr *Renderer) newPageData(lang, path string, generatedAt time.Time) PageDa
 	}
 	return PageData{
 		Lang: lang, RequestPath: path,
-		BaseURL: rr.baseURL, GeneratedAt: generatedAt, cat: rr.cat,
+		BaseURL: rr.baseURL, GeneratedAt: generatedAt, Now: time.Now(),
+		cat: rr.cat, sofiaLoc: rr.sofiaLoc,
 		Assets:          rr.assets,
 		static:          rr.static,
 		BasemapStyleURL: rr.basemapStyleURL,

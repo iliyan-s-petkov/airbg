@@ -3,7 +3,9 @@
      data width. Slice D gives it the kit's .readouts and .map--wide; the
      container is what it needs now that <main> no longer clamps anything. */}}
 <div class="frame">
-<nav aria-label="breadcrumb"><a href="{{.Path "/"}}">{{.T "area.back_to_map"}}</a></nav>
+<nav class="breadcrumb" aria-label="{{.T "area.breadcrumb.label"}}">
+{{range $i, $c := .AreaCrumbs}}{{if $i}}<span class="breadcrumb__sep" aria-hidden="true">›</span>{{end}}{{if $c.URL}}<a class="link" href="{{$c.URL}}">{{$c.Name}}</a>{{else}}<span aria-current="page">{{$c.Name}}</span>{{end}}{{end}}
+</nav>
 
 {{/* The kit's .page-head: the name, then whatever qualifies it, above the
      figures rather than between them. */}}
@@ -24,6 +26,16 @@
 <p class="notice-inline">{{.T "area.city_boundary_note"}}
   <a href="{{.Path "/about-the-data"}}">{{.T "about.title"}}</a></p>
 {{end}}
+</div>
+
+{{/* The air-now and 24h sentences: first text a reader and a crawler meet,
+     and what the page's title already promised ("сега"). Server HTML, no
+     island — JS never rewrites it, and the sentence's own <time datetime>
+     keeps a page left open honest after the map refreshes underneath it.
+     Touch phones show it below the map (app.css) to keep the pull tab above the fold. */}}
+<div class="area-summary">
+{{.AreaNowHTML}}
+{{.AreaDayHTML}}
 </div>
 
 {{if not .Area.Covered}}
@@ -224,6 +236,33 @@
      same number, and the cell carries a tier line saying what the sensors are
      counted in, which the bare sentence did not. */}}
 {{template "readouts-island" .}}
+
+{{/* Part of / children / nearest — up to three blocks of plain links, after
+     the figures rather than beside them: this is where-else, not how-much.
+     No values here, just navigation; the readouts above and the province
+     list already carry the numbers. */}}
+{{if or .AreaParentBlock .AreaChildrenBlock .AreaNearestBlock}}
+<nav class="area-links" aria-label="{{.T "area.links.label"}}">
+{{with .AreaParentBlock}}
+<div class="area-links__block">
+<h2>{{.Label}}</h2>
+<ul>{{range .Items}}<li><a class="link" href="{{$.Path (printf "/area/%s" .Slug)}}">{{.Name}}</a></li>{{end}}</ul>
+</div>
+{{end}}
+{{with .AreaChildrenBlock}}
+<div class="area-links__block">
+<h2>{{.Label}}</h2>
+<ul>{{range .Items}}<li><a class="link" href="{{$.Path (printf "/area/%s" .Slug)}}">{{.Name}}</a></li>{{end}}</ul>
+</div>
+{{end}}
+{{with .AreaNearestBlock}}
+<div class="area-links__block">
+<h2>{{.Label}}</h2>
+<ul>{{range .Items}}<li><a class="link" href="{{$.Path (printf "/area/%s" .Slug)}}">{{.Name}}</a></li>{{end}}</ul>
+</div>
+{{end}}
+</nav>
+{{end}}
 </div>
 </div>
 {{end}}

@@ -186,13 +186,18 @@ func (p PageData) datasetJSONLD() (template.JS, error) {
 	return encodeJSONLD(ds)
 }
 
-// areaBreadcrumb is Home → Areas → this area; parent levels (#608) go between Areas and the area.
+// areaBreadcrumb is Home → Areas → parents (from p.AreaCrumbs, root first) → this area.
 func (rr *Renderer) areaBreadcrumb(p PageData, row AreaRow) []ldListItem {
 	items := []ldListItem{
 		{Name: p.T("site.title"), Item: p.BaseURL + p.Path("/")},
 		{Name: p.T("nav.areas"), Item: p.BaseURL + p.Path("/areas")},
-		{Name: rr.areaCrumbName(row, p.Lang), Item: p.BaseURL + p.Path("/area/"+row.Slug)},
 	}
+	if n := len(p.AreaCrumbs); n > 2 {
+		for _, c := range p.AreaCrumbs[1 : n-1] {
+			items = append(items, ldListItem{Name: c.Name, Item: p.BaseURL + c.URL})
+		}
+	}
+	items = append(items, ldListItem{Name: rr.areaCrumbName(row, p.Lang), Item: p.BaseURL + p.Path("/area/"+row.Slug)})
 	for i := range items {
 		items[i].Type, items[i].Position = "ListItem", i+1
 	}

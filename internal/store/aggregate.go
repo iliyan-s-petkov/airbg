@@ -49,6 +49,10 @@ type AreaAggregate struct {
 	// Each contributing network's own figures, keyed "sensor.community" or
 	// "eea". Empty for an uncovered area.
 	BySource map[string]SourceAggregate
+	// ParentSlug is the containing area (a city for a neighbourhood, an
+	// oblast for a city), or "" for an oblast. Filled in by the caller from
+	// AreaParents, not by this query — see AreaParents.
+	ParentSlug string
 }
 
 // The CTEs are named fragments rather than one string because the same area
@@ -739,4 +743,136 @@ func (s *Store) AreaSeriesBand(ctx context.Context, slug, metric string, since t
 		bands = append(bands, b)
 	}
 	return bands, rows.Err()
+}
+
+// CoverageThreshold exposes the configured coverage floor to callers outside
+// this package (snapshot's day-range gating), so the 3-sensor rule lives in
+// one place instead of a second copy of the config value.
+func (s *Store) CoverageThreshold() int { return s.cfg.CoverageThreshold }
+
+// areaParentsSQL picks, for each non-oblast area, the area one tier up whose
+// geometry it overlaps the most. Largest overlap AREA, not centroid-in-polygon:
+// 14 of the 27 city boundaries are whole municipalities and Sofia's districts
+// are concave, so a child's centroid can land outside its natural parent while
+// still overlapping it more than any other candidate.
+//
+// The tier map (neighbourhood -> city, city -> oblast) is fixed in SQL rather
+// than read from a column, because the area table has no such column and the
+// two-tier hierarchy is a property of how this site's areas are imported, not
+// of the data.
+const areaParentsSQL = `
+WITH tier AS (
+    SELECT a.slug, a.kind,
+           CASE a.kind WHEN 'neighbourhood' THEN 'city' WHEN 'city' THEN 'oblast' END AS parent_kind
+      FROM area a
+),
+overlap AS (
+    SELECT t.slug AS slug, p.slug AS parent_slug,
+           row_number() OVER (
+               PARTITION BY t.slug
+               ORDER BY ST_Area(ST_Intersection(c.geom, p.geom)) DESC
+           ) AS rn
+      FROM tier t
+      JOIN area c ON c.slug = t.slug
+      JOIN area p ON p.kind = t.parent_kind
+     WHERE t.parent_kind IS NOT NULL
+)
+SELECT slug, parent_slug FROM overlap WHERE rn = 1`
+
+// AreaParents returns the parent slug of every area that has one (every
+// 'city' and 'neighbourhood'); an oblast, or a child with no overlapping
+// candidate at all, is simply absent from the map.
+func (s *Store) AreaParents(ctx context.Context) (map[string]string, error) {
+	rows, err := s.pool.Query(ctx, areaParentsSQL)
+	if err != nil {
+		return nil, fmt.Errorf("store: area parents: %w", err)
+	}
+	defer rows.Close()
+
+	out := make(map[string]string)
+	for rows.Next() {
+		var slug, parent string
+		if err := rows.Scan(&slug, &parent); err != nil {
+			return nil, fmt.Errorf("store: scan area parent: %w", err)
+		}
+		out[slug] = parent
+	}
+	return out, rows.Err()
+}
+
+// allAreaRawSeriesCountSQL is allAreaRawSeriesSQL's companion: the number of
+// distinct sensors behind each area's bucket, so a caller can refuse to draw a
+// 24h extreme from a bucket that only ever had one or two sensors reporting
+// overnight. Same bucketing, same filters, so the two can never disagree about
+// which readings a bucket contains.
+var allAreaRawSeriesCountSQL = `
+SELECT slug, b, count(*)
+  FROM (SELECT a.slug, ` + bucketed("r.time", 4) + ` AS b, r.sensor_id
+          FROM reading r
+          JOIN area_sensor asx ON asx.sensor_id = r.sensor_id
+          JOIN area a          ON a.slug = asx.area_slug
+         WHERE r.metric = $1
+           AND r.time  >= $2
+           AND r.quality = ANY($3::quality_flag[])
+         GROUP BY a.slug, b, r.sensor_id) per_sensor
+ GROUP BY slug, b
+ ORDER BY slug, b
+ LIMIT $5`
+
+var allAreaHourlySeriesCountSQL = `
+SELECT slug, b, count(*)
+  FROM (SELECT a.slug, ` + bucketed("h.bucket", 3) + ` AS b, h.sensor_id
+          FROM reading_hourly h
+          JOIN area_sensor asx ON asx.sensor_id = h.sensor_id
+          JOIN area a          ON a.slug = asx.area_slug
+         WHERE h.metric = $1
+           AND h.bucket >= $2
+         GROUP BY a.slug, b, h.sensor_id) per_sensor
+ GROUP BY slug, b
+ ORDER BY slug, b
+ LIMIT $4`
+
+// AllAreaSeriesCounts is AllAreaSeries's per-bucket station count, keyed by
+// slug then bucket time — a map rather than a parallel slice, because a caller
+// must look a count up by the exact bucket a point in AllAreaSeries's result
+// carries, and two independent queries are not guaranteed to enumerate exactly
+// the same set of buckets in the same order.
+func (s *Store) AllAreaSeriesCounts(ctx context.Context, metric string, since time.Time, hourly bool, bucket time.Duration) (map[string]map[time.Time]int, error) {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("store: begin all area series counts: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	if err := db.SetLocalStatementTimeout(ctx, tx, db.StatementTimeoutValue(s.seriesTimeout)); err != nil {
+		return nil, fmt.Errorf("store: all area series counts timeout: %w", err)
+	}
+
+	var rows pgx.Rows
+	if hourly {
+		rows, err = tx.Query(ctx, allAreaHourlySeriesCountSQL, metric, since, bucket.Seconds(), AllAreaSeriesRowLimit)
+	} else {
+		rows, err = tx.Query(ctx, allAreaRawSeriesCountSQL, metric, since, usableQuality, bucket.Seconds(), AllAreaSeriesRowLimit)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("store: all area series counts for %q: %w", metric, err)
+	}
+	defer rows.Close()
+
+	out := make(map[string]map[time.Time]int)
+	for rows.Next() {
+		var (
+			slug string
+			at   time.Time
+			n    int
+		)
+		if err := rows.Scan(&slug, &at, &n); err != nil {
+			return nil, fmt.Errorf("store: scan all area series count: %w", err)
+		}
+		if out[slug] == nil {
+			out[slug] = make(map[time.Time]int)
+		}
+		out[slug][at] = n
+	}
+	return out, rows.Err()
 }
