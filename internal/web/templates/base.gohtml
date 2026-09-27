@@ -3,11 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{{block "title" .}}{{.T "site.title"}}{{end}}</title>
-<meta name="description" content="{{.T "site.tagline"}}">
-<link rel="canonical" href="{{.CanonicalURL}}">
+<title>{{.Title}}</title>
+<meta name="description" content="{{.MetaDescription}}">
+{{if .NoIndex}}<meta name="robots" content="noindex">
+{{else}}<link rel="canonical" href="{{.CanonicalURL}}">
 {{range .Alternates}}<link rel="alternate" hreflang="{{.Lang}}" href="{{.URL}}">
-{{end}}<link rel="icon" href="{{.Static "favicon.svg"}}" type="image/svg+xml">
+{{end}}{{end}}<link rel="icon" href="{{.Static "favicon.svg"}}" type="image/svg+xml">
 {{with .Assets.Style "theme"}}<link rel="stylesheet" href="{{.}}">
 {{else}}<link rel="stylesheet" href="{{.Static "theme.css"}}">
 {{end}}<link rel="stylesheet" href="{{.Static "app.css"}}">

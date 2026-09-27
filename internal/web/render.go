@@ -19,6 +19,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode/utf8"
 
 	"airbg.org/internal/api"
 	"airbg.org/internal/config"
@@ -142,6 +143,17 @@ type PageData struct {
 
 	TitleKey string
 	BodyKey  string
+
+	// Title and Description are the rendered <title> and meta description,
+	// composed per handler from the seo.* catalogue keys (OpenProject #605).
+	// Title already carries the brand suffix when it fits; see composeTitle.
+	Title       string
+	Description string
+
+	// NoIndex marks a page that must not be indexed or linked as canonical: an
+	// error render. base.gohtml drops canonical/alternate/OG tags and emits
+	// robots noindex instead.
+	NoIndex bool
 
 	// Assets resolves to hashed script/style paths when a Vite build has been
 	// embedded, and to nothing when the dist tree holds only .keep — see
@@ -537,6 +549,31 @@ func (p PageData) SilentAreas() int {
 
 func (p PageData) T(key string) string { return p.cat.T(p.Lang, key) }
 
+// titleBrandSep joins a title core to the brand name — see composeTitle.
+const titleBrandSep = " — "
+
+// composeTitle appends " — <brand>" to core, but only when the result stays
+// within Google's ~60-character display budget; past it the suffix is
+// dropped rather than truncating the core, which would cut off the place
+// name a search result is trying to match (OpenProject #605 / seo-copy.md §2).
+func composeTitle(core, brand string) string {
+	full := core + titleBrandSep + brand
+	if utf8.RuneCountInString(full) <= 60 {
+		return full
+	}
+	return core
+}
+
+// MetaDescription is the meta/og description: the per-page value a handler
+// set, or the site tagline for a page that set none (today, only the error
+// page).
+func (p PageData) MetaDescription() string {
+	if p.Description != "" {
+		return p.Description
+	}
+	return p.T("site.tagline")
+}
+
 // MetricsAttr and MetricLabelsAttr are the comma-joined form of Metrics and
 // MetricLabels that the switcher island's data-metrics / data-metric-labels
 // attributes carry. Joined here, not in the template, so the same rule that
@@ -873,6 +910,11 @@ func (rr *Renderer) RenderError(w http.ResponseWriter, r *http.Request, status i
 	data := rr.newPageData(lang, path, time.Time{})
 	data.TitleKey = "error." + kind + ".title"
 	data.BodyKey = "error." + kind + ".body"
+	data.Title = data.T(data.TitleKey) + titleBrandSep + data.T("site.title")
+	// Never indexed and never a canonical target: base.gohtml drops
+	// canonical/alternate/OG tags for this page and emits robots noindex
+	// instead — see OpenProject #605's error-page audit finding.
+	data.NoIndex = true
 	// No Cache-Control set here: render derives it from the status, so an error
 	// page is no-store by construction. Setting it here as well was how the
 	// overwrite bug hid — it looked handled at this level and was undone below.
