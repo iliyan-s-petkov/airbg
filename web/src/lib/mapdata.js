@@ -189,6 +189,9 @@ export async function refresh(map, state, cfg, chrome, force = false, { defer = 
   const key = `${effective}:${state.slug ?? ''}:${state.window}`
   if (!force && key === state.tier) return
 
+  // Not awaited: the list feeds the registry only, so the paint does not wait on it.
+  if (effective !== 'sensors') loadAreaSensors(state, cfg, force)
+
   let body
   try {
     body = await getJSON(url)
@@ -204,10 +207,12 @@ export async function refresh(map, state, cfg, chrome, force = false, { defer = 
   // city/country tier response: those responses have no sensor columns at
   // all (see areaPayload), and clearing the registry here would blank an
   // already-open panel the instant a visitor zooms out past the sensor
-  // tier, rather than leaving its last-known content on screen.
+  // tier, rather than leaving its last-known content on screen. Area pages fill
+  // it below the sensor tier too, through loadAreaSensors.
   if (effective === 'sensors') {
     setSensors(body, state.slug ?? null)
     state.sensorBody = body
+    state.listKey = listKeyFor(state)
   } else {
     state.sensorBody = null
     // The raw payload, not areaFeatures' output: features drop `zoom`
@@ -226,6 +231,35 @@ export async function refresh(map, state, cfg, chrome, force = false, { defer = 
   const paint = () => paintSource(map, SOURCE_ID, features)
   if (defer) return paint
   paint()
+}
+
+// The registry's own dedup key: the slug and window it was loaded for.
+function listKeyFor(state) {
+  return `${state.slug ?? ''}:${state.window}`
+}
+
+// loadAreaSensors fills the registry below the sensor tier on an area page, so the
+// count line and the filter are right at every zoom. Never paints; sensorBody stays null.
+// Home page (no cfg.slug) is left alone: nothing there reads a count.
+async function loadAreaSensors(state, cfg, force) {
+  if (!cfg.slug || !state.slug) return
+  const key = listKeyFor(state)
+  if (!force && key === state.listKey) return
+  const slug = state.slug
+  // Claimed before the await, so a moveend landing mid-request does not ask again.
+  state.listKey = key
+  let body
+  try {
+    body = await getJSON(withWindow(urlFor('sensors', slug), state.window))
+  } catch (err) {
+    // Quiet like the hex grid: the aggregates on screen are unaffected.
+    if (state.listKey === key) state.listKey = null
+    console.error('area sensors:', err)
+    return
+  }
+  // A later pick (another slug or window) owns the registry now.
+  if (state.listKey !== key) return
+  setSensors(body, slug)
 }
 
 // showArea is what the finder's pick does: fly to the area and select it, on

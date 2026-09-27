@@ -6,8 +6,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import {
   debounce, loadScales, initData, refreshHexes, showArea, mapHint,
-  setSourceViewAvailability, metricNote, cellTier, urlFor,
+  setSourceViewAvailability, metricNote, cellTier, urlFor, refresh,
 } from '../mapdata.js'
+import { getSensors, getSensorArea, setSensors } from '../sensors.svelte.js'
 import { hintController } from '../chrome.js'
 import { placeVisitor } from '../placement.js'
 import { clearCache } from '../api.js'
@@ -722,6 +723,89 @@ describe('showArea', () => {
     expect(await showArea(map, state, cfg, chrome(), { lon: 1, lat: 2, zoom: 9 })).toBe(false)
     expect(map.flyTo).not.toHaveBeenCalled()
     expect(state.slug).toBe('sofia')
+  })
+})
+
+// OP #571: an oblast page opens at the country tier, so the sensor count read an
+// empty registry. The area's list is loaded at every tier; the map draws the same.
+describe('the area sensor list below the sensor tier', () => {
+  const overview = { areas: [{ slug: 'pleven-oblast', lon: 24.6, lat: 43.4, covered: true, values: { P2: 5 }, sensor_count: 2 }] }
+  const sensors = { generated_at: '2026-09-27T00:00:00Z', sensors: { id: [1, 2], lon: [24.6, 24.7], lat: [43.4, 43.5], P2: [5, null] } }
+  const cfgFor = (slug) => ({
+    slug, zoomCity: 9, zoomSensor: 11, metric: 'P2', noDataColour: '#9ca3af',
+    t: { hint: 'h', unavailable: 'u', noSources: 'n' },
+  })
+  const chrome = () => ({ showHint: vi.fn(), showError: vi.fn(), showNote: vi.fn(), showLegend: vi.fn() })
+
+  function fakeMap(zoom) {
+    const painted = []
+    return {
+      painted,
+      getZoom: () => zoom,
+      getSource: (id) => (id === 'airbg-data' ? { setData: (data) => painted.push(data) } : undefined),
+    }
+  }
+
+  function stubFetch() {
+    return vi.fn(async (url) => ({
+      ok: true, status: 200, headers: new Headers(),
+      json: async () => (url.includes('/sensors') ? sensors : overview),
+    }))
+  }
+
+  const sensorCalls = (fetch) => fetch.mock.calls.filter(([url]) => url.includes('/sensors'))
+
+  beforeEach(() => { clearCache(); resetSourceFilterForTests(); setSensors(null) })
+  afterEach(() => { clearCache(); setSensors(null) })
+
+  it('loads the list at the country tier and paints only the aggregates', async () => {
+    const fetch = stubFetch()
+    vi.stubGlobal('fetch', fetch)
+    const map = fakeMap(7)
+    const state = { slug: 'pleven-oblast', tier: null, scales: null, window: '', sensorBody: null }
+
+    await refresh(map, state, cfgFor('pleven-oblast'), chrome())
+    // The list is not awaited by refresh, so the paint never waits on it.
+    await vi.waitFor(() => expect(getSensors()).not.toBe(null))
+
+    expect(sensorCalls(fetch).map(([url]) => url)).toEqual(['/api/v1/area/pleven-oblast/sensors'])
+    expect(getSensors()).toEqual(sensors)
+    expect(getSensorArea()).toBe('pleven-oblast')
+    // Unchanged country tier: one paint, of the area aggregate, no sensor dots.
+    expect(map.painted).toHaveLength(1)
+    expect(map.painted[0].features.map((f) => f.properties.slug)).toEqual(['pleven-oblast'])
+    expect(map.painted[0].features.every((f) => f.properties.id === undefined)).toBe(true)
+    expect(state.sensorBody).toBe(null)
+    expect(state.tier).toBe('country:pleven-oblast:')
+  })
+
+  it('does not ask again on a pass with the same slug', async () => {
+    const fetch = stubFetch()
+    vi.stubGlobal('fetch', fetch)
+    const state = { slug: 'pleven-oblast', tier: null, scales: null, window: '', sensorBody: null }
+    const cfg = cfgFor('pleven-oblast')
+
+    await refresh(fakeMap(7), state, cfg, chrome())
+    await vi.waitFor(() => expect(getSensors()).not.toBe(null))
+    setSensors(null)
+    await refresh(fakeMap(10), state, cfg, chrome())
+    await new Promise((resolve) => setTimeout(resolve, 5))
+
+    expect(sensorCalls(fetch)).toHaveLength(1)
+    // Not republished either: the city pass left the registry as it found it.
+    expect(getSensors()).toBe(null)
+  })
+
+  it('leaves the home page alone', async () => {
+    const fetch = stubFetch()
+    vi.stubGlobal('fetch', fetch)
+    const state = { slug: 'pleven-oblast', tier: null, scales: null, window: '', sensorBody: null }
+
+    await refresh(fakeMap(7), state, cfgFor(null), chrome())
+    await new Promise((resolve) => setTimeout(resolve, 5))
+
+    expect(sensorCalls(fetch)).toHaveLength(0)
+    expect(getSensors()).toBe(null)
   })
 })
 
