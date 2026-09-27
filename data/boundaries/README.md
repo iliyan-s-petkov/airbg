@@ -124,8 +124,13 @@ under `Столична` is a finer subdivision, not the district level). Includ
 appear in the site footer alongside sensor.community's. This is a licence
 obligation, not a courtesy.
 
-**Geometry:** fetched with `out geom;` (full outer-ring coordinates inline, no
-separate `out body`/`out skel` pass needed), then cleaned and simplified with
+**Geometry:** fetched with `out geom;`, which returns one line geometry per
+relation member way, not an assembled polygon. The member ways are stitched
+into closed rings with `ST_LineMerge`/`ST_Collect` and turned into polygons
+with `ST_BuildArea` *before* cleaning — skipping this step is what produced
+the fragmented boundaries fixed by OpenProject #614 (21 of 27 cities were a
+MultiPolygon of dozens of perimeter-tracing slivers instead of one assembled
+polygon; see `docs/boundary-regeneration.md`). Then cleaned and simplified with
 `ST_MakeValid`, `ST_SimplifyPreserveTopology(geom, 0.002)` (roughly 200 m), and
 `ST_CollectionExtract(..., 3)` to drop stray linestrings. `ST_MakeValid` is
 needed here — several relations contain a spurious near-zero-length "outer"

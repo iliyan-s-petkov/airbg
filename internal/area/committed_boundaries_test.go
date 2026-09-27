@@ -178,6 +178,101 @@ func TestAllFourFilesImportWithoutRowLoss(t *testing.T) {
 	}
 }
 
+// TestBoundaryPartsAssembleIntoAPlausibleArea catches a regeneration that
+// keeps every OSM relation member way as its own ring instead of assembling
+// them into the relation's actual outer/inner rings (ST_LineMerge +
+// ST_BuildArea, or ST_Polygonize, over the unioned member ways). That defect
+// still parses, still imports, and still produces a MultiPolygon with a
+// non-zero area — it just traces only the perimeter, so the result is a
+// sliver instead of a country, oblast or city.
+//
+// Two independent signals catch it because either one alone can be fooled:
+//
+//   - Total area. A perimeter sliver is orders of magnitude smaller than the
+//     real place, but not necessarily zero, so a raw "is it > 0" check would
+//     pass on a broken file.
+//   - Containment of a known interior point. A ring-per-way MultiPolygon can
+//     still integrate to a plausible-looking total area (many thin slivers
+//     add up) while not covering the point a reader would expect the area to
+//     contain, e.g. the city centre.
+//
+// Plovdiv is the motivating case: 19 fragments tracing only the perimeter,
+// ~24 km^2 total against a real ~102 km^2 municipality, and its own city
+// centre falls outside every one of the 19 parts.
+func TestBoundaryPartsAssembleIntoAPlausibleArea(t *testing.T) {
+	ctx, pool := migrated(t)
+
+	for _, f := range []struct{ path, kind string }{
+		{"../../data/boundaries/oblasti.geojson", "oblast"},
+		{"../../data/boundaries/cities.geojson", "city"},
+		{"../../data/boundaries/sofia-districts.geojson", "neighbourhood"},
+	} {
+		if _, err := area.Import(ctx, pool, f.path, f.kind); err != nil {
+			t.Fatalf("Import(%s, %s): %v", f.path, f.kind, err)
+		}
+	}
+
+	// Minimum plausible area in km^2, by kind. An oblast is a chunk of a
+	// country; even the smallest Bulgarian oblast is well over 1000 km^2. A
+	// city — city-proper or whole municipality, see docs/known-limitations.md
+	// — is at least a few km^2; Sofia's districts are smaller still but each
+	// is a real neighbourhood, not a sliver.
+	minAreaKM2 := map[string]float64{
+		"oblast":        1000,
+		"city":          5,
+		"neighbourhood": 0.2,
+	}
+
+	rows, err := pool.Query(ctx,
+		`SELECT slug, kind, ST_Area(geom) / 1e6 FROM area WHERE kind IN ('oblast', 'city', 'neighbourhood') ORDER BY slug`)
+	if err != nil {
+		t.Fatalf("query: %v", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var slug, kind string
+		var areaKM2 float64
+		if err := rows.Scan(&slug, &kind, &areaKM2); err != nil {
+			t.Fatalf("scan: %v", err)
+		}
+		if want := minAreaKM2[kind]; areaKM2 < want {
+			t.Errorf("area %q (kind %s): %.2f km^2, want >= %v km^2 — looks like a perimeter sliver, not an assembled polygon", slug, kind, areaKM2, want)
+		}
+	}
+	if err := rows.Err(); err != nil {
+		t.Fatalf("rows: %v", err)
+	}
+
+	// Known interior points, lon/lat (PostGIS geography order), for cities
+	// whose union of parts must contain them.
+	knownPoints := []struct {
+		slug     string
+		lon, lat float64
+	}{
+		{"plovdiv", 24.7490, 42.1420},
+		{"sofiya", 23.3219, 42.6977},
+		{"varna", 27.9147, 43.2141},
+		{"burgas", 27.4626, 42.5048},
+		{"ruse", 25.9657, 43.8356},
+	}
+
+	for _, p := range knownPoints {
+		var covers bool
+		err := pool.QueryRow(ctx,
+			`SELECT ST_Covers(geom, ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography)
+			   FROM area WHERE slug = $3 AND kind = 'city'`,
+			p.lon, p.lat, p.slug,
+		).Scan(&covers)
+		if err != nil {
+			t.Fatalf("point-in-polygon query for %q: %v", p.slug, err)
+		}
+		if !covers {
+			t.Errorf("city %q does not cover its own known interior point (%v, %v) — assembled polygon is missing the centre", p.slug, p.lon, p.lat)
+		}
+	}
+}
+
 // TestBoundariesDoNotSwapCoordinates is the swap detector for this data. A
 // GeoJSON file written with [lat, lon] instead of [lon, lat] still parses, still
 // imports, and still produces valid polygons — they simply sit in the Indian
