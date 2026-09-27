@@ -9,9 +9,10 @@ const VIEWPORTS = [
 ]
 
 // Client coordinates of a rendered sensor marker, once the sensor tier has painted.
+// Not gated on isStyleLoaded(): in CI it can stay false with the markers painted (#613).
 const markerPoint = (page) => page.evaluate(() => {
   const map = document.querySelector('[data-island="map"]').__map
-  if (!map?.isStyleLoaded?.()) return null
+  if (!map?.getLayer?.('airbg-markers')) return null
   const box = map.getCanvas().getBoundingClientRect()
   const f = map.queryRenderedFeatures({ layers: ['airbg-markers'] })
     .find((x) => x.properties?.id != null && x.geometry.type === 'Point')

@@ -601,6 +601,24 @@ func (p PageData) SilentAreas() int {
 
 func (p PageData) T(key string) string { return p.cat.T(p.Lang, key) }
 
+// InitialTierKey is the caption tier the map island settles on at the opening zoom.
+// Never "sensors": cellTier (mapdata.js) only says so above the grid's point handover, which no page opens at.
+func (p PageData) InitialTierKey() string {
+	zoom := p.DefaultZoom
+	if p.Area != nil {
+		zoom = p.Area.Zoom
+	}
+	if zoom < p.ZoomCity {
+		return "country"
+	}
+	return "city"
+}
+
+// InitialTier is the server-rendered legend__tier text; mountChrome adopts the node.
+func (p PageData) InitialTier() string {
+	return p.T("map.legend.tier." + p.InitialTierKey())
+}
+
 // titleBrandSep joins a title core to the brand name — see composeTitle.
 const titleBrandSep = " — "
 

@@ -630,6 +630,50 @@ describe('mountChrome anchors the key to the shell and the tier line outside it'
     mountChrome(el, chromeCfg())
     expect(el.querySelector('.scale--onmap')).not.toBeNull()
   })
+
+  // OpenProject #609: the server renders this element (PageData.InitialTier)
+  // so it paints with the HTML rather than waiting on the map bundle for LCP.
+  // mountChrome must reuse that node, not insert a second one beside it —
+  // two would mean the LCP element Lighthouse measured is not the one the
+  // island goes on to update.
+  it('adopts a server-rendered tier line instead of creating a new one', () => {
+    const shell = document.createElement('div')
+    shell.className = 'map-shell'
+    const el = document.createElement('div')
+    el.className = 'map map--hero'
+    shell.appendChild(el)
+    const ssrTier = document.createElement('p')
+    ssrTier.className = 'legend__tier map-tier'
+    ssrTier.textContent = 'Всяка клетка е медиана за площта под нея'
+    const host = document.createElement('div')
+    host.append(shell, ssrTier)
+
+    mountChrome(el, chromeCfg())
+
+    expect(host.querySelectorAll('.map-tier')).toHaveLength(1)
+    expect(host.querySelector('.map-tier')).toBe(ssrTier)
+  })
+
+  // The mount-time bootstrap draw (tier: null, before any real tier is known)
+  // must not blank the server-rendered text — that would be exactly the flash
+  // of empty content SSR was meant to avoid.
+  it('leaves the server-rendered tier text alone until a real tier arrives', () => {
+    const shell = document.createElement('div')
+    shell.className = 'map-shell'
+    const el = document.createElement('div')
+    el.className = 'map map--hero'
+    shell.appendChild(el)
+    const ssrTier = document.createElement('p')
+    ssrTier.className = 'legend__tier map-tier'
+    ssrTier.textContent = 'Всяка клетка е медиана за площта под нея'
+    const host = document.createElement('div')
+    host.append(shell, ssrTier)
+
+    mountChrome(el, chromeCfg())
+
+    expect(ssrTier.textContent).toBe('Всяка клетка е медиана за площта под нея')
+    expect(ssrTier.hidden).toBe(false)
+  })
 })
 
 // The key's caption is the metric and its unit, not a fixed phrase. "Качество

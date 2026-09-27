@@ -528,6 +528,10 @@ strong, b { font-weight: var(--weight-emphasis); }
 /* Second signal only; the struck glyph carries the off state. */
 .data-refresh__auto[aria-checked="true"] { color: var(--accent); }
 
+/* Island hosts render empty until mount; reserve their measured height (area-page CLS). */
+[data-island="switcher"] { min-block-size: var(--control-height); }
+[data-island="sensorbar"] { min-block-size: 102px; }
+
 /* Separate cards rather than the kit's hairline-divided strip, each one centred
    on its own figure so the four line up whatever their labels wrap to. */
 .readouts { gap: var(--space-3); background: none; border-radius: 0; overflow: visible; box-shadow: none; }
@@ -1033,6 +1037,8 @@ html:has(> body.embed) { block-size: 100%; }
   [data-island="sensorbar"] {
     display: flex; align-items: center; gap: var(--space-2);
     min-inline-size: 0; overflow: hidden;
+    /* Own 48px track here; the CLS reservation would overflow it. */
+    min-block-size: 0;
   }
   /* Reset the base row's margin-block so the flex row fits the 48px track. */
   [data-island="sensorbar"] .sensor-bar { display: flex; align-items: center; margin-block: 0; }

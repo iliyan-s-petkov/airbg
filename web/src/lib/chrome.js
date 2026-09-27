@@ -143,9 +143,15 @@ export function mountChrome(el, cfg) {
   // to — inset-block-end:16px is measured from the shell's bottom — so anything
   // else placed in it makes the shell taller than the map and pushes the key
   // down past the map's own edge. Measured live: 16px below it.
-  const tierLine = document.createElement('p')
+  // Adopt the server-rendered caption (PageData.InitialTier) when the page has one.
+  const ssrTierLine = shell.nextElementSibling
+  const adoptingTierLine = ssrTierLine?.classList.contains('map-tier')
+  const tierLine = adoptingTierLine ? ssrTierLine : document.createElement('p')
   tierLine.className = 'legend__tier map-tier'
-  shell.after(tierLine)
+  if (!adoptingTierLine) {
+    shell.after(tierLine)
+    tierLine.hidden = true
+  }
 
   // Full screen and zoom go on the FRAME, not the shell: they are furniture on
   // the canvas and belong over it at every width, which is the opposite of the
@@ -365,6 +371,8 @@ export function mountChrome(el, cfg) {
       // claim, the dialog would open on nothing.
       info: scale ? { label: cfg.t.legendAbout, onOpen: () => scaleDialog.show(scale) } : null,
     })
+    // Bootstrap call: keep the server-rendered caption.
+    if (tier === null) return
     const text = cfg.t.tier[tier] ?? ''
     tierLine.textContent = text
     tierLine.hidden = !text

@@ -591,6 +591,34 @@ func TestMapIslandRendersFrontendConfiguration(t *testing.T) {
 // same numbers lived a second time in api/locate.go. Only the home page is
 // asserted here: /area/sofia's view comes from the area row, not from
 // frontend.default_*.
+// The LCP element (p.legend__tier) is in the HTML with the text the map island
+// settles on; prod area pages open at zoom 11-13 and the client says "median" there.
+func TestLegendTierIsServerRendered(t *testing.T) {
+	snap := fixture(t)
+	snap.KnownSlugs["hitier"] = snapshot.AreaMeta{
+		Slug: "hitier", Kind: "neighbourhood", NameBG: "Хайтиер", NameEN: "Hitier",
+		CentroidLon: 23.32, CentroidLat: 42.69, DefaultZoom: 12,
+		Covered: true, SensorCount: 3,
+	}
+	rr := renderer(t, snap)
+
+	cases := []struct {
+		path string
+		want string
+	}{
+		{"/", "Всяка клетка е медиана за площта под нея"},
+		{"/area/sofia", "Всяка клетка е медиана за площта под нея"},
+		// Above zoom_sensor, but below the grid's point handover (cellTier, mapdata.js).
+		{"/area/hitier", "Всяка клетка е медиана за площта под нея"},
+	}
+	for _, c := range cases {
+		body := fetch(t, rr, c.path).Body.String()
+		if !strings.Contains(body, `<p class="legend__tier map-tier">`+c.want+`</p>`) {
+			t.Errorf("%s: body missing server-rendered legend__tier %q", c.path, c.want)
+		}
+	}
+}
+
 func TestHomeMapIslandRendersTheConfiguredDefaultView(t *testing.T) {
 	rr := renderer(t, fixture(t))
 	tag := islandTag(t, fetch(t, rr, "/").Body.String(), "map")
