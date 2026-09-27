@@ -203,6 +203,8 @@
   "seo.district.title": "{name}, Sofia: air quality now",
   "seo.home.description": "Live map of air pollution in Bulgaria: PM2.5 and PM10 from sensor.community citizen sensors and official ExEA/EEA stations, in real time.",
   "seo.home.title": "Bulgaria air quality map: PM2.5 and PM10 now",
+  "seo.image_alt": "Air quality map of Bulgaria — airbg.org",
+  "seo.locale": "en_US",
   "seo.oblast.description": "Air quality in {inline}, Bulgaria: PM2.5 and PM10 from citizen sensors and official stations, with the province median and 24-hour history.",
   "seo.oblast.inline": "{name} Province",
   "seo.oblast.inline.sofiya-grad-oblast": "Sofia City Province",

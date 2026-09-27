@@ -574,6 +574,37 @@ func (p PageData) MetaDescription() string {
 	return p.T("site.tagline")
 }
 
+// OGTitle is the title core with the brand suffix stripped, per seo-copy.md
+// §5: og:site_name already carries the brand, so og:title repeating it would
+// be redundant on every share card.
+func (p PageData) OGTitle() string {
+	return strings.TrimSuffix(p.Title, titleBrandSep+p.T("site.title"))
+}
+
+// OGImageURL is the absolute URL of the static share-card image, built from
+// BaseURL rather than hard-coded, so it agrees with whatever host the
+// deployment is actually configured for.
+func (p PageData) OGImageURL() string { return p.BaseURL + p.Static("social-preview.png") }
+
+// OGLocale is this page's og:locale, in the seo.locale key's og-style form
+// ("bg_BG", not "bg").
+func (p PageData) OGLocale() string { return p.T("seo.locale") }
+
+// OGLocaleAlternates is og:locale:alternate for every OTHER served language,
+// mirroring LangLinks/Alternates: the set is whatever catalogues loaded, not a
+// hardcoded pair.
+func (p PageData) OGLocaleAlternates() []string {
+	langs := p.cat.Languages()
+	out := make([]string, 0, len(langs))
+	for _, lang := range langs {
+		if lang == p.Lang {
+			continue
+		}
+		out = append(out, p.cat.T(lang, "seo.locale"))
+	}
+	return out
+}
+
 // MetricsAttr and MetricLabelsAttr are the comma-joined form of Metrics and
 // MetricLabels that the switcher island's data-metrics / data-metric-labels
 // attributes carry. Joined here, not in the template, so the same rule that
