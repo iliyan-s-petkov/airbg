@@ -346,6 +346,7 @@ export function mountChrome(el, cfg) {
   })
 
   const showLegend = ({ bands, tier, metric, scale }) => {
+    if (scale) scaleDialog.prime(scale)
     renderLegend(legend, {
       // Repainted with the bands, which is the only way it stays right: the
       // bands change with the metric, and so does the name of what they band.

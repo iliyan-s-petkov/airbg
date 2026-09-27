@@ -151,6 +151,21 @@ describe('createScaleDialog', () => {
     }
   })
 
+  // The link must not sit crawlable-but-hrefless from first paint, before the
+  // (i) is ever clicked: prime paints without opening the dialog.
+  it('prime paints the link without opening the dialog', () => {
+    const d = createScaleDialog(document, {
+      closeLabel: 'x', sourceLabel: 'Официалният документ', disclaimer: '', lang: 'en',
+    })
+    document.body.appendChild(d.el)
+    d.el.showModal = vi.fn(() => { d.el.open = true })
+    d.prime(EAQI)
+    const link = d.el.querySelector('.scaleinfo__source')
+    expect(link.getAttribute('href')).toBe('https://airindex.eea.europa.eu/')
+    expect(d.el.showModal).not.toHaveBeenCalled()
+    expect(d.el.open).toBeFalsy()
+  })
+
   // Repainting an already-open dialog is what a metric switch behind it does,
   // and showModal throws on an open dialog.
   it('repaints in place rather than reopening', () => {
