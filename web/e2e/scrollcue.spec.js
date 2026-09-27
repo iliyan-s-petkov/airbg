@@ -11,6 +11,14 @@ const VIEWPORTS = [
 
 const PAGES = ['/', '/area/sofia']
 
+// sofia-oblast: same fixture footprint as sofia but kind "oblast", so no
+// .notice-inline city boundary note — the covered-area chrome without it.
+const FOLD_PAGES = ['/', '/area/sofia-oblast']
+const FOLD_VIEWPORTS = [
+  { name: '393x873', width: 393, height: 873 },
+  { name: '873x393', width: 873, height: 393 },
+]
+
 const phoneCtx = (browser, vp) =>
   browser.newContext({ viewport: { width: vp.width, height: vp.height }, isMobile: true, hasTouch: true })
 
@@ -80,6 +88,51 @@ for (const vp of VIEWPORTS) {
         await ctx.close()
       })
     }
+  }
+}
+
+test('the full 64x44 tap target is hit-testable, not just the visual tab', async ({ browser }) => {
+  const vp = VIEWPORTS[0]
+  const ctx = await phoneCtx(browser, vp)
+  const page = await ctx.newPage()
+  await page.goto('/')
+  const cue = page.locator('a.scroll-cue')
+  await expect(cue).toBeVisible()
+  const box = await cue.boundingBox()
+  const centerX = box.x + box.width / 2
+  const centerY = box.y + box.height / 2
+
+  const points = {
+    '10px above top edge': { x: centerX, y: box.y - 10 },
+    '10px below bottom edge': { x: centerX, y: box.y + box.height + 10 },
+    '2px inside left extension': { x: box.x - 2, y: centerY },
+    '2px inside right extension': { x: box.x + box.width + 2, y: centerY },
+  }
+
+  for (const [label, p] of Object.entries(points)) {
+    const hitsCue = await page.evaluate(({ x, y }) => {
+      const el = document.elementFromPoint(x, y)
+      const cueEl = document.querySelector('a.scroll-cue')
+      return !!el && (el === cueEl || cueEl.contains(el))
+    }, p)
+    expect(hitsCue, `${label} (${p.x}, ${p.y})`).toBe(true)
+  }
+
+  await ctx.close()
+})
+
+for (const vp of FOLD_VIEWPORTS) {
+  for (const path of FOLD_PAGES) {
+    test(`${vp.name} ${path}: the pull tab's bottom stays in the first viewport`, async ({ browser }) => {
+      const ctx = await phoneCtx(browser, vp)
+      const page = await ctx.newPage()
+      await page.goto(path)
+      const cue = page.locator('a.scroll-cue')
+      await expect(cue).toBeVisible()
+      const box = await cue.boundingBox()
+      expect(box.y + box.height).toBeLessThanOrEqual(vp.height)
+      await ctx.close()
+    })
   }
 }
 

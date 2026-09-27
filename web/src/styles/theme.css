@@ -39,6 +39,8 @@
   --map-cap: 78vh;
   /* Phone chrome above the hero map: masthead 48 + page head 45 + toolbar 56, measured. */
   --phone-chrome: 9.5rem;
+  /* Phone chrome above an area page's map, worst case (city note), measured 349px. */
+  --phone-chrome-area: 22rem;
   /* Horizontal scale ramp; legend.js sets it at runtime from /api/v1/scales. */
   --ramp-h: none;
 }
