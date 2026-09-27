@@ -54,6 +54,8 @@
   --phone-chrome: 9.5rem;
   /* Phone chrome above an area page's map, worst case (city note), measured 349px. */
   --phone-chrome-area: 22rem;
+  /* Phone masthead height; app.css drops it to 40px in landscape. */
+  --masthead-h: 48px;
   /* Horizontal scale ramp; legend.js sets it at runtime from /api/v1/scales. */
   --ramp-h: none;
 

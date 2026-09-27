@@ -2,8 +2,9 @@
 // `panel` may be a getter, because the section only exists while a sensor is open.
 export function createPanelScroll({ win = window, panel, isFull = () => false }) {
   let returnY = null
-  const behavior = () => (win.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth')
-  const phone = () => win.matchMedia('(hover: none)').matches
+  const mq = (q) => win.matchMedia?.(q).matches ?? false
+  const behavior = () => (mq('(prefers-reduced-motion: reduce)') ? 'auto' : 'smooth')
+  const phone = () => mq('(hover: none)')
 
   return {
     opened({ initial }) {

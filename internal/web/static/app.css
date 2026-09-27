@@ -357,9 +357,9 @@ strong, b { font-weight: var(--weight-emphasis); }
 .panel-close__ico { flex: none; }
 /* Phones: card scrolls in under the masthead; title row stays pinned. */
 @media (hover: none) {
-  .sensor-panel { scroll-margin-block-start: calc(var(--masthead-h, 48px) + var(--space-2)); }
+  .sensor-panel { scroll-margin-block-start: calc(var(--masthead-h) + var(--space-2)); }
   .sensor-panel > header {
-    position: sticky; inset-block-start: var(--masthead-h, 48px); z-index: 1;
+    position: sticky; inset-block-start: var(--masthead-h); z-index: 1;
     background: var(--bg); border-block-end: 1px solid var(--border-faint);
     padding-block: var(--space-2); margin-inline: calc(-1 * var(--space-4)); padding-inline: var(--space-4);
   }
