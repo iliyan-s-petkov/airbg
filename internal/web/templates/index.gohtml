@@ -278,6 +278,36 @@
      the list is ranked by the reading and the silent provinces sit at the end,
      which looks like alphabetical order that gave up unless it is said. */}}
 <p class="table-note">{{.T "table.note"}}</p>
+
+{{/* The province-by-province link tree (§3): 79 links a crawler and a
+     no-JS reader can both follow, that the table above does not carry —
+     it is ranked by reading, not organised by geography. /areas only: the
+     table already serves the map tab's needs, and this section exists for
+     the tab whose subject IS the list of places. */}}
+{{if .Directory}}
+<section aria-labelledby="areas-directory">
+<h2 id="areas-directory">{{.T "areas.directory.title"}}</h2>
+<p>{{.T "areas.directory.intro"}}</p>
+<div class="areas-directory">
+{{range .Directory}}
+<div class="areas-directory__group">
+<h3><a class="link" href="{{$.Path (printf "/area/%s" .Oblast.Slug)}}">{{.Label}}</a></h3>
+{{if .Cities}}
+<ul>
+{{range .Cities}}<li><a class="link" href="{{$.Path (printf "/area/%s" .Slug)}}">{{.Name}}</a></li>{{end}}
+</ul>
+{{end}}
+{{if .Districts}}
+<h4>{{$.T "area.children.districts"}}</h4>
+<ul>
+{{range .Districts}}<li><a class="link" href="{{$.Path (printf "/area/%s" .Slug)}}">{{.Name}}</a></li>{{end}}
+</ul>
+{{end}}
+</div>
+{{end}}
+</div>
+</section>
+{{end}}
 {{end}}
 </div>
 {{end}}

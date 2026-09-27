@@ -77,6 +77,37 @@ func finiteCeiling(bands []api.Band) (float64, bool) {
 	return top, found
 }
 
+// bandLabelKeys maps api.Scales' English band labels to the catalogue key
+// suffix under "band." — the words themselves live in bg.json/en.json (§4 of
+// the SEO6 plan), not in LabelBG, so a third language is a catalogue file and
+// not a code change here.
+var bandLabelKeys = map[string]string{
+	"Good":           "good",
+	"Fair":           "fair",
+	"Moderate":       "moderate",
+	"Poor":           "poor",
+	"Very poor":      "very_poor",
+	"Extremely poor": "extremely_poor",
+}
+
+// bandLabel is bandColour's counterpart for the area-page sentence: the same
+// band lookup, returning the catalogue key suffix instead of a colour. Empty
+// when the metric has no scale, exactly like bandColour.
+func bandLabel(metric string, value float64) string {
+	for _, scale := range api.Scales() {
+		if scale.Metric != metric {
+			continue
+		}
+		for _, band := range scale.Bands {
+			if band.Upper == nil || value <= *band.Upper {
+				return bandLabelKeys[band.Label]
+			}
+		}
+		return ""
+	}
+	return ""
+}
+
 func bandColour(metric string, value float64) string {
 	for _, scale := range api.Scales() {
 		if scale.Metric != metric {

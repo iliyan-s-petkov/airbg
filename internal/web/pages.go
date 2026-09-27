@@ -110,6 +110,9 @@ func (rr *Renderer) handleIndex(w http.ResponseWriter, r *http.Request) {
 	if path == "/areas" {
 		data.Title = composeTitle(rr.cat.T(lang, "seo.areas.title"), rr.cat.T(lang, "site.title"))
 		data.Description = rr.cat.T(lang, "seo.areas.description")
+		// Only on /areas, per §3 of the SEO6 plan: it keeps / — the worst LCP
+		// on the site — from paying for 79 extra links it does not render.
+		data.Directory = rr.buildDirectory(snap, lang)
 	} else {
 		data.Title = composeTitle(rr.cat.T(lang, "seo.home.title"), rr.cat.T(lang, "site.title"))
 		data.Description = rr.cat.T(lang, "seo.home.description")
@@ -138,6 +141,9 @@ func (rr *Renderer) handleArea(w http.ResponseWriter, r *http.Request) {
 	row := rr.rowFrom(meta, lang)
 	data.Area = &row
 	data.Title, data.Description = rr.areaSEO(row, lang)
+	data.AreaNowHTML = data.areaNowHTML(row)
+	data.AreaDayHTML = data.areaDayHTML(row)
+	rr.buildAreaLinks(&data, meta, row, snap, lang)
 	data.JSONLD = rr.mustJSONLD(rr.areaJSONLD(data, row))
 	rr.render(w, r, http.StatusOK, "area", data)
 }
@@ -321,6 +327,7 @@ func (rr *Renderer) rowFrom(meta snapshot.AreaMeta, lang string) AreaRow {
 		Value: value, HasValue: hasValue, ValueText: valueText,
 		Colour: colour, Values: meta.Values,
 		Source: meta.Source, BySource: meta.BySource,
+		ParentSlug: meta.ParentSlug, Day: meta.Day,
 	}
 }
 

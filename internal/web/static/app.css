@@ -99,6 +99,22 @@ strong, b { font-weight: var(--weight-emphasis); }
    reader something is wrong. .notice's warning bar next to every city name
    would read as an error state on 27 healthy pages. */
 .notice-inline { color: var(--muted); font-size: var(--text-compact); letter-spacing: var(--track-compact); }
+/* Breadcrumb replaces the old single back-to-map link on area pages. */
+.breadcrumb { font-size: var(--text-compact); color: var(--fg-2); }
+.breadcrumb__sep { color: var(--muted); padding-inline: var(--space-1); }
+/* The air-now and 24h sentences sit under the h1, above the readouts. */
+.area-now, .area-day { margin-block: var(--space-2) 0; }
+.area-day { color: var(--fg-2); }
+/* Parent/children/nearest link blocks, after the readouts island. */
+.area-links { margin-block-start: var(--space-6); }
+.area-links__block { margin-block-end: var(--space-4); }
+.area-links__block h2 { font-size: var(--text-compact); color: var(--fg-2); margin-block-end: var(--space-1); }
+.area-links__block ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--space-2); }
+/* /areas directory: one group per oblast, cities then (sofia only) districts. */
+.areas-directory { display: grid; grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr)); gap: var(--space-4); }
+.areas-directory__group h3 { font-size: var(--text-compact); margin-block-end: var(--space-1); }
+.areas-directory__group h4 { font-size: var(--text-caption); color: var(--fg-2); margin-block: var(--space-2) var(--space-1); }
+.areas-directory__group ul { list-style: none; margin: 0; padding: 0; }
 /* The frame, the 926:382 country fit, the height floor and the 1056px
    breakpoint are all the kit's .data-frame/.map/.map--hero now, and this file's
    own version of them is gone. It was the same rules written twice, and the
