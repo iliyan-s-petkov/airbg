@@ -270,6 +270,24 @@ func TestPublicListenerServesPagesAndAPI(t *testing.T) {
 	}
 }
 
+// TestAPIResponsesCarryNoIndex. robots.txt disallows /api/, and this is the
+// same refusal for a crawler that reaches an API URL anyway — a link out of
+// some other indexed page, say.
+func TestAPIResponsesCarryNoIndex(t *testing.T) {
+	public, _ := running(t)
+
+	resp := get(t, public, "/api/v1/overview")
+	if got := resp.Header.Get("X-Robots-Tag"); got != "noindex" {
+		t.Errorf("GET /api/v1/overview X-Robots-Tag = %q, want noindex", got)
+	}
+
+	// A page response must not carry it — this is what proves the header comes
+	// from the /api/ mount and not the whole chain.
+	if got := get(t, public, "/").Header.Get("X-Robots-Tag"); got != "" {
+		t.Errorf("GET / X-Robots-Tag = %q, want absent", got)
+	}
+}
+
 // TestMetricsAreNotOnThePublicListener. /metrics reports rate-limit and
 // enumeration counters — precisely the feedback signal a scraper needs to tune
 // its request rate to stay under the limit. It must live on the private

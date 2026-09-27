@@ -125,6 +125,14 @@ func SecurityHeaders(next http.Handler, csp, permissionsPolicy string) http.Hand
 	})
 }
 
+// NoIndex sets X-Robots-Tag: noindex on every response from next.
+func NoIndex(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Robots-Tag", "noindex")
+		next.ServeHTTP(w, r)
+	})
+}
+
 // LimitBody caps how much of a request body a handler can read.
 //
 // Every Phase 2 endpoint is a GET with no body, so the cap is small. It exists
