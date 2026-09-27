@@ -38,8 +38,9 @@ for (const vp of VIEWPORTS) {
     await page.locator('.map__full').click()
     await expect.poll(() => fullFrame(page)).toBe(true)
 
-    await expect.poll(() => markerPoint(page), { timeout: 20000 }).not.toBeNull()
-    const pt = await markerPoint(page)
+    // Keep the polled point: a second lookup can land mid-repaint and find nothing.
+    let pt = null
+    await expect.poll(async () => (pt = await markerPoint(page)), { timeout: 20000 }).not.toBeNull()
     await page.mouse.click(pt.x, pt.y)
     await expect(page).toHaveURL(/#.*sensor=\d+/)
     const id = Number(new URL(page.url()).hash.match(/sensor=(\d+)/)[1])
