@@ -28,6 +28,7 @@
   "area.no_coverage_detail": "Публикуваме стойност само когато поне три отделни места отчитат надеждни данни.",
   "area.now": "{subject} сега: {metric} {value} {unit}, качеството на въздуха е {band}. Медиана от {sensors}, данни към {time}.",
   "area.now_few": "{subject} сега: {sensors} със скорошни данни. Стойност за района публикуваме при поне три.",
+  "area.now_no_metric": "{subject} сега: {sensors} със скорошни данни, но нито един не измерва {metric}.",
   "area.now_none": "{subject}: няма сензор със скорошни данни.",
   "area.now_none_stale": "{subject}: няма сензор със скорошни данни към {time}.",
   "area.now_stale": "{subject}: последните данни са от {time} — {metric} {value} {unit}, {band}, медиана от {sensors}. Няма по-нови.",

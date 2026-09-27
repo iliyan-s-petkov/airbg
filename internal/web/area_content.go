@@ -162,8 +162,7 @@ func (p PageData) stale() bool { return p.Now.Sub(p.GeneratedAt) > staleAfter }
 // covered/few/none because a stale reading needs different wording however
 // many sensors last reported), then covered-with-a-value, then no sensors at
 // all, then everything else as "few". A covered area with no value for the
-// page's default metric (a P1-only station) falls into that last case too —
-// not expected in practice, per the plan, so it is not given its own key.
+// page's default metric gets area.now_no_metric.
 func (p PageData) areaNowHTML(row AreaRow) template.HTML {
 	subject := htmlEscape(p.areaSubject(row))
 	timeHTML := timeTag(p.GeneratedAt, p.sofiaLayout(p.GeneratedAt))
@@ -178,6 +177,8 @@ func (p PageData) areaNowHTML(row AreaRow) template.HTML {
 		}
 	case row.Covered && row.HasValue:
 		key = "area.now"
+	case row.Covered:
+		key = "area.now_no_metric"
 	case row.SensorCount == 0:
 		key = "area.now_none"
 	default:
@@ -188,8 +189,8 @@ func (p PageData) areaNowHTML(row AreaRow) template.HTML {
 	text = strings.ReplaceAll(text, "{subject}", subject)
 	text = strings.ReplaceAll(text, "{time}", timeHTML)
 	text = strings.ReplaceAll(text, "{sensors}", htmlEscape(p.sensorsText(row.SensorCount)))
+	text = strings.ReplaceAll(text, "{metric}", htmlEscape(p.T("metric."+p.DefaultMetric)))
 	if row.HasValue {
-		text = strings.ReplaceAll(text, "{metric}", htmlEscape(p.T("metric."+p.DefaultMetric)))
 		text = strings.ReplaceAll(text, "{unit}", htmlEscape(p.T("unit."+p.DefaultMetric)))
 		text = strings.ReplaceAll(text, "{value}", htmlEscape(formatValue(row.Value, p.Lang)))
 		text = strings.ReplaceAll(text, "{band}", htmlEscape(p.T("band."+bandLabel(p.DefaultMetric, row.Value))))

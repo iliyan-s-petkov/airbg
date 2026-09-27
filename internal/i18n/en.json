@@ -28,6 +28,7 @@
   "area.no_coverage_detail": "We publish a figure only when at least three separate locations are reporting usable readings.",
   "area.now": "{subject} right now: {metric} {value} {unit}, air quality is {band}. Median of {sensors}, data as of {time}.",
   "area.now_few": "{subject} right now: {sensors} with recent data. We publish an area figure once there are at least three.",
+  "area.now_no_metric": "{subject} right now: {sensors} with recent data, none of them measuring {metric}.",
   "area.now_none": "{subject}: no sensor with recent data.",
   "area.now_none_stale": "{subject}: no sensor with recent data as of {time}.",
   "area.now_stale": "{subject}: the latest data is from {time} — {metric} {value} {unit}, {band}, median of {sensors}. Nothing newer.",

@@ -148,6 +148,7 @@ func TestAreaNowStates(t *testing.T) {
 	covered := rr.rowFrom(snap.KnownSlugs["plovdiv"], i18n.DefaultLang)
 	noSensors := rr.rowFrom(snap.KnownSlugs["silistra"], i18n.DefaultLang)
 	few := AreaRow{Name: "Тест", Kind: "city", SensorCount: 2, Covered: false, HasValue: false}
+	noMetric := AreaRow{Name: "Тест", Kind: "city", SensorCount: 137, Covered: true, HasValue: false}
 
 	cases := []struct {
 		name string
@@ -159,6 +160,7 @@ func TestAreaNowStates(t *testing.T) {
 		{"stale covered", covered, stale, "последните данни са от"},
 		{"no sensors", noSensors, fresh, "няма сензор със скорошни данни."},
 		{"few", few, fresh, "със скорошни данни. Стойност"},
+		{"covered, no value for the metric", noMetric, fresh, "137 сензора със скорошни данни, но нито един не измерва ПМ2.5."},
 	}
 	for _, c := range cases {
 		p := acPageData(rr, i18n.DefaultLang, t0, c.now)
