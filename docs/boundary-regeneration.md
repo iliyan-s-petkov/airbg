@@ -142,20 +142,53 @@ out geom;
 
 ## Cleaning and simplification
 
-Raw Overpass geometry is not importable as-is. Run each collection through
-PostGIS in this order:
+Raw Overpass geometry is not importable as-is, and it is not yet a single
+polygon either. `out geom;` on a relation returns one line geometry **per
+member way**, not the assembled outer/inner ring: a typical oblast relation is
+tagged together from dozens to hundreds of ways, each one a segment of the
+boundary shared with a neighbouring relation. Handing those ways to PostGIS as
+if each were already a ring — e.g. loading them individually and unioning the
+result — produces a `MultiPolygon` with one sliver "part" per way: it parses,
+it imports, `ST_IsValid` even holds, and its total area is a fraction of the
+real place because only the ways happen to close on themselves that get
+counted, while the rest trace the perimeter without ever enclosing anything.
+This is what shipped for 21 of cities.geojson's 27 features (Plovdiv: 19 parts,
+~6 points each, ~24 km² against a real ~102 km² municipality) — every
+downstream check that only looked at parsed feature counts or `ST_IsValid`
+passed, because both were true.
+
+The member ways must be assembled into rings **before** cleaning. Run each
+relation's collected member-way geometries through, in this order:
 
 ```sql
 SELECT ST_CollectionExtract(
          ST_SimplifyPreserveTopology(
-           ST_MakeValid(geom),
+           ST_MakeValid(
+             ST_BuildArea(
+               ST_Collect(
+                 ST_LineMerge(ST_Collect(member_way_geom))
+               )
+             )
+           ),
            0.002),          -- roughly 200 m
          3)                 -- 3 = polygons only
+       FROM relation_members
+       GROUP BY relation_id
 ```
 
 Each step earns its place:
 
-- **`ST_MakeValid` first.** Several relations contain a spurious
+- **`ST_Collect` + `ST_LineMerge` first.** Stitches the member ways back into
+  contiguous closed rings. A relation's ways arrive in no particular order and
+  a single ring is frequently split across several of them at each node where
+  two neighbouring relations' boundaries meet; `ST_LineMerge` joins ways that
+  share an endpoint into one linestring per ring.
+- **`ST_BuildArea`** turns the merged, closed linestrings into the actual
+  polygon(s) — outer rings become shells, rings nested inside them become
+  holes. This is the step that was missing: without it, PostGIS has no way to
+  know which of the many rings enclose area and which are holes, or that they
+  belong to one polygon at all.
+- **`ST_MakeValid` after assembly.** Several relations contain a spurious
   near-zero-length "outer" member way — an OSM digitisation artefact. Treated as
   its own ring it collapses into a degenerate line under simplification, turning
   the result into a `GeometryCollection` that `area.Import`'s `validateGeometry`
@@ -163,6 +196,13 @@ Each step earns its place:
 - **`ST_SimplifyPreserveTopology`, not `ST_Simplify`.** Plain simplification can
   emit self-intersecting rings on its own.
 - **`ST_CollectionExtract(..., 3)`** drops stray linestrings.
+
+`internal/area/committed_boundaries_test.go`'s
+`TestBoundaryPartsAssembleIntoAPlausibleArea` is the executable form of this
+requirement: every oblast must be at least 1000 km², every city at least
+5 km², every Sofia district at least 0.2 km², and each city polygon must
+cover a known interior point (Plovdiv, Sofia, Varna, Burgas, Ruse). A
+regeneration that reverts to one part per member way fails it immediately.
 
 Vertex counts fall by roughly 20–25× — oblasti 369,993 → 14,051; cities
 109,412 → 5,635; sofia-districts 26,457 → 1,394 — while staying far more precise
@@ -197,6 +237,10 @@ go test ./internal/area/                                                # needs 
 - `TestImportCommittedBulgariaBoundary` — point-in-polygon against real cities,
   not a bbox: Bulgaria's bounding box overlaps five neighbours, so Bucharest,
   Thessaloniki and Skopje falling *outside* is what makes it a real test.
+- `TestBoundaryPartsAssembleIntoAPlausibleArea` — every oblast/city/district
+  area clears a minimum km², and each named city polygon covers its own known
+  interior point. Catches a regeneration that keeps each relation member way as
+  its own ring instead of assembling them with `ST_LineMerge`/`ST_BuildArea`.
 
 Then check the footer still attributes OpenStreetMap.
 
