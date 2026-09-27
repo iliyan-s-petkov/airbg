@@ -92,6 +92,9 @@ export function legendRows(bands, { noDataColour, noDataLabel, lang }) {
 // because the key is drawn once before any scale has loaded, and an (i) that
 // opens an empty dialog is worse than no (i) at all.
 export function renderLegend(el, { title, toggleLabel, bands, noData, info }) {
+  // Reuse the toggle across moveend refreshes so focus and in-flight clicks keep their target.
+  let toggle = el.querySelector(':scope > .scale__toggle')
+  if (toggle) toggle.remove()
   el.replaceChildren()
 
   // The progressive bar replaces the stacked blocks, which is what makes the
@@ -115,15 +118,17 @@ export function renderLegend(el, { title, toggleLabel, bands, noData, info }) {
   // Icon-only: the triangle already says what it does, and a word beside it
   // pushed the whole bar to the right of itself. An icon-only control still
   // needs a name, so the name moves to aria-label.
-  const toggle = document.createElement('summary')
-  toggle.className = 'scale__toggle'
+  if (!toggle) {
+    toggle = document.createElement('summary')
+    toggle.className = 'scale__toggle'
+    // Hidden on desktop (app.css); shown folded on a phone, so the pill names
+    // itself instead of reading as a bare triangle. Same text as .scale__label.
+    const toggleName = document.createElement('span')
+    toggleName.className = 'scale__toggle-label'
+    toggle.appendChild(toggleName)
+  }
   toggle.setAttribute('aria-label', toggleLabel)
-  // Hidden on desktop (app.css); shown folded on a phone, so the pill names
-  // itself instead of reading as a bare triangle. Same text as .scale__label.
-  const toggleName = document.createElement('span')
-  toggleName.className = 'scale__toggle-label'
-  toggleName.textContent = title
-  toggle.appendChild(toggleName)
+  toggle.querySelector('.scale__toggle-label').textContent = title
   el.appendChild(toggle)
 
   const label = document.createElement('span')
