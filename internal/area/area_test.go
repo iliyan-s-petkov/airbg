@@ -425,6 +425,9 @@ func TestImportCommittedBulgariaBoundary(t *testing.T) {
 		{"Varna", 27.9147, 43.2141, true},
 		{"Musala", 23.5853, 42.1794, true},
 		{"Shabla", 28.5361, 43.5375, true}, // the far east, cut off by the test fixture
+		// Live coastal sensors the Natural Earth coastline cut off by 0.25 / 0.45 km.
+		{"Pomorie (sensor 7669)", 27.636, 42.562, true},
+		{"Sinemorets (sensor 32826)", 27.986, 42.058, true},
 		{"Bucharest", 26.1025, 44.4268, false},
 		{"Thessaloniki", 22.9444, 40.6401, false},
 		{"Skopje", 21.4254, 41.9981, false},

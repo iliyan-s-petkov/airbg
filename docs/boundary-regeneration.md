@@ -70,9 +70,100 @@ above; there are no hand-edited exceptions to remember.
 
 ### `bulgaria.geojson` — the national boundary
 
-Natural Earth 1:10m Admin 0 – Countries, the feature with `ADM0_A3 = BGR`,
-geometry unmodified. Public domain, so it is committed rather than fetched.
-Properties are hand-set (`slug: bulgaria`, `iso_a2: BG`).
+Regenerated 2026-09-27 as the union of `oblasti.geojson`'s 28 features and the
+prior Natural Earth outline, differenced against the union of the five
+neighbour files (see "Removing the neighbour overlap" below). Properties are
+hand-set (`slug: bulgaria`, `iso_a2: BG`), unchanged by the regeneration.
+
+**Why not Natural Earth any more:** the original file was Natural Earth 1:10m
+Admin 0 – Countries, the feature with `ADM0_A3 = BGR`, geometry unmodified.
+Its Black Sea coastline cut 0.25–0.45 km inside the true coast, which was
+enough for `FilterByBoundary`'s `ST_Covers` to silently drop two live
+sensors: 7669 (Pomorie, 27.636E 42.562N) and 32826 (Sinemorets, 27.986E
+42.058N). Both are inside `burgas-oblast` in `oblasti.geojson`, which OSM
+(and #614's ring-assembly fix) already gets right, so the country boundary is
+now built from the same source instead of a separate, lower-resolution
+release.
+
+**Rebuild steps**, run against a scratch PostGIS container (any Postgres +
+PostGIS the machine can reach; nothing is written back to it):
+
+```sql
+-- one row per oblast feature, geometry loaded via ST_GeomFromGeoJSON
+CREATE TABLE oblast (id serial primary key, slug text, geom geometry(MultiPolygon, 4326));
+-- ... INSERT one row per feature in oblasti.geojson ...
+
+CREATE TABLE bulgaria_union AS
+SELECT ST_MakeValid(ST_Union(ST_MakeValid(geom))) AS geom FROM oblast;
+
+-- union in the prior Natural Earth outline too: OSM's admin boundary along
+-- the Danube excludes some river/bank territory that Natural Earth includes,
+-- and that strip does not overlap Romania's own polygon (checked directly
+-- via ST_Intersection, not inferred from a centroid test), so it is safe to
+-- keep rather than a regression to guard against
+CREATE TABLE bulgaria_with_old_outline AS
+SELECT ST_MakeValid(ST_Union(a.geom, b.geom)) AS geom
+FROM bulgaria_union a, old_natural_earth_bulgaria b;
+```
+
+`ST_Union` over 28 independently-simplified oblast polygons leaves gaps where
+two neighbours' shared border doesn't line up vertex-for-vertex — 414
+interior rings in the 2026-09-27 run, largest 0.39 km², all under 1 km². Fill
+any interior ring under 1 km² rather than leaving it as a hole:
+
+```sql
+-- for each part with interior rings, rebuild it keeping only rings >= 1 km²
+SELECT ST_MakePolygon(ST_ExteriorRing(p), keep_rings)
+FROM ... -- see internal/area/committed_boundaries_test.go's
+         -- TestCountryBoundaryCoversEveryOblast for the check this feeds
+```
+
+After filling, the result is a `MultiPolygon` with 10 parts: one mainland part
+(~111,001 km²) plus nine parts under 0.2 km² each that are **not** union
+artifacts — they are already separate parts of `burgas-oblast`'s own OSM
+geometry (small exclaves near the coast/border), confirmed by dumping that
+one oblast's geometry alone before the union. Total area ~111,016 km²,
+against Bulgaria's official ~110,994 km² — within simplification tolerance.
+Export with `ST_AsGeoJSON(geom, 6)` to match the file's 6-decimal-place
+coordinate precision.
+
+Acceptance, beyond the standard checks below: every oblast's
+`ST_PointOnSurface` must be `ST_Covers`ed by the rebuilt country polygon (a
+seam or gap would fail a specific oblast, not just a total-area check), and
+the Pomorie/Sinemorets points must now read `true`.
+
+**Removing the neighbour overlap:** Bulgaria is now built from OSM (plus the
+prior Natural Earth outline) while the five neighbours (`greece.geojson`,
+`north-macedonia.geojson`, `romania.geojson`, `serbia.geojson`,
+`turkey.geojson`) are still Natural Earth. Left alone, the two sources
+disagree on the shared border by a thin strip (~144 km² with Greece down to
+~1 km² with North Macedonia), and `FilterByBoundary`'s country tiebreak sorts
+`BG` first alphabetically, so any sensor inside one of those strips would be
+attributed to Bulgaria rather than its true neighbour. Rather than accept
+that risk, the union above is differenced against the neighbours before
+export:
+
+```sql
+CREATE TABLE neighbours_union AS
+SELECT ST_MakeValid(ST_Union(ST_MakeValid(geom))) AS geom FROM neighbour;
+
+CREATE TABLE bulgaria_final AS
+SELECT ST_MakeValid(ST_Difference(a.geom, b.geom)) AS geom
+FROM bulgaria_with_old_outline a, neighbours_union b;
+```
+
+This removes only the genuine overlap (~308 km² total, matching the five
+figures above almost exactly) and leaves the Danube strip untouched, since
+that strip does not actually intersect Romania's polygon. The result's
+`ST_Intersection` area with each of the five neighbour files is under
+0.01 km² (residual floating-point noise from rounding two independently
+sourced datasets to 6 decimal places, not real overlap), asserted by
+`internal/area/committed_boundaries_test.go`'s
+`TestCountryBoundaryDoesNotOverlapNeighbours` on every run. Re-run the
+`ST_Difference` once more after exporting at 6-decimal precision if the
+rounding itself reintroduces a larger residual — it should not, since
+`ST_Difference` at that point runs against the exact geometry of the
+committed neighbour files rather than the pre-rounding union.
 
 ### `oblasti.geojson`, `cities.geojson`, `sofia-districts.geojson`
 
@@ -236,11 +327,22 @@ go test ./internal/area/                                                # needs 
   Ocean.
 - `TestImportCommittedBulgariaBoundary` — point-in-polygon against real cities,
   not a bbox: Bulgaria's bounding box overlaps five neighbours, so Bucharest,
-  Thessaloniki and Skopje falling *outside* is what makes it a real test.
+  Thessaloniki and Skopje falling *outside* is what makes it a real test. Also
+  covers Pomorie and Sinemorets, the two sensors the Natural Earth coastline
+  used to cut off.
 - `TestBoundaryPartsAssembleIntoAPlausibleArea` — every oblast/city/district
   area clears a minimum km², and each named city polygon covers its own known
   interior point. Catches a regeneration that keeps each relation member way as
   its own ring instead of assembling them with `ST_LineMerge`/`ST_BuildArea`.
+- `TestCountryBoundaryCoversEveryOblast` — every oblast's
+  `ST_PointOnSurface` must fall inside `bulgaria.geojson`. Catches a seam or
+  gap left by unioning the 28 oblasti that a national-total-area check alone
+  would miss, by naming the specific oblast that fails.
+- `TestCountryBoundaryDoesNotOverlapNeighbours` — `bulgaria.geojson`'s
+  `ST_Intersection` area with each of the five Natural Earth neighbour files
+  must stay under 0.01 km². Catches a plain union (no `ST_Difference` pass)
+  that would let `FilterByBoundary`'s `ORDER BY country_code LIMIT 1` tiebreak
+  stamp neighbouring sensors as Bulgarian.
 
 Then check the footer still attributes OpenStreetMap.
 

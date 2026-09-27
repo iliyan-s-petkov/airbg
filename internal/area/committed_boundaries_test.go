@@ -303,3 +303,89 @@ func TestBoundariesDoNotSwapCoordinates(t *testing.T) {
 		t.Errorf("oblast latitude extent %v..%v outside Bulgaria's 41..45", minLat, maxLat)
 	}
 }
+
+// A seam left by unioning the oblasti shows up as one oblast's point-on-surface falling outside.
+func TestCountryBoundaryCoversEveryOblast(t *testing.T) {
+	ctx, pool := migrated(t)
+
+	if _, err := area.Import(ctx, pool, "../../data/boundaries/bulgaria.geojson", area.NationalBoundaryKind); err != nil {
+		t.Fatalf("Import(bulgaria.geojson): %v", err)
+	}
+	if _, err := area.Import(ctx, pool, "../../data/boundaries/oblasti.geojson", "oblast"); err != nil {
+		t.Fatalf("Import(oblasti.geojson): %v", err)
+	}
+
+	rows, err := pool.Query(ctx,
+		`SELECT slug FROM area WHERE kind = 'oblast' ORDER BY slug`)
+	if err != nil {
+		t.Fatalf("query oblast slugs: %v", err)
+	}
+	var slugs []string
+	for rows.Next() {
+		var slug string
+		if err := rows.Scan(&slug); err != nil {
+			t.Fatalf("scan: %v", err)
+		}
+		slugs = append(slugs, slug)
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		t.Fatalf("rows: %v", err)
+	}
+	if len(slugs) != 28 {
+		t.Fatalf("got %d oblasti, want 28", len(slugs))
+	}
+
+	for _, slug := range slugs {
+		var covered bool
+		err := pool.QueryRow(ctx, `
+			SELECT ST_Covers(
+				(SELECT geom FROM area WHERE slug = 'bulgaria'),
+				ST_PointOnSurface((SELECT geom::geometry FROM area WHERE slug = $1))::geography
+			)`, slug).Scan(&covered)
+		if err != nil {
+			t.Fatalf("ST_Covers for %s: %v", slug, err)
+		}
+		if !covered {
+			t.Errorf("oblast %q has a point-on-surface not covered by the country boundary — seam or gap left by the union", slug)
+		}
+	}
+}
+
+// FilterByBoundary breaks overlaps by country_code, so any overlap hands a neighbour's sensors to BG.
+func TestCountryBoundaryDoesNotOverlapNeighbours(t *testing.T) {
+	ctx, pool := migrated(t)
+
+	if _, err := area.Import(ctx, pool, "../../data/boundaries/bulgaria.geojson", area.NationalBoundaryKind); err != nil {
+		t.Fatalf("Import(bulgaria.geojson): %v", err)
+	}
+
+	const maxOverlapKM2 = 0.01
+
+	for _, neighbour := range []string{
+		"greece", "north-macedonia", "romania", "serbia", "turkey",
+	} {
+		path := "../../data/boundaries/" + neighbour + ".geojson"
+		if _, err := area.Import(ctx, pool, path, area.NationalBoundaryKind); err != nil {
+			t.Fatalf("Import(%s): %v", path, err)
+		}
+	}
+
+	for _, neighbour := range []string{
+		"greece", "north-macedonia", "romania", "serbia", "turkey",
+	} {
+		var areaKM2 float64
+		err := pool.QueryRow(ctx, `
+			SELECT COALESCE(ST_Area(
+				ST_Intersection(bg.geom::geometry, nb.geom::geometry)::geography
+			), 0) / 1e6
+			FROM area bg, area nb
+			WHERE bg.slug = 'bulgaria' AND nb.slug = $1`, neighbour).Scan(&areaKM2)
+		if err != nil {
+			t.Fatalf("ST_Intersection area for %s: %v", neighbour, err)
+		}
+		if areaKM2 > maxOverlapKM2 {
+			t.Errorf("bulgaria overlaps %s by %.5f km^2, want <= %.2f km^2", neighbour, areaKM2, maxOverlapKM2)
+		}
+	}
+}
