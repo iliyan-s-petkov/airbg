@@ -69,6 +69,10 @@ func (rr *Renderer) Routes() *http.ServeMux {
 		mux.HandleFunc("GET "+prefix+"/embed", rr.handleEmbed)
 	}
 
+	// One robots.txt and one sitemap for all languages.
+	mux.HandleFunc("GET /robots.txt", rr.handleRobots)
+	mux.HandleFunc("GET /sitemap.xml", rr.handleSitemap)
+
 	// Content-hashed bundles: cacheable forever, because the name changes when
 	// the content does. This is the payoff for `manifest: true` in the Vite
 	// config; without it the hashing buys nothing. The two MapLibre worker

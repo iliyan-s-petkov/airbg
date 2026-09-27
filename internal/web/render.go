@@ -17,6 +17,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"airbg.org/internal/api"
@@ -63,6 +64,11 @@ type Renderer struct {
 	// set would not work: every page defines "main", and the last parse would
 	// win for all of them.
 	pages map[string]*template.Template
+
+	// Cached /sitemap.xml, keyed on the snapshot's GeneratedAt.
+	sitemapMu   sync.Mutex
+	sitemapAt   time.Time
+	sitemapBody []byte
 }
 
 // NewRenderer builds the page renderer.
