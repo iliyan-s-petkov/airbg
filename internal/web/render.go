@@ -601,34 +601,20 @@ func (p PageData) SilentAreas() int {
 
 func (p PageData) T(key string) string { return p.cat.T(p.Lang, key) }
 
-// InitialTierKey mirrors tierFor (web/src/lib/tier.js) for the zoom the page
-// opens at, so the legend caption can be server-rendered instead of waiting
-// on the map bundle. Area pages open at Area.Zoom; / and /embed open at
-// DefaultZoom.
-//
-// This ignores mapdata.js's cellTier override, which can further downgrade
-// 'sensors' to 'city' in the narrow band between zoomSensor and the grid's own
-// geometric handover zoom (POINT_TIER_MIN_ZOOM_FRACTIONAL, hexes.js) — a
-// resolution rule with no Go-side equivalent. When a page's opening zoom falls
-// in that band the client corrects the text after the map loads.
+// InitialTierKey is the caption tier the map island settles on at the opening zoom.
+// Never "sensors": cellTier (mapdata.js) only says so above the grid's point handover, which no page opens at.
 func (p PageData) InitialTierKey() string {
 	zoom := p.DefaultZoom
 	if p.Area != nil {
 		zoom = p.Area.Zoom
 	}
-	switch {
-	case zoom < p.ZoomCity:
+	if zoom < p.ZoomCity {
 		return "country"
-	case zoom < p.ZoomSensor:
-		return "city"
-	default:
-		return "sensors"
 	}
+	return "city"
 }
 
-// InitialTier is the legend__tier text for InitialTierKey, in the same
-// catalogue as the tier data-* attributes the map island reads
-// (data-t-tier-country etc.) — see mountChrome's showLegend.
+// InitialTier is the server-rendered legend__tier text; mountChrome adopts the node.
 func (p PageData) InitialTier() string {
 	return p.T("map.legend.tier." + p.InitialTierKey())
 }

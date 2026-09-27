@@ -528,11 +528,7 @@ strong, b { font-weight: var(--weight-emphasis); }
 /* Second signal only; the struck glyph carries the off state. */
 .data-refresh__auto[aria-checked="true"] { color: var(--accent); }
 
-/* Reserved so the switcher and sensor-bar islands do not push the map down
-   when they hydrate (Core Web Vitals task, area-page CLS). Both hosts render
-   empty until their Svelte island mounts; measured at 48px and ~102px on
-   /area/varna across phone and desktop widths — not viewport-dependent, so one
-   rule covers both. */
+/* Island hosts render empty until mount; reserve their measured height (area-page CLS). */
 [data-island="switcher"] { min-block-size: var(--control-height); }
 [data-island="sensorbar"] { min-block-size: 102px; }
 
@@ -1041,8 +1037,7 @@ html:has(> body.embed) { block-size: 100%; }
   [data-island="sensorbar"] {
     display: flex; align-items: center; gap: var(--space-2);
     min-inline-size: 0; overflow: hidden;
-    /* This compact one-row layout has its own fixed 48px grid track (above);
-       the phone-portrait CLS reservation would overflow it. */
+    /* Own 48px track here; the CLS reservation would overflow it. */
     min-block-size: 0;
   }
   /* Reset the base row's margin-block so the flex row fits the 48px track. */

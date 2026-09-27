@@ -89,8 +89,7 @@
 <p class="embed__attribution"><a href="{{.AttributionURL "sensor.community"}}" target="_blank" rel="noopener">{{.T "embed.credit.data"}}</a> · <a href="{{.AttributionURL "eea"}}" target="_blank" rel="noopener">{{.T "embed.credit.official"}}</a></p>
 </div>
 </div>
-{{/* Server-rendered, adopted by mountChrome (lib/chrome.js) — see the same
-     note on index.gohtml/area.gohtml. */}}
+{{/* Server-rendered LCP element; mountChrome adopts it (PageData.InitialTier). */}}
 <p class="legend__tier map-tier">{{.InitialTier}}</p>
 
 {{/* The chart for a clicked sensor, capped so it can never take the frame from

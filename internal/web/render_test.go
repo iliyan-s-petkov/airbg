@@ -591,19 +591,10 @@ func TestMapIslandRendersFrontendConfiguration(t *testing.T) {
 // same numbers lived a second time in api/locate.go. Only the home page is
 // asserted here: /area/sofia's view comes from the area row, not from
 // frontend.default_*.
-// TestLegendTierIsServerRendered pins OpenProject #609's fix: the LCP element
-// (p.legend__tier) must be in the HTML with its final text, not created by
-// the map bundle after it evaluates. Home opens at zoom 7, below
-// airbg.yaml's zoom_city (9) — "country". /area/sofia's fixture zoom is 9,
-// at or above zoom_city and below zoom_sensor (11) — "city". Both wants come
-// from the same catalogue keys mountChrome (lib/chrome.js) reads off
-// data-t-tier-country/city, so a drift between InitialTier and tierFor would
-// show here as the wrong word, not just a missing element.
+// The LCP element (p.legend__tier) is in the HTML with the text the map island
+// settles on; prod area pages open at zoom 11-13 and the client says "median" there.
 func TestLegendTierIsServerRendered(t *testing.T) {
 	snap := fixture(t)
-	// Above zoom_sensor (11): the one case whose text (en.json's
-	// "sensors" key) actually differs from the other two, so this test can
-	// fail on a wrong tier and not just a missing element.
 	snap.KnownSlugs["hitier"] = snapshot.AreaMeta{
 		Slug: "hitier", Kind: "neighbourhood", NameBG: "Хайтиер", NameEN: "Hitier",
 		CentroidLon: 23.32, CentroidLat: 42.69, DefaultZoom: 12,
@@ -615,12 +606,10 @@ func TestLegendTierIsServerRendered(t *testing.T) {
 		path string
 		want string
 	}{
-		// zoom 7 < zoom_city (9). Default language is Bulgarian (i18n.DefaultLang).
 		{"/", "Всяка клетка е медиана за площта под нея"},
-		// zoom 9: zoom_city <= 9 < zoom_sensor (11).
 		{"/area/sofia", "Всяка клетка е медиана за площта под нея"},
-		// zoom 12 >= zoom_sensor.
-		{"/area/hitier", "Всяка клетка е отделен сензор"},
+		// Above zoom_sensor, but below the grid's point handover (cellTier, mapdata.js).
+		{"/area/hitier", "Всяка клетка е медиана за площта под нея"},
 	}
 	for _, c := range cases {
 		body := fetch(t, rr, c.path).Body.String()
