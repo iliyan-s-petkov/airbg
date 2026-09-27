@@ -110,6 +110,29 @@ type AreaMeta struct {
 	// area page needs no second round trip.
 	Source   string
 	BySource map[string]SourceEntry
+	// ParentSlug is the containing area — a city for a neighbourhood, an
+	// oblast for a city — or "" for an oblast. Computed once per snapshot
+	// build (store.AreaParents) by largest polygon overlap, not by centroid,
+	// because a municipality-boundary city or a concave Sofia district can
+	// have a centroid outside its natural parent. Owned by this package so
+	// the SEO5 JSON-LD BreadcrumbList can reuse it once both land — see
+	// web.ParentChain.
+	ParentSlug string
+	// Day is the last 24h's median range, or nil when the area is not
+	// Covered or the series has too few coverage-gated buckets — see
+	// buildDayRange.
+	Day *DayRange
+}
+
+// DayRange is the 24h min/max of an area's median series, gated so a bucket
+// with too few sensors reporting cannot set the extreme — see buildDayRange.
+type DayRange struct {
+	Min, Max     float64
+	MinAt, MaxAt time.Time
+	// Buckets is how many coverage-gated buckets went into Min/Max, so a
+	// caller can refuse to render a range built from a handful of points
+	// spread across a mostly-silent day.
+	Buckets int
 }
 
 type Snapshot struct {

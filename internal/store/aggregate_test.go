@@ -1436,3 +1436,84 @@ func TestWindowedAreaAggregatesBreakDownByNetwork(t *testing.T) {
 		t.Errorf("windowed eea P2 = %v, want 100", a.BySource["eea"].Values["P2"])
 	}
 }
+
+// A district's centroid can fall outside its natural parent's polygon — 14 of
+// the 27 city boundaries are whole municipalities and Sofia's districts are
+// concave — so AreaParents must pick the parent by largest overlap AREA, not
+// by whether the child's centroid lands inside the candidate. This test seeds
+// a district whose centroid sits outside its city's buffer but whose polygon
+// still overlaps it, plus an unrelated far city and far oblast that overlap
+// nothing, and checks the near ones win.
+func TestAreaParentByLargestOverlap(t *testing.T) {
+	ctx, pool := migrated(t)
+	s := store.New(pool, testStoreConfig(), testSeriesTimeout)
+
+	seedAreaBuffer(t, ctx, pool, "far-oblast", "oblast", 30.0, 42.0, 5000)
+	seedAreaBuffer(t, ctx, pool, "test-oblast", "oblast", 23.0, 42.0, 60000)
+	seedAreaBuffer(t, ctx, pool, "test-city", "city", 23.05, 42.0, 8000)
+	seedAreaBuffer(t, ctx, pool, "far-city", "city", 30.0, 42.0, 5000)
+	// The district's own centroid (23.20, 42.0) is well outside test-city's
+	// 8 km buffer around (23.05, 42.0) — roughly 12.4 km away, past the 8 km
+	// radius — yet its 5 km polygon still clips test-city's edge.
+	seedAreaBuffer(t, ctx, pool, "test-district", "neighbourhood", 23.20, 42.0, 5000)
+
+	parents, err := s.AreaParents(ctx)
+	if err != nil {
+		t.Fatalf("AreaParents: %v", err)
+	}
+	if got, want := parents["test-city"], "test-oblast"; got != want {
+		t.Errorf(`parents["test-city"] = %q, want %q`, got, want)
+	}
+	if got, want := parents["test-district"], "test-city"; got != want {
+		t.Errorf(`parents["test-district"] = %q, want %q — largest overlap, not centroid containment`, got, want)
+	}
+	if _, ok := parents["test-oblast"]; ok {
+		t.Errorf("parents[%q] present, want absent — an oblast has no parent", "test-oblast")
+	}
+}
+
+// seedAreaBuffer is seedArea with an explicit buffer radius; seedArea itself
+// hardcodes 5000m, which is too small to build the overlap geometry above.
+func seedAreaBuffer(t *testing.T, ctx contextT, pool poolT, slug, kind string, lon, lat, radiusM float64) {
+	t.Helper()
+	_, err := pool.Exec(ctx,
+		`INSERT INTO area (slug, kind, name_bg, name_en, geom)
+		 VALUES ($1, $2, $1, $1,
+		         ST_Buffer(ST_SetSRID(ST_MakePoint($3, $4), 4326)::geography, $5)::geography)
+		 ON CONFLICT (slug) DO UPDATE SET geom = EXCLUDED.geom`,
+		slug, kind, lon, lat, radiusM)
+	if err != nil {
+		t.Fatalf("seed area %s: %v", slug, err)
+	}
+}
+
+// AllAreaSeriesCounts must report how many distinct sensors landed in each
+// bucket, using the SAME bucket boundaries AllAreaSeries itself computes —
+// buildDayRange looks a bucket's count up by that exact time.
+func TestAllAreaSeriesCounts(t *testing.T) {
+	ctx, pool := migrated(t)
+	s := store.New(pool, testStoreConfig(), testSeriesTimeout)
+
+	seedArea(t, ctx, pool, "smolyan", "oblast", 24.7, 41.57)
+	base := time.Date(2026, 8, 1, 10, 0, 0, 0, time.UTC)
+	seedSensorReading(t, ctx, pool, 980, 24.700, 41.57, "P2", 10, "ok", base)
+	seedSensorReading(t, ctx, pool, 981, 24.701, 41.57, "P2", 20, "ok", base.Add(time.Second))
+	seedSensorReading(t, ctx, pool, 982, 24.702, 41.57, "P2", 30, "ok", base.Add(2*time.Second))
+	assignAreas(t, ctx, pool)
+
+	points, err := s.AllAreaSeries(ctx, "P2", base.Add(-time.Hour), false, time.Minute)
+	if err != nil {
+		t.Fatalf("AllAreaSeries: %v", err)
+	}
+	counts, err := s.AllAreaSeriesCounts(ctx, "P2", base.Add(-time.Hour), false, time.Minute)
+	if err != nil {
+		t.Fatalf("AllAreaSeriesCounts: %v", err)
+	}
+	bucketPoints := points["smolyan"]
+	if len(bucketPoints) != 1 {
+		t.Fatalf("points = %d, want 1", len(bucketPoints))
+	}
+	if got := counts["smolyan"][bucketPoints[0].Time]; got != 3 {
+		t.Errorf("count at %v = %d, want 3", bucketPoints[0].Time, got)
+	}
+}

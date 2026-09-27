@@ -198,7 +198,11 @@ func Build(ctx context.Context, s *store.Store, h *Holder, now time.Time) (*Snap
 		}
 	}
 
-	if err := buildSensors(snap, h, sensors, seriesBySlug, now); err != nil {
+	counts, err := s.AllAreaSeriesCounts(ctx, h.metric, now.Add(-h.window), false, h.bucket)
+	if err != nil {
+		return nil, fmt.Errorf("snapshot: area series counts: %w", err)
+	}
+	if err := buildSensors(snap, h, sensors, seriesBySlug, counts, s.CoverageThreshold(), now); err != nil {
 		return nil, err
 	}
 
@@ -244,6 +248,16 @@ func buildAreas(ctx context.Context, s *store.Store, h *Holder, snap *Snapshot, 
 	all = append(all, countryAggs...)
 	all = append(all, cityAggs...)
 
+	// Areas change only on boundary import, so this is one query per build
+	// cycle, not per area. A failure here must not take the rest of the
+	// snapshot down with it — the parent/child link block simply renders
+	// empty, same degradation as a missing Boundaries overlay.
+	parents, err := s.AreaParents(ctx)
+	if err != nil {
+		slog.Warn("snapshot: area parents unavailable", "error", err)
+		parents = nil
+	}
+
 	snap.AreaSensors = make(map[string]Body, len(all))
 	snap.AreaSeries = make(map[string]Body, len(all))
 	snap.KnownSlugs = make(map[string]AreaMeta, len(all))
@@ -255,6 +269,7 @@ func buildAreas(ctx context.Context, s *store.Store, h *Holder, snap *Snapshot, 
 			CentroidLon: a.CentroidLon, CentroidLat: a.CentroidLat,
 			DefaultZoom: a.DefaultZoom, Covered: a.Covered, SensorCount: a.SensorCount,
 			Values: a.Values, Source: metaSource, BySource: metaBySource,
+			ParentSlug: parents[a.Slug],
 		}
 	}
 
@@ -308,11 +323,27 @@ func buildHexes(snap *Snapshot, sensors []store.SensorReading, now time.Time) er
 	return nil
 }
 
+// minDayBuckets is how many coverage-gated 5-minute buckets six hours holds —
+// buildDayRange's floor for publishing a 24h min/max at all. Derived from the
+// holder's own bucket width rather than a literal 72, so it stays six hours if
+// series.periods["24h"].bucket is ever retuned.
+func minDayBuckets(bucket time.Duration) int {
+	if bucket <= 0 {
+		return 0
+	}
+	const window = 6 * time.Hour
+	n := window / bucket
+	if window%bucket != 0 {
+		n++ // a bucket that does not divide 6h evenly rounds up, never down
+	}
+	return int(n)
+}
+
 // buildSensors groups the cycle's sensors by area and encodes the per-area
 // sensor list and series. It is handed the readings rather than querying for
 // its own: a second fetch would let this view and the grid's disagree about
 // what "now" means.
-func buildSensors(snap *Snapshot, h *Holder, sensors []store.SensorReading, seriesBySlug map[string][]store.Point, now time.Time) error {
+func buildSensors(snap *Snapshot, h *Holder, sensors []store.SensorReading, seriesBySlug map[string][]store.Point, counts map[string]map[time.Time]int, coverageThreshold int, now time.Time) error {
 	// Group sensors by area. A sensor in three nested areas appears in three
 	// entries; that is correct, since each is a separate response.
 	bySlug := make(map[string][]store.SensorReading, len(snap.KnownSlugs))
@@ -321,23 +352,58 @@ func buildSensors(snap *Snapshot, h *Holder, sensors []store.SensorReading, seri
 			bySlug[slug] = append(bySlug[slug], sr)
 		}
 	}
+	floor := minDayBuckets(h.bucket)
 	// Iterate the known areas, not bySlug, so every existing area gets an
 	// entry — including empty ones. See TestBuildIncludesEmptyAreasInAreaSensors.
-	for slug := range snap.KnownSlugs {
+	for slug, meta := range snap.KnownSlugs {
 		body, err := encode(sensorPayloadFrom(now, bySlug[slug]))
 		if err != nil {
 			return fmt.Errorf("snapshot: encode sensors for %q: %w", slug, err)
 		}
 		snap.AreaSensors[slug] = body
 
-		seriesBody, err := encode(seriesPayloadFrom(slug, h.metric, seriesBySlug[slug]))
+		points := seriesBySlug[slug]
+		seriesBody, err := encode(seriesPayloadFrom(slug, h.metric, points))
 		if err != nil {
 			return fmt.Errorf("snapshot: encode series for %q: %w", slug, err)
 		}
 		snap.AreaSeries[slug] = seriesBody
+
+		if meta.Covered {
+			if day := buildDayRange(points, counts[slug], coverageThreshold, floor); day != nil {
+				meta.Day = day
+				snap.KnownSlugs[slug] = meta
+			}
+		}
 	}
 	snap.SensorLocations = sensorLocationsFrom(sensors, snap.KnownSlugs)
 	return nil
+}
+
+// buildDayRange is the 24h min/max of one area's median series, ignoring any
+// bucket fewer than coverageThreshold sensors reported into — without that
+// gate a single overnight sensor could set the day's headline extreme on an
+// area that is otherwise well covered. Nil unless at least floor buckets
+// survive the gate, so a mostly-silent day does not print a range built from a
+// handful of scattered points.
+func buildDayRange(points []store.Point, counts map[time.Time]int, coverageThreshold, floor int) *DayRange {
+	var day DayRange
+	for _, p := range points {
+		if counts[p.Time] < coverageThreshold {
+			continue
+		}
+		if day.Buckets == 0 || p.Value < day.Min {
+			day.Min, day.MinAt = p.Value, p.Time
+		}
+		if day.Buckets == 0 || p.Value > day.Max {
+			day.Max, day.MaxAt = p.Value, p.Time
+		}
+		day.Buckets++
+	}
+	if day.Buckets < floor {
+		return nil
+	}
+	return &day
 }
 
 // collapseSources applies the hexes.go rule: one network is named by the
