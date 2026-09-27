@@ -4,7 +4,7 @@ import { scrollCue } from '../scrollcue.js'
 
 function page() {
   document.body.innerHTML = `
-    <a class="scroll-cue" href="#below-map"><span>More below the map</span></a>
+    <a class="scroll-cue" href="#below-map" aria-label="More below the map"><svg class="scroll-cue__chevron"></svg></a>
     <div id="below-map">readouts</div>`
   const target = document.getElementById('below-map')
   target.scrollIntoView = vi.fn()
@@ -22,7 +22,7 @@ describe('scrollCue', () => {
     const { cue, target } = page()
     scrollCue(document, win(false))
     const ev = new MouseEvent('click', { bubbles: true, cancelable: true })
-    cue.querySelector('span').dispatchEvent(ev)
+    cue.querySelector('svg').dispatchEvent(ev)
     expect(ev.defaultPrevented).toBe(true)
     expect(target.scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth', block: 'start' })
     expect(location.hash).toBe('#sensor=101')

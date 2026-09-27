@@ -259,4 +259,4 @@
   >{{with .StripReadouts}}{{template "readouts" .}}{{end}}</div>{{end}}
 
 {{/* The "more below" strip under the map; web/src/lib/scrollcue.js scrolls to #below-map. */}}
-{{define "scrollCue"}}<a class="scroll-cue" href="#below-map"><span>{{.T "map.more_below"}}</span><svg class="scroll-cue__chevron" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false"><path fill="none" stroke="currentColor" stroke-width="2" d="M3 6l5 5 5-5"/></svg></a>{{end}}
+{{define "scrollCue"}}<a class="scroll-cue" href="#below-map" aria-label="{{.T "map.more_below"}}"><svg class="scroll-cue__chevron" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false"><path fill="none" stroke="currentColor" stroke-width="2" d="M3 6l5 5 5-5"/></svg></a>{{end}}

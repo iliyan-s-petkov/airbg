@@ -653,16 +653,24 @@ html:has(> body.embed) { block-size: 100%; }
 }
 .scaleinfo__close:focus-visible { box-shadow: var(--focus-ring); }
 
-/* "More below" strip under the map. In flow, not sticky, never over the map. */
+/* "More below" pull tab hanging from the map's bottom edge; phones only. */
 .scroll-cue {
-  display: flex; align-items: center; justify-content: center; gap: var(--space-2);
-  inline-size: 100%; block-size: 44px;
-  background: var(--surface-2); color: var(--fg-2);
-  font-size: var(--text-caption); text-decoration: none;
+  position: absolute; z-index: 3; inset-block-start: 100%; inset-inline-start: 50%; translate: -50% 0;
+  display: grid; place-items: center; inline-size: 56px; block-size: 20px; padding: 0;
+  border: 1px solid var(--border); border-block-start: 0; border-radius: 0 0 12px 12px;
+  background: var(--bg); color: var(--fg); box-shadow: var(--elev-raised);
+  clip-path: inset(0 -12px -12px -12px); text-decoration: none; -webkit-tap-highlight-color: transparent;
 }
+/* 64x44 tap target. */
+.scroll-cue::before { content: ''; position: absolute; inset: -12px -4px -12px; }
 .scroll-cue:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.scroll-cue__chevron { animation: cue-bob 1.8s ease-in-out 3; }
+@keyframes cue-bob { 50% { transform: translateY(3px); } }
 @media (hover: hover) { .scroll-cue { display: none; } }
-.map-shell:has(.map:fullscreen, .map--faux-full) ~ .scroll-cue { display: none; }
+.map-shell:has(.map:fullscreen, .map--faux-full) .scroll-cue { display: none; }
+/* The caption clears the tab. */
+.map-shell:has(.scroll-cue) + .map-tier { margin-block-start: calc(20px + var(--space-1)); }
+@media (hover: hover) { .map-shell:has(.scroll-cue) + .map-tier { margin-block-start: var(--space-2); } }
 
 /* Phone layout: masthead wraps, map taller, scale horizontal, replay row wraps. */
 @media (max-width: 672px) {
@@ -681,9 +689,9 @@ html:has(> body.embed) { block-size: 100%; }
      .map--hero instead. The shell no longer fixes its own height too — a
      fixed-height shell clipped the static, in-flow scale below the map. */
   .map-shell:has(.map--hero) { block-size: auto; max-block-size: none; }
-  /* Capped so the tier caption (1.5rem) and the 44px scroll cue stay in the first viewport. */
+  /* Capped so the tier caption (1.5rem) and the 20px pull tab stay in the first viewport. */
   .map--hero {
-    aspect-ratio: auto; block-size: calc(100svh - var(--phone-chrome) - 1.5rem - 44px);
+    aspect-ratio: auto; block-size: calc(100svh - var(--phone-chrome) - 1.5rem - 20px);
     min-block-size: 20rem; max-block-size: 44rem;
   }
   .map--wide { block-size: calc(100svh - 15rem); min-block-size: 18rem; }
@@ -906,7 +914,8 @@ html:has(> body.embed) { block-size: 100%; }
    of height and the shell collapses to 0. Height-led instead, chrome on top. */
 @media (orientation: landscape) and (max-height: 520px) and (hover: none) {
   .map-shell:has(.map--hero) { max-inline-size: none; block-size: auto; max-block-size: none; }
-  .map--hero { aspect-ratio: auto; block-size: calc(100svh - 5.5rem); min-block-size: 12rem; }
+  /* 5.75rem is the measured 92px of chrome above the map; 20px is the pull tab. */
+  .map--hero { aspect-ratio: auto; block-size: calc(100svh - 5.75rem - 20px); min-block-size: 12rem; }
   .map--wide { block-size: calc(100svh - 5.5rem); min-block-size: 12rem; }
 
   /* Slimmer than the portrait 48px bar: landscape has no height to spare. */

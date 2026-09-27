@@ -136,9 +136,9 @@
 {{/* Same overlay as the home page's: the age of the data belongs beside the
      data, and this page's partial carries the reload button too. */}}
 <div class="map-freshness">{{template "dataFreshness" .}}</div>
+{{template "scrollCue" .}}
 </div>
 <p id="area-map-alt" class="visually-hidden">{{.T "map.text_alternative"}}</p>
-{{template "scrollCue" .}}
 
 {{/* The scroll cue's target: everything after the map. */}}
 <div id="below-map">
