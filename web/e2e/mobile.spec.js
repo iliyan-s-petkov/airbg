@@ -649,7 +649,10 @@ test.describe('landscape phone keeps the map', () => {
     }
 
     // Breadcrumb link renders as one line, no wrapped caret/marker below it.
-    const navLines = await page.locator('nav[aria-label="breadcrumb"] a').evaluate(
+    // .breadcrumb, not the aria-label: SEO6 made the label a translated
+    // string (area.breadcrumb.label) and the trail can hold more than one
+    // link, so .last() is the one crumb nearest the wrap boundary.
+    const navLines = await page.locator('nav.breadcrumb a').last().evaluate(
       (el) => el.getClientRects().length
     )
     expect(navLines).toBe(1)

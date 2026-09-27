@@ -145,6 +145,28 @@ func seedFixtures(t *testing.T, st *store.Store) {
 		t.Fatalf("seed oblast area: %v", err)
 	}
 
+	// A third area, kind "neighbourhood", wholly inside the "sofia" city
+	// square above — store.AreaParents assigns it "sofia" as ParentSlug by
+	// largest polygon overlap, giving the SEO6 breadcrumb/link-block specs a
+	// real district to deep-link and the /areas directory a Sofia district to
+	// list under the "sofia" group (§3 of the SEO6 plan).
+	districtDelta := delta / 10
+	districtWKT := fmt.Sprintf(
+		"MULTIPOLYGON(((%f %f, %f %f, %f %f, %f %f, %f %f)))",
+		lon-districtDelta, lat-districtDelta,
+		lon+districtDelta, lat-districtDelta,
+		lon+districtDelta, lat+districtDelta,
+		lon-districtDelta, lat+districtDelta,
+		lon-districtDelta, lat-districtDelta,
+	)
+	_, err = st.Pool().Exec(ctx,
+		`INSERT INTO area (slug, kind, name_bg, name_en, geom)
+		 VALUES ($1, $2, $3, $4, ST_SetSRID(ST_GeomFromText($5), 4326)::geography)`,
+		"mladost", "neighbourhood", "Младост", "Mladost", districtWKT)
+	if err != nil {
+		t.Fatalf("seed district area: %v", err)
+	}
+
 	now := time.Now().UTC()
 
 	// Two ordinary sensors: both metrics present, both readings ok.
