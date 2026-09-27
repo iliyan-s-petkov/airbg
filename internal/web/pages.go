@@ -113,6 +113,7 @@ func (rr *Renderer) handleIndex(w http.ResponseWriter, r *http.Request) {
 	} else {
 		data.Title = composeTitle(rr.cat.T(lang, "seo.home.title"), rr.cat.T(lang, "site.title"))
 		data.Description = rr.cat.T(lang, "seo.home.description")
+		data.JSONLD = rr.mustJSONLD(data.homeJSONLD())
 	}
 	rr.render(w, r, http.StatusOK, "index", data)
 }
@@ -137,6 +138,7 @@ func (rr *Renderer) handleArea(w http.ResponseWriter, r *http.Request) {
 	row := rr.rowFrom(meta, lang)
 	data.Area = &row
 	data.Title, data.Description = rr.areaSEO(row, lang)
+	data.JSONLD = rr.mustJSONLD(rr.areaJSONLD(data, row))
 	rr.render(w, r, http.StatusOK, "area", data)
 }
 
@@ -198,6 +200,7 @@ func (rr *Renderer) handleAbout(w http.ResponseWriter, r *http.Request) {
 	data := rr.newPageData(lang, path, generatedAt)
 	data.Title = composeTitle(rr.cat.T(lang, "seo.about_data.title"), rr.cat.T(lang, "site.title"))
 	data.Description = rr.cat.T(lang, "seo.about_data.description")
+	data.JSONLD = rr.mustJSONLD(data.datasetJSONLD())
 	rr.render(w, r, http.StatusOK, "about", data)
 }
 

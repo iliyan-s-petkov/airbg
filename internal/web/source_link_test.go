@@ -10,6 +10,9 @@ import (
 // matter are that it points at the repository and that it comes first.
 const sourceRepoURL = "https://github.com/iliyan-s-petkov/airtube-web"
 
+// The href form, because the JSON-LD in <head> also names the repository (sameAs).
+const sourceRepoHref = `href="` + sourceRepoURL + `"`
+
 func TestMastheadLinksToTheSourceRepository(t *testing.T) {
 	body := fetch(t, renderer(t, fixture(t)), "/").Body.String()
 
@@ -21,7 +24,7 @@ func TestMastheadLinksToTheSourceRepository(t *testing.T) {
 func TestTheSourceLinkSitsLeftOfThePickers(t *testing.T) {
 	body := fetch(t, renderer(t, fixture(t)), "/").Body.String()
 
-	src := strings.Index(body, sourceRepoURL)
+	src := strings.Index(body, sourceRepoHref)
 	pick := strings.Index(body, `<details class="langpick">`)
 	if src < 0 || pick < 0 {
 		t.Fatalf("source link at %d, language picker at %d; both must render", src, pick)
@@ -36,7 +39,7 @@ func TestTheSourceLinkSitsLeftOfThePickers(t *testing.T) {
 func TestTheSourceLinkIsSafeAndNamed(t *testing.T) {
 	body := fetch(t, renderer(t, fixture(t)), "/").Body.String()
 
-	start := strings.Index(body, sourceRepoURL)
+	start := strings.Index(body, sourceRepoHref)
 	if start < 0 {
 		t.Fatalf("masthead has no link to %s", sourceRepoURL)
 	}

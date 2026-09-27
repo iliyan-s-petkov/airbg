@@ -20,7 +20,8 @@
 <meta property="og:locale" content="{{.OGLocale}}">
 {{range .OGLocaleAlternates}}<meta property="og:locale:alternate" content="{{.}}">
 {{end}}<meta name="twitter:card" content="summary_large_image">
-{{end}}<link rel="icon" href="{{.Static "favicon.svg"}}" type="image/svg+xml">
+{{with .JSONLD}}<script type="application/ld+json">{{.}}</script>
+{{end}}{{end}}<link rel="icon" href="{{.Static "favicon.svg"}}" type="image/svg+xml">
 {{with .Assets.Style "theme"}}<link rel="stylesheet" href="{{.}}">
 {{else}}<link rel="stylesheet" href="{{.Static "theme.css"}}">
 {{end}}<link rel="stylesheet" href="{{.Static "app.css"}}">

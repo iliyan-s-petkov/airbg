@@ -155,6 +155,9 @@ type PageData struct {
 	// robots noindex instead.
 	NoIndex bool
 
+	// JSONLD is the schema.org graph for this page (jsonld.go); empty emits no script.
+	JSONLD template.JS
+
 	// Assets resolves to hashed script/style paths when a Vite build has been
 	// embedded, and to nothing when the dist tree holds only .keep — see
 	// assets.go and internal/web/dist/.keep.
