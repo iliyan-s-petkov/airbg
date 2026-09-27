@@ -1,89 +1,138 @@
 import { test, expect } from './fixtures.js'
 
-// 390x844 is the iPhone-class phone; 393x873 at 2.75 is the Xiaomi 12X.
-const PHONES = [
-  { name: '390x844', viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 },
-  { name: 'xiaomi-12x', viewport: { width: 393, height: 873 }, deviceScaleFactor: 2.75 },
+// The pull tab (OpenProject #574, plan Task 2, spike option C): a 56x20 tab
+// hanging from the map's bottom edge, 64x44 hit area via ::before.
+const VIEWPORTS = [
+  { name: '393x873', width: 393, height: 873 },
+  { name: '360x740', width: 360, height: 740 },
+  { name: '873x393', width: 873, height: 393 },
+  { name: '740x360', width: 740, height: 360 },
 ]
 
-const phone = (browser, p) =>
-  browser.newContext({ viewport: p.viewport, deviceScaleFactor: p.deviceScaleFactor, isMobile: true, hasTouch: true })
+const PAGES = ['/', '/area/sofia']
 
-for (const p of PHONES) {
-  test.describe(`scroll cue on ${p.name}`, () => {
-    test('/en: the strip starts inside the first viewport', async ({ browser }) => {
-      const context = await phone(browser, p)
-      const page = await context.newPage()
-      await page.goto('/en')
-      const cue = page.locator('.scroll-cue')
-      await expect(cue).toBeVisible()
-      // The whole strip, not just its top pixel: a sliver at the fold is not a target.
-      const box = await cue.boundingBox()
-      expect(box.height).toBeGreaterThanOrEqual(44)
-      expect(box.y + box.height).toBeLessThanOrEqual(p.viewport.height)
-      await context.close()
-    })
+const phoneCtx = (browser, vp) =>
+  browser.newContext({ viewport: { width: vp.width, height: vp.height }, isMobile: true, hasTouch: true })
 
-    // Area chrome varies, so the guarantee is for the map scrolled to the top.
-    test('/en/area/sofia: with the map at the top, the whole strip is on screen', async ({ browser }) => {
-      const context = await phone(browser, p)
-      const page = await context.newPage()
-      await page.goto('/en/area/sofia')
-      await page.evaluate(() => document.querySelector('.map-shell').scrollIntoView({ block: 'start', behavior: 'instant' }))
-      const m = await page.evaluate(() => ({
-        shellTop: document.querySelector('.map-shell').getBoundingClientRect().top,
-        cueBottom: document.querySelector('.scroll-cue').getBoundingClientRect().bottom,
-        vh: innerHeight,
-      }))
-      expect(Math.abs(m.shellTop)).toBeLessThanOrEqual(1)
-      expect(m.cueBottom).toBeLessThanOrEqual(m.vh)
-      await context.close()
-    })
+const overlaps = (a, b) =>
+  a.x < b.x + b.width && a.x + a.width > b.x &&
+  a.y < b.y + b.height && a.y + a.height > b.y
 
-    for (const path of ['/en', '/en/area/sofia']) {
-      test(`${path}: clicking the strip brings #below-map to the top`, async ({ browser }) => {
-        const context = await phone(browser, p)
-        const page = await context.newPage()
-        await page.goto(path)
-        const hash = await page.evaluate(() => location.hash)
-        await page.locator('.scroll-cue').click()
-        // The home page is shorter than top-of-#below-map plus one viewport, so
-        // there the scroll can only reach the document end; the area page is strict.
-        const strict = path.includes('/area/')
-        await expect.poll(() => page.evaluate((strict) => {
-          const top = Math.abs(document.getElementById('below-map').getBoundingClientRect().top)
-          const atEnd = scrollY >= document.documentElement.scrollHeight - innerHeight - 1
-          return top <= 8 || (!strict && atEnd && scrollY > 0)
-        }, strict)).toBe(true)
-        expect(await page.evaluate(() => location.hash)).toBe(hash)
-        await context.close()
-      })
-    }
+// The real tap target: ::before is out of DOM, so read its computed inset
+// off the pseudo-element rather than assume the spike's numbers.
+async function tapBox(cue) {
+  return cue.evaluate((el) => {
+    const r = el.getBoundingClientRect()
+    const cs = getComputedStyle(el, '::before')
+    const top = parseFloat(cs.top) || 0
+    const right = parseFloat(cs.right) || 0
+    const bottom = parseFloat(cs.bottom) || 0
+    const left = parseFloat(cs.left) || 0
+    return { x: r.x + left, y: r.y + top, width: r.width - left - right, height: r.height - top - bottom }
   })
 }
 
-test('390x844 /en: the strip is hidden while the map is full screen', async ({ browser }) => {
-  const context = await phone(browser, PHONES[0])
-  const page = await context.newPage()
-  await page.goto('/en')
-  await expect(page.locator('.scroll-cue')).toBeVisible()
+async function openLegend(page) {
+  const toggle = page.locator('.scale__toggle')
+  await toggle.click()
+  await expect(page.locator('details.scale--onmap')).toHaveAttribute('open', '')
+}
+
+for (const vp of VIEWPORTS) {
+  for (const path of PAGES) {
+    for (const legendState of ['folded', 'open']) {
+      test(`${vp.name} ${path} legend ${legendState}: pull tab sits on the map edge, clear of controls`, async ({ browser }) => {
+        const ctx = await phoneCtx(browser, vp)
+        const page = await ctx.newPage()
+        await page.goto(path)
+        // Area chrome varies above the map; the guarantee is for the map at the
+        // top, same convention the old strip spec used.
+        if (path.includes('/area/')) {
+          await page.evaluate(() => document.querySelector('.map-shell').scrollIntoView({ block: 'start', behavior: 'instant' }))
+        }
+        if (legendState === 'open') await openLegend(page)
+
+        const cue = page.locator('a.scroll-cue')
+        await expect(cue).toBeVisible()
+        const box = await cue.boundingBox()
+        const map = await page.locator('#map, #area-map').first().boundingBox()
+
+        // Fully inside the first viewport.
+        expect(box.y).toBeGreaterThanOrEqual(0)
+        expect(box.y + box.height).toBeLessThanOrEqual(vp.height)
+
+        // Visual tab is the spike's small pull tab, not the old 44px strip.
+        expect(box.width).toBeLessThanOrEqual(57)
+        expect(box.height).toBeLessThanOrEqual(21)
+
+        // The tap target (::before) is still >= 44px tall.
+        const tap = await tapBox(cue)
+        expect(tap.height).toBeGreaterThanOrEqual(44)
+
+        // Straddles the map's bottom edge.
+        expect(Math.abs(box.y - (map.y + map.height))).toBeLessThanOrEqual(2)
+
+        for (const sel of ['.scale--onmap', '.map-play', '.map-freshness', '.map-locate', '.scale__info']) {
+          const o = await page.locator(sel).first().boundingBox()
+          if (o) expect(overlaps(box, o), sel).toBe(false)
+        }
+
+        await ctx.close()
+      })
+    }
+  }
+}
+
+test('the pull tab still scrolls to #below-map without changing the hash', async ({ browser }) => {
+  const ctx = await phoneCtx(browser, VIEWPORTS[0])
+  const page = await ctx.newPage()
+  for (const path of PAGES) {
+    await page.goto(path)
+    const hash = await page.evaluate(() => location.hash)
+    await page.locator('a.scroll-cue').click()
+    const strict = path.includes('/area/')
+    await expect.poll(() => page.evaluate((strict) => {
+      const top = Math.abs(document.getElementById('below-map').getBoundingClientRect().top)
+      const atEnd = scrollY >= document.documentElement.scrollHeight - innerHeight - 1
+      return top <= 8 || (!strict && atEnd && scrollY > 0)
+    }, strict)).toBe(true)
+    expect(await page.evaluate(() => location.hash)).toBe(hash)
+  }
+  await ctx.close()
+})
+
+test('the pull tab is hidden while the map is full screen', async ({ browser }) => {
+  const ctx = await phoneCtx(browser, VIEWPORTS[0])
+  const page = await ctx.newPage()
+  await page.goto('/')
+  await expect(page.locator('a.scroll-cue')).toBeVisible()
   await page.locator('.map__full').click()
-  // Real fullscreen or the faux-full fallback, whichever the button applied.
   await expect.poll(() => page.evaluate(() => {
     const map = document.querySelector('#map')
     return document.fullscreenElement === map || map.classList.contains('map--faux-full')
   })).toBe(true)
-  await expect(page.locator('.scroll-cue')).toBeHidden()
-  await context.close()
+  await expect(page.locator('a.scroll-cue')).toBeHidden()
+  await ctx.close()
 })
 
-test('the strip is not shown on a 1280x800 desktop', async ({ ctx }) => {
+test('the pull tab is not shown on a 1280x800 desktop', async ({ ctx }) => {
   const page = await ctx.newPage()
   await page.setViewportSize({ width: 1280, height: 800 })
-  for (const path of ['/en', '/en/area/sofia']) {
+  for (const path of PAGES) {
     await page.goto(path)
     await expect(page.locator('#map, #area-map').first()).toBeVisible()
-    await expect(page.locator('.scroll-cue')).toBeHidden()
+    await expect(page.locator('a.scroll-cue')).toBeHidden()
   }
   await page.close()
+})
+
+test('reduced motion: the chevron does not animate', async ({ browser }) => {
+  const ctx = await phoneCtx(browser, VIEWPORTS[0])
+  const page = await ctx.newPage()
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await page.goto('/')
+  const name = await page.locator('.scroll-cue__chevron')
+    .evaluate((el) => getComputedStyle(el).animationName)
+  expect(name).toBe('none')
+  await ctx.close()
 })
