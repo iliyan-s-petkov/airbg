@@ -20,6 +20,8 @@ import { parseMetricList, zipLabels } from '../lib/metrics.js'
 import { getViewState } from '../lib/viewstate.svelte.js'
 import { findSensor, getScales, normaliseSensor } from '../lib/sensors.svelte.js'
 import { gaugeModel } from '../lib/gauge.js'
+import { createPanelScroll } from '../lib/panelscroll.js'
+import { watchPanelScroll } from '../lib/panelwatch.svelte.js'
 
 // Re-exported, not re-implemented: the projection lives in
 // lib/sensors.svelte.js because findSensor (the registry's own lookup) needs
@@ -147,6 +149,19 @@ export function mount(el) {
         return chartFor(findSensor(vs.sensorId))
       },
     },
+  })
+
+  // Phones: tap scrolls the card into view; close scrolls back to the map.
+  const scroll = createPanelScroll({
+    win: window,
+    panel: () => el.querySelector('.sensor-panel'),
+    isFull: () => !!document.querySelector('.map:fullscreen, .map--faux-full'),
+  })
+  watchPanelScroll({
+    shownId: () => (findSensor(vs.sensorId) !== null ? vs.sensorId : null),
+    initialId: vs.sensorId,
+    scroll,
+    onReturn: () => document.querySelector('.maplibregl-canvas')?.focus({ preventScroll: true }),
   })
 }
 

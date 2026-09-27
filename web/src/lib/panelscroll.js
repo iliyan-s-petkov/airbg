@@ -1,0 +1,29 @@
+// Phone only: brings the sensor card under the map into view on open and returns to the map on close.
+// `panel` may be a getter, because the section only exists while a sensor is open.
+export function createPanelScroll({ win = window, panel, isFull = () => false }) {
+  let returnY = null
+  const behavior = () => (win.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth')
+  const phone = () => win.matchMedia('(hover: none)').matches
+
+  return {
+    opened({ initial }) {
+      const el = typeof panel === 'function' ? panel() : panel
+      if (initial || !el || !phone() || isFull()) return
+      // Already in the upper part of the screen: a second tap must not jerk the page.
+      const top = el.getBoundingClientRect().top
+      if (top >= 0 && top < win.innerHeight * 0.6) return
+      if (returnY === null) returnY = win.scrollY
+      el.scrollIntoView({ behavior: behavior(), block: 'start' })
+      el.focus?.({ preventScroll: true })
+    },
+    // True when it scrolled back, so the caller can hand focus to the map.
+    closed() {
+      if (returnY === null) return false
+      const top = returnY
+      returnY = null
+      if (isFull()) return false
+      win.scrollTo({ top, behavior: behavior() })
+      return true
+    },
+  }
+}
