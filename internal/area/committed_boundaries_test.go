@@ -304,13 +304,7 @@ func TestBoundariesDoNotSwapCoordinates(t *testing.T) {
 	}
 }
 
-// TestCountryBoundaryCoversEveryOblast is the structural check that
-// bulgaria.geojson is actually the union of oblasti.geojson: a point
-// guaranteed to sit inside each of the 28 oblasti (ST_PointOnSurface, not the
-// centroid — a concave oblast's centroid can fall outside its own polygon)
-// must also be covered by the country boundary. A seam or gap left over from
-// unioning the 28 parts would show up here as a specific oblast failing,
-// which is more actionable than a single national area-sum check.
+// A seam left by unioning the oblasti shows up as one oblast's point-on-surface falling outside.
 func TestCountryBoundaryCoversEveryOblast(t *testing.T) {
 	ctx, pool := migrated(t)
 
@@ -358,11 +352,7 @@ func TestCountryBoundaryCoversEveryOblast(t *testing.T) {
 	}
 }
 
-// TestCountryBoundaryDoesNotOverlapNeighbours asserts bulgaria.geojson's
-// ST_Intersection area with each Natural Earth neighbour file is ~0. Without
-// this, FilterByBoundary's ORDER BY country_code LIMIT 1 tiebreak always picks
-// BG in any overlap strip (BG sorts first alphabetically), silently stealing
-// Romanian, Greek and Turkish sensors near the border.
+// FilterByBoundary breaks overlaps by country_code, so any overlap hands a neighbour's sensors to BG.
 func TestCountryBoundaryDoesNotOverlapNeighbours(t *testing.T) {
 	ctx, pool := migrated(t)
 
