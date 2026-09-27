@@ -143,9 +143,21 @@ export function mountChrome(el, cfg) {
   // to — inset-block-end:16px is measured from the shell's bottom — so anything
   // else placed in it makes the shell taller than the map and pushes the key
   // down past the map's own edge. Measured live: 16px below it.
-  const tierLine = document.createElement('p')
+  // Server-rendered by the same rule (PageData.InitialTier, internal/web/
+  // render.go): adopt that node so the element Lighthouse measures for LCP is
+  // the one this island keeps writing to, not a replacement inserted behind
+  // it. Only adopted when it is already the shell's next sibling with this
+  // class — mount() runs on every route, including ones with no SSR tier line.
+  const ssrTierLine = shell.nextElementSibling
+  const adoptingTierLine = ssrTierLine?.classList.contains('map-tier')
+  const tierLine = adoptingTierLine ? ssrTierLine : document.createElement('p')
   tierLine.className = 'legend__tier map-tier'
-  shell.after(tierLine)
+  if (!adoptingTierLine) {
+    shell.after(tierLine)
+    // Matches the pre-refresh state showLegend's tier===null branch below
+    // leaves alone: hidden until the first real tier arrives.
+    tierLine.hidden = true
+  }
 
   // Full screen and zoom go on the FRAME, not the shell: they are furniture on
   // the canvas and belong over it at every width, which is the opposite of the
@@ -365,6 +377,10 @@ export function mountChrome(el, cfg) {
       // claim, the dialog would open on nothing.
       info: scale ? { label: cfg.t.legendAbout, onOpen: () => scaleDialog.show(scale) } : null,
     })
+    // null only on the mount-time bootstrap call below, before any real tier
+    // is known — left untouched so it neither blanks a server-rendered
+    // caption nor flashes an empty one where there was none.
+    if (tier === null) return
     const text = cfg.t.tier[tier] ?? ''
     tierLine.textContent = text
     tierLine.hidden = !text

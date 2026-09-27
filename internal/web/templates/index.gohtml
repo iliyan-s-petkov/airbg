@@ -122,6 +122,12 @@
 <div class="map-freshness">{{template "dataFreshness" .}}</div>
 {{template "scrollCue" .}}
 </div>
+{{/* Server-rendered so the LCP element (this caption, per Lighthouse) paints
+     with the HTML instead of waiting on the map bundle. mountChrome
+     (lib/chrome.js) adopts this node rather than creating its own; the text
+     must match InitialTier's rule (PageData.InitialTierKey, render.go)
+     exactly, or the island's own refresh() silently rewrites it. */}}
+<p class="legend__tier map-tier">{{.InitialTier}}</p>
 {{template "backToMap" .}}
 {{end}}
 

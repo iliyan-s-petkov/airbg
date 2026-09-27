@@ -591,6 +591,45 @@ func TestMapIslandRendersFrontendConfiguration(t *testing.T) {
 // same numbers lived a second time in api/locate.go. Only the home page is
 // asserted here: /area/sofia's view comes from the area row, not from
 // frontend.default_*.
+// TestLegendTierIsServerRendered pins OpenProject #609's fix: the LCP element
+// (p.legend__tier) must be in the HTML with its final text, not created by
+// the map bundle after it evaluates. Home opens at zoom 7, below
+// airbg.yaml's zoom_city (9) — "country". /area/sofia's fixture zoom is 9,
+// at or above zoom_city and below zoom_sensor (11) — "city". Both wants come
+// from the same catalogue keys mountChrome (lib/chrome.js) reads off
+// data-t-tier-country/city, so a drift between InitialTier and tierFor would
+// show here as the wrong word, not just a missing element.
+func TestLegendTierIsServerRendered(t *testing.T) {
+	snap := fixture(t)
+	// Above zoom_sensor (11): the one case whose text (en.json's
+	// "sensors" key) actually differs from the other two, so this test can
+	// fail on a wrong tier and not just a missing element.
+	snap.KnownSlugs["hitier"] = snapshot.AreaMeta{
+		Slug: "hitier", Kind: "neighbourhood", NameBG: "Хайтиер", NameEN: "Hitier",
+		CentroidLon: 23.32, CentroidLat: 42.69, DefaultZoom: 12,
+		Covered: true, SensorCount: 3,
+	}
+	rr := renderer(t, snap)
+
+	cases := []struct {
+		path string
+		want string
+	}{
+		// zoom 7 < zoom_city (9). Default language is Bulgarian (i18n.DefaultLang).
+		{"/", "Всяка клетка е медиана за площта под нея"},
+		// zoom 9: zoom_city <= 9 < zoom_sensor (11).
+		{"/area/sofia", "Всяка клетка е медиана за площта под нея"},
+		// zoom 12 >= zoom_sensor.
+		{"/area/hitier", "Всяка клетка е отделен сензор"},
+	}
+	for _, c := range cases {
+		body := fetch(t, rr, c.path).Body.String()
+		if !strings.Contains(body, `<p class="legend__tier map-tier">`+c.want+`</p>`) {
+			t.Errorf("%s: body missing server-rendered legend__tier %q", c.path, c.want)
+		}
+	}
+}
+
 func TestHomeMapIslandRendersTheConfiguredDefaultView(t *testing.T) {
 	rr := renderer(t, fixture(t))
 	tag := islandTag(t, fetch(t, rr, "/").Body.String(), "map")
