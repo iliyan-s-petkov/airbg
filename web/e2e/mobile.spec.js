@@ -716,4 +716,28 @@ test.describe('landscape phone keeps the map', () => {
     }).toEqual({ fresh: false, layers: false })
     await page.close()
   })
+
+  // Task 4 (mux-18): the OPEN legend must stop below the layers button, not
+  // overlap it, on both the home map and an area map.
+  for (const vp of [{ width: 873, height: 393 }, { width: 740, height: 360 }]) {
+    for (const path of ['/en', '/en/area/sofia']) {
+      test(`${vp.width}x${vp.height} landscape ${path}: open legend clears the layers button`, async ({ mobileCtx }) => {
+        const page = await mobileCtx.newPage()
+        await new Promise((r) => setTimeout(r, 2000))
+        await page.addInitScript(() => localStorage.removeItem('airbg:legend-open'))
+        await page.setViewportSize(vp)
+        await page.goto(path)
+        const legend = page.locator('.scale--onmap')
+        const toggle = legend.locator('.scale__toggle')
+        await expect(toggle).toBeVisible()
+        await toggle.click({ force: true })
+        await expect(legend).toHaveAttribute('open', '')
+        await expect.poll(async () => (await legend.boundingBox())?.height ?? 0).toBeGreaterThan(0)
+        const a = await legend.boundingBox()
+        const b = await page.locator('.map__layers').boundingBox()
+        expect(a.y).toBeGreaterThanOrEqual(b.y + b.height + 4)
+        await page.close()
+      })
+    }
+  }
 })

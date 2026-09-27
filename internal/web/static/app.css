@@ -977,8 +977,11 @@ html:has(> body.embed) { block-size: 100%; }
   /* Anchors the open legend inside the short landscape map, not the
      desktop offset used above 520px tall. */
   .map-shell .scale--onmap { inset-block-end: var(--space-2); }
-  /* Scrolls the open legend when it is taller than the landscape map. */
-  .map-shell .scale--onmap[open] { overflow-y: auto; }
+  /* Open legend scrolls, and its top stops below the layers button (12px + 44px + gap). */
+  .map-shell .scale--onmap[open] {
+    max-block-size: calc(100% - var(--space-2) - 12px - 44px - var(--space-2));
+    overflow-y: auto;
+  }
   /* Folded pill, restated from the @672px block: the width-gated query there
      does not fire at 844px wide. */
   .scale--onmap:not([open]) { padding-block: 0; padding-inline: var(--space-1); }
