@@ -10,6 +10,7 @@
 // a few lines, so a chunk boundary would cost a request to save nothing.
 import { soleOpen } from './lib/disclosure.js'
 import { scrollCue } from './lib/scrollcue.js'
+import { createBackToMap } from './lib/backtomap.js'
 
 const ISLANDS = {
   map: () => import('./islands/map.js'),
@@ -61,6 +62,7 @@ function init() {
   // element is already in the DOM, empty, and soleOpen re-queries on each event.
   soleOpen(document.querySelector('.masthead__nav') ?? document.body)
   scrollCue(document, window)
+  createBackToMap({ doc: document, win: window })
 
   for (const el of document.querySelectorAll('[data-island]')) {
     const load = resolveLoader(el.dataset.island)

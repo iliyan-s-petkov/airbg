@@ -691,6 +691,26 @@ html:has(> body.embed) { block-size: 100%; }
 .map-shell:has(.scroll-cue) + .map-tier { margin-block-start: calc(20px + var(--space-1)); }
 @media (hover: hover) { .map-shell:has(.scroll-cue) + .map-tier { margin-block-start: var(--space-2); } }
 
+/* Phone-only "back to map" button: fixed bottom-right, fades in once
+   .map-shell has fully scrolled out of view; see web/src/lib/backtomap.js.
+   z-index above the open key (4) and the open sensor sheet (4) it can
+   otherwise sit beside once both have scrolled off. */
+.back-to-map {
+  position: fixed; z-index: 6;
+  bottom: max(var(--space-3), env(safe-area-inset-bottom));
+  inset-inline-end: max(var(--space-3), env(safe-area-inset-right));
+  display: grid; place-items: center; inline-size: 44px; block-size: 44px; padding: 0;
+  border: 1px solid var(--border); border-radius: 999px;
+  background: var(--bg); color: var(--fg); box-shadow: var(--elev-raised);
+  opacity: 0; visibility: hidden; pointer-events: none;
+  transition: opacity .2s ease, visibility 0s linear .2s;
+}
+.back-to-map--visible { opacity: 1; visibility: visible; pointer-events: auto; transition: opacity .2s ease; }
+.back-to-map:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+@media (hover: hover) { .back-to-map { display: none; } }
+/* Fullscreen and faux-full pin the frame over the viewport; nothing outside it is reachable. */
+.map-shell:has(.map:fullscreen, .map--faux-full) ~ .back-to-map { display: none; }
+
 /* Phone layout: masthead wraps, map taller, scale horizontal, replay row wraps. */
 @media (max-width: 672px) {
   /* One line, 48px: brand shortens and links tighten instead of wrapping. */
