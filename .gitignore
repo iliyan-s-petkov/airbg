@@ -29,6 +29,7 @@ audit-home-full.png
 sofia-poi-zoom.png
 node-compile-cache/
 .claude-flow/
+/playwright-transform-cache-*/
 
 # Planning scratch; public repo. Long-term planning lives in OpenProject.
 docs/superpowers/
