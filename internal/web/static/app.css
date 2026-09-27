@@ -657,13 +657,19 @@ html:has(> body.embed) { block-size: 100%; }
 .scroll-cue {
   position: absolute; z-index: 3; inset-block-start: 100%; inset-inline-start: 50%; translate: -50% 0;
   display: grid; place-items: center; inline-size: 56px; block-size: 20px; padding: 0;
+  color: var(--fg); text-decoration: none; -webkit-tap-highlight-color: transparent;
+}
+/* Visual tab; clipped here so the clip doesn't cut the ::before tap target. */
+.scroll-cue::after {
+  content: ''; position: absolute; inset: 0; z-index: -1;
   border: 1px solid var(--border); border-block-start: 0; border-radius: 0 0 12px 12px;
-  background: var(--bg); color: var(--fg); box-shadow: var(--elev-raised);
-  clip-path: inset(0 -12px -12px -12px); text-decoration: none; -webkit-tap-highlight-color: transparent;
+  background: var(--bg); box-shadow: var(--elev-raised);
+  clip-path: inset(0 -12px -12px -12px);
 }
 /* 64x44 tap target. */
 .scroll-cue::before { content: ''; position: absolute; inset: -12px -4px -12px; }
-.scroll-cue:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.scroll-cue:focus-visible { outline: none; }
+.scroll-cue:focus-visible::after { box-shadow: var(--focus-ring); }
 .scroll-cue__chevron { animation: cue-bob 1.8s ease-in-out 3; }
 @keyframes cue-bob { 50% { transform: translateY(3px); } }
 @media (hover: hover) { .scroll-cue { display: none; } }
@@ -695,6 +701,12 @@ html:has(> body.embed) { block-size: 100%; }
     min-block-size: 20rem; max-block-size: 44rem;
   }
   .map--wide { block-size: calc(100svh - 15rem); min-block-size: 18rem; }
+  /* Area pages: shrink so the pull tab stays above the fold on touch phones. */
+  @media (hover: none) {
+    .frame:has(> [data-island="sensorbar"]) .map--wide {
+      block-size: calc(100svh - var(--phone-chrome-area) - 20px); min-block-size: 55svh;
+    }
+  }
 
   /* Row instead of column, reversed: the DOM runs high to low, and a phone
      row must read low to high, left to right. */
@@ -916,7 +928,8 @@ html:has(> body.embed) { block-size: 100%; }
   .map-shell:has(.map--hero) { max-inline-size: none; block-size: auto; max-block-size: none; }
   /* 5.75rem is the measured 92px of chrome above the map; 20px is the pull tab. */
   .map--hero { aspect-ratio: auto; block-size: calc(100svh - 5.75rem - 20px); min-block-size: 12rem; }
-  .map--wide { block-size: calc(100svh - 5.5rem); min-block-size: 12rem; }
+  /* 6rem measured chrome above the map; 20px is the pull tab. */
+  .map--wide { block-size: calc(100svh - 6rem - 20px); min-block-size: 12rem; }
 
   /* Slimmer than the portrait 48px bar: landscape has no height to spare. */
   .masthead { block-size: 40px; min-block-size: 40px; }
