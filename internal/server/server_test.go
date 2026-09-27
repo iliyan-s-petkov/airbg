@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 	"testing"
 	"time"
 
@@ -70,7 +71,43 @@ func runningWithTiles(t *testing.T, tilesDir string, tweak ...func(*config.Confi
 // start builds the server from the committed configuration. tweak runs after
 // the addresses are assigned and before server.New, so a test can move a knob
 // (the connection cap, say) without a second copy of this setup.
+// free() can lose its port to another test before Run binds it; that attempt retries with fresh ports.
 func start(t *testing.T, tilesDir string, tweak ...func(*config.Config)) (public, private, tilesAddr string) {
+	t.Helper()
+
+	const maxAttempts = 5
+	for attempt := 1; ; attempt++ {
+		pub, priv, tiles, done, cancel, ready := attemptStart(t, tilesDir, tweak...)
+		if ready {
+			t.Cleanup(func() {
+				cancel()
+				select {
+				case err := <-done:
+					if err != nil && !errors.Is(err, http.ErrServerClosed) {
+						t.Errorf("Run: %v", err)
+					}
+				case <-time.After(10 * time.Second):
+					t.Error("Run did not return within 10s of cancellation; shutdown is not graceful, it is stuck")
+				}
+			})
+			return pub, priv, tiles
+		}
+
+		// Not ready: Run exited (bind error) or the deadline passed; done tells which.
+		cancel()
+		var runErr error
+		select {
+		case runErr = <-done:
+		case <-time.After(time.Second):
+		}
+		if !isAddrInUse(runErr) || attempt == maxAttempts {
+			t.Fatalf("start attempt %d/%d: server did not become ready; Run error: %v", attempt, maxAttempts, runErr)
+		}
+	}
+}
+
+// attemptStart is one try at start's setup; the caller owns done and cancel either way.
+func attemptStart(t *testing.T, tilesDir string, tweak ...func(*config.Config)) (public, private, tilesAddr string, done chan error, cancel context.CancelFunc, ready bool) {
 	t.Helper()
 
 	cat, err := i18n.Load()
@@ -111,29 +148,28 @@ func start(t *testing.T, tilesDir string, tweak ...func(*config.Config)) (public
 		t.Fatalf("server.New: %v", err)
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
-	done := make(chan error, 1)
-	go func() { done <- srv.Run(ctx) }()
-	t.Cleanup(func() {
-		cancel()
-		select {
-		case err := <-done:
-			if err != nil && !errors.Is(err, http.ErrServerClosed) {
-				t.Errorf("Run: %v", err)
-			}
-		case <-time.After(10 * time.Second):
-			t.Error("Run did not return within 10s of cancellation; shutdown is not graceful, it is stuck")
-		}
-	})
+	var ctx context.Context
+	ctx, cancel = context.WithCancel(context.Background())
+	done = make(chan error, 1)
+	// exited lets the readiness polls see Run return without taking its error off done.
+	exited := make(chan struct{})
+	go func() { done <- srv.Run(ctx); close(exited) }()
 
 	// Each listener binds in its own goroutine; /healthz is private-only, so the
 	// other two need a dial before a test may call them.
-	waitReady(t, private)
-	waitDial(t, public)
-	if tilesAddr != "" {
-		waitDial(t, tilesAddr)
+	ready = tryReady(private, exited) && tryDial(public, exited)
+	if ready && tilesAddr != "" {
+		ready = tryDial(tilesAddr, exited)
 	}
-	return public, private, tilesAddr
+	return public, private, tilesAddr, done, cancel, ready
+}
+
+// isAddrInUse reports whether Run failed because a free() port was taken first.
+func isAddrInUse(err error) bool {
+	if err == nil {
+		return false
+	}
+	return errors.Is(err, syscall.EADDRINUSE) || strings.Contains(err.Error(), "address already in use")
 }
 
 // tilesArchive is the dated PMTiles filename these tests configure. Dated
@@ -187,6 +223,44 @@ func waitDial(t *testing.T, addr string) {
 		time.Sleep(20 * time.Millisecond)
 	}
 	t.Fatalf("the listener on %s never came up", addr)
+}
+
+// tryReady is waitReady without t.Fatal; it gives up once Run has exited.
+func tryReady(addr string, exited <-chan struct{}) bool {
+	deadline := time.Now().Add(5 * time.Second)
+	for time.Now().Before(deadline) {
+		select {
+		case <-exited:
+			return false
+		default:
+		}
+		resp, err := http.Get("http://" + addr + "/healthz")
+		if err == nil {
+			_ = resp.Body.Close()
+			return true
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	return false
+}
+
+// tryDial is waitDial without t.Fatal, for the same reason as tryReady.
+func tryDial(addr string, exited <-chan struct{}) bool {
+	deadline := time.Now().Add(5 * time.Second)
+	for time.Now().Before(deadline) {
+		select {
+		case <-exited:
+			return false
+		default:
+		}
+		conn, err := net.DialTimeout("tcp", addr, time.Second)
+		if err == nil {
+			_ = conn.Close()
+			return true
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	return false
 }
 
 func get(t *testing.T, addr, path string) *http.Response {
