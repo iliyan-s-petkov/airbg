@@ -187,6 +187,10 @@ func (p PageData) areaNowHTML(row AreaRow) template.HTML {
 
 	text := p.T(key)
 	text = strings.ReplaceAll(text, "{subject}", subject)
+	// bg's time.layout ends in "ч."; don't close the sentence with a second period.
+	if strings.HasSuffix(p.sofiaLayout(p.GeneratedAt), ".") {
+		text = strings.ReplaceAll(text, "{time}.", "{time}")
+	}
 	text = strings.ReplaceAll(text, "{time}", timeHTML)
 	text = strings.ReplaceAll(text, "{sensors}", htmlEscape(p.sensorsText(row.SensorCount)))
 	text = strings.ReplaceAll(text, "{metric}", htmlEscape(p.T("metric."+p.DefaultMetric)))

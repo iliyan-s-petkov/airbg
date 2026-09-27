@@ -178,6 +178,30 @@ func TestAreaNowStates(t *testing.T) {
 	}
 }
 
+// bg time.layout ends in "ч.", so a sentence ending in {time} must not add a second period.
+func TestAreaNowNoDoublePeriodAfterTime(t *testing.T) {
+	rr := acRenderer(t)
+	snap := acFixture()
+	t0 := snap.GeneratedAt
+	covered := rr.rowFrom(snap.KnownSlugs["plovdiv"], i18n.DefaultLang)
+	noSensors := rr.rowFrom(snap.KnownSlugs["silistra"], i18n.DefaultLang)
+	for _, lang := range []string{"bg", "en"} {
+		for _, c := range []struct {
+			name string
+			row  AreaRow
+			now  time.Time
+		}{{"fresh covered", covered, t0}, {"uncovered stale", noSensors, t0.Add(31 * time.Minute)}} {
+			got := string(acPageData(rr, lang, t0, c.now).areaNowHTML(c.row))
+			if strings.Contains(got, "..") || strings.Contains(got, ".</time>.") {
+				t.Errorf("%s %s: areaNowHTML() = %q has a double period", lang, c.name, got)
+			}
+			if text := strings.NewReplacer("</time>", "", "</p>", "").Replace(got); !strings.HasSuffix(text, ".") {
+				t.Errorf("%s %s: areaNowHTML() = %q does not end the sentence", lang, c.name, got)
+			}
+		}
+	}
+}
+
 func TestAreaDayRange(t *testing.T) {
 	rr := acRenderer(t)
 	snap := acFixture()
