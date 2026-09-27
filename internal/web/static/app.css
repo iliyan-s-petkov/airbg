@@ -259,6 +259,9 @@ strong, b { font-weight: var(--weight-emphasis); }
 .map__layers .colmenu__panel {
   inline-size: max-content;
   max-inline-size: calc(100vw - var(--space-6));
+  /* Keeps a swipe inside the list from being taken by the map underneath. */
+  overscroll-behavior: contain;
+  touch-action: pan-y;
 }
 .map__layers .colmenu__opt { white-space: nowrap; }
 /* The shape each network is drawn in, beside its name in the layers menu. The
