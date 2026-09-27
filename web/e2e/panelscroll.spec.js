@@ -25,7 +25,7 @@ async function prepareMap(page, path) {
 // cell naming one station. Clear of the sticky masthead and the frame's edges.
 const featurePoint = (page, layer) => page.evaluate((layer) => {
   const map = document.querySelector('[data-island="map"]').__map
-  if (!map?.isStyleLoaded?.() || !map.getLayer(layer)) return null
+  if (!map?.getLayer?.(layer)) return null
   const box = map.getCanvas().getBoundingClientRect()
   for (const f of map.queryRenderedFeatures({ layers: [layer] })) {
     const g = f.geometry
