@@ -144,15 +144,24 @@ for (const vp of FOLD_VIEWPORTS) {
         expect(summary.y).toBeGreaterThan(box.y)
       }
       // The fixture's chrome is shorter than prod's, so also pin the area shrink rule itself,
-      // with the sensor bar removed as on an uncovered area.
-      if (path.includes('/area/') && vp.height > vp.width) {
-        const { h, cap } = await page.evaluate(() => {
+      // made uncovered: sensor bar removed, no-coverage notice added where area.gohtml puts it.
+      if (path.includes('/area/')) {
+        const { h, cap, noticeTop, mapBottom } = await page.evaluate((portrait) => {
           document.querySelector('[data-island="sensorbar"]')?.remove()
+          const notice = document.createElement('div')
+          notice.className = 'notice'
+          notice.innerHTML = '<p><strong>No coverage</strong></p><p>Two lines of detail.</p>'
+          document.querySelector('.frame > .toolbar').before(notice)
           const rem = parseFloat(getComputedStyle(document.documentElement).fontSize)
-          const h = document.querySelector('.map--wide').getBoundingClientRect().height
-          return { h, cap: Math.max(innerHeight - 22 * rem - 20, innerHeight * 0.55) }
-        })
+          const map = document.querySelector('.map--wide').getBoundingClientRect()
+          const cap = portrait
+            ? Math.max(innerHeight - 22 * rem - 20, innerHeight * 0.55)
+            : Math.max(innerHeight - 7 * rem - 20, 12 * rem)
+          return { h: map.height, cap, noticeTop: notice.getBoundingClientRect().top, mapBottom: map.bottom }
+        }, vp.height > vp.width)
         expect(h).toBeLessThanOrEqual(cap + 1)
+        // The notice moves below the map on touch phones rather than pushing it down.
+        expect(noticeTop).toBeGreaterThanOrEqual(mapBottom)
       }
       await ctx.close()
     })
