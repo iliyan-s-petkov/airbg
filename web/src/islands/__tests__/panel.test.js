@@ -24,7 +24,7 @@ vi.mock('uplot', () => ({
   }),
 }))
 
-import { readFileSync } from 'node:fs'
+import { readFileSync, readdirSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -98,20 +98,34 @@ const PANEL_ATTR_FIXTURES = {
 // block?) is covered separately by internal/web/sensor_card_host_test.go's
 // golden tests against rendered output; this file only proves the markup
 // itself carries every data-* the island reads.
-function islandFrom(templateName, island) {
+// Scans every template file for the island instead of trusting a
+// hand-maintained island-to-file map: whichever template now defines
+// data-island="<island>" is found regardless of which file that is, so
+// moving or renaming a partial cannot silently break this lookup. Zero or
+// more than one match throws, rather than returning null (a moved island
+// with no test failure until a much later assertion) or the wrong element
+// (two templates defining the same island, picked arbitrarily).
+function islandFrom(island) {
   // join(dirname(fileURLToPath(...))) rather than new URL(path, import.meta.url):
   // Vite rewrites the latter into an ASSET import at transform time and then
   // refuses the path for being outside the project root — it never reaches
   // readFileSync at all.
-  const here = dirname(fileURLToPath(import.meta.url))
-  // The panel island's markup was factored out of the per-page templates into
-  // one "sensorCardHost" partial in base.gohtml; read it from there rather
-  // than from templateName, which no longer contains it.
-  const file = island === 'panel' ? 'base.gohtml' : templateName
-  const path = join(here, '..', '..', '..', '..', 'internal', 'web', 'templates', file)
-  const src = readFileSync(path, 'utf8').replace(/\{\{[\s\S]*?\}\}/g, '')
-  const doc = new DOMParser().parseFromString(src, 'text/html')
-  return doc.querySelector(`[data-island="${island}"]`)
+  const dir = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', '..', 'internal', 'web', 'templates')
+  const hits = []
+  for (const name of readdirSync(dir)) {
+    if (!name.endsWith('.gohtml')) continue
+    const src = readFileSync(join(dir, name), 'utf8').replace(/\{\{[\s\S]*?\}\}/g, '')
+    const doc = new DOMParser().parseFromString(src, 'text/html')
+    const el = doc.querySelector(`[data-island="${island}"]`)
+    if (el) hits.push({ file: name, el })
+  }
+  if (hits.length === 0) {
+    throw new Error(`no template under ${dir} defines data-island="${island}"`)
+  }
+  if (hits.length > 1) {
+    throw new Error(`data-island="${island}" is defined in more than one template: ${hits.map((h) => h.file).join(', ')}`)
+  }
+  return hits[0].el
 }
 
 function fillFixtures(el) {
@@ -433,8 +447,8 @@ describe('the home page mounts the panel island', () => {
   // a behaviour the home page silently loses (a missing data-t-* renders as an
   // empty string, which is invisible rather than broken).
   it('gives it the same attributes area.gohtml does', () => {
-    const home = islandFrom('index.gohtml', 'panel')
-    const area = islandFrom('area.gohtml', 'panel')
+    const home = islandFrom('panel')
+    const area = islandFrom('panel')
     expect(area).not.toBeNull()
     expect(home).not.toBeNull()
     const names = (el) => el.getAttributeNames().sort()
@@ -442,7 +456,7 @@ describe('the home page mounts the panel island', () => {
   })
 
   it('opens a sensor clicked on the home page instead of only changing the hash', async () => {
-    const el = fillFixtures(islandFrom('index.gohtml', 'panel'))
+    const el = fillFixtures(islandFrom('panel'))
     document.body.append(el)
     mount(el)
 
@@ -473,7 +487,7 @@ describe('mount() puts the panel copy on screen', () => {
   // different path than the one these three tests are about.
   function mountPanel(sensorId) {
     history.replaceState(null, '', `/#sensor=${sensorId}`)
-    const el = fillFixtures(islandFrom('area.gohtml', 'panel'))
+    const el = fillFixtures(islandFrom('panel'))
     document.body.append(el)
     mount(el)
     return el
@@ -618,7 +632,7 @@ describe('the island hands the chart both line colours', () => {
 
   it('strokes the first line, then the second, in the configured colours', async () => {
     history.replaceState(null, '', '/#sensor=42')
-    const el = fillFixtures(islandFrom('area.gohtml', 'panel'))
+    const el = fillFixtures(islandFrom('panel'))
     document.body.append(el)
     mount(el)
     setSensors({ sensors: { id: [42], quality: ['ok'], P2: [12], P1: [20] } })
