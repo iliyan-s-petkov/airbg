@@ -55,8 +55,6 @@ const PANEL_ATTR_FIXTURES = {
   tFlagStuck: 'This reading has not changed in a while.',
   tFlagSpatialOutlier: 'This reading disagrees with nearby sensors.',
   tFlagSourceInvalid: 'The newest reading was rejected by its source; this is the last accepted one.',
-  tChartTitle: 'Chart',
-  tChartValue: 'Value',
   tChartTime: 'Time',
   tChartEmpty: 'empty',
   tChartUnavailable: 'unavailable',
@@ -81,6 +79,12 @@ const PANEL_ATTR_FIXTURES = {
   tStationCode: 'EoI code',
   tStationType: 'Station type',
   tStationArea: 'Area type',
+  tNearbyLegend: 'Nearby sensors',
+  tNearbyOff: 'off',
+  tNearbySingleOnly: 'Available while one metric is shown',
+  tNearbyLow: 'Nearby lowest',
+  tNearbyMedian: 'Nearby median',
+  tNearbyHigh: 'Nearby highest',
 }
 
 // islandFrom returns the REAL server template's island container as a live DOM
@@ -105,6 +109,18 @@ const PANEL_ATTR_FIXTURES = {
 // more than one match throws, rather than returning null (a moved island
 // with no test failure until a much later assertion) or the wrong element
 // (two templates defining the same island, picked arbitrarily).
+// sensorCardHost pulls in a second define ({{template "panelNearbyLabels"
+// .}}) for its nearby-sensors attributes. Inlining it before the action-strip
+// below is what lets those attributes reach the parsed DOM at all — the
+// naive strip would otherwise delete the call and leave nothing behind.
+function inlineTemplateCalls(src) {
+  const defines = new Map()
+  for (const m of src.matchAll(/\{\{define\s+"([^"]+)"\}\}([\s\S]*?)\{\{end\}\}/g)) {
+    defines.set(m[1], m[2])
+  }
+  return src.replace(/\{\{template\s+"([^"]+)"\s+\.\}\}/g, (call, name) => defines.get(name) ?? call)
+}
+
 function islandFrom(island) {
   // join(dirname(fileURLToPath(...))) rather than new URL(path, import.meta.url):
   // Vite rewrites the latter into an ASSET import at transform time and then
@@ -114,7 +130,8 @@ function islandFrom(island) {
   const hits = []
   for (const name of readdirSync(dir)) {
     if (!name.endsWith('.gohtml')) continue
-    const src = readFileSync(join(dir, name), 'utf8').replace(/\{\{[\s\S]*?\}\}/g, '')
+    const raw = inlineTemplateCalls(readFileSync(join(dir, name), 'utf8'))
+    const src = raw.replace(/\{\{[\s\S]*?\}\}/g, '')
     const doc = new DOMParser().parseFromString(src, 'text/html')
     const el = doc.querySelector(`[data-island="${island}"]`)
     if (el) hits.push({ file: name, el })
@@ -138,6 +155,34 @@ function fillFixtures(el) {
   }
   return el
 }
+
+// Reads panel.js's own source for every `d.xxx` it destructures from the
+// island's dataset, rather than hand-listing them — a hand list would just
+// move the drift this ticket is about from the template side to this file.
+function datasetKeysReadByPanelJs() {
+  const here = dirname(fileURLToPath(import.meta.url))
+  const src = readFileSync(join(here, '..', 'panel.js'), 'utf8')
+  const keys = new Set()
+  for (const m of src.matchAll(/\bd\.([a-zA-Z_]\w*)\b/g)) keys.add(m[1])
+  return keys
+}
+
+describe('sensorCardHost data-t-* attributes', () => {
+  // Mutation check: removing data-t-title from the sensorCardHost partial
+  // (internal/web/templates/base.gohtml) drops "tTitle" from the rendered
+  // island's dataset while panel.js still reads d.tTitle — "missing" catches
+  // that. Renaming an attribute panel.js reads to one the template no longer
+  // emits, or leaving an attribute in the template nothing reads any more,
+  // is caught the same way via "unread".
+  it('renders exactly the attributes panel.js reads back, no more and no fewer', () => {
+    const el = islandFrom('panel')
+    const rendered = new Set(Object.keys({ ...el.dataset }).filter((k) => k !== 'island'))
+    const read = datasetKeysReadByPanelJs()
+    const missing = [...read].filter((k) => !rendered.has(k)).sort()
+    const unread = [...rendered].filter((k) => !read.has(k)).sort()
+    expect({ missing, unread }).toEqual({ missing: [], unread: [] })
+  })
+})
 
 beforeEach(() => setSensors(null))
 
@@ -398,8 +443,6 @@ describe('mount() end to end: deep link before data', () => {
     el.dataset.tFlagOutOfRange = 'out of range'
     el.dataset.tFlagStuck = 'stuck'
     el.dataset.tFlagSpatialOutlier = 'outlier'
-    el.dataset.tChartTitle = 'Chart'
-    el.dataset.tChartValue = 'Value'
     el.dataset.tChartEmpty = 'empty'
     el.dataset.tChartUnavailable = 'unavailable'
 
