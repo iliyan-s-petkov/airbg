@@ -11,12 +11,7 @@ import (
 	"airbg.org/internal/snapshot"
 )
 
-// A prod bug (OpenProject #604, seo-copy.md): several Bulgarian settlements'
-// name_en in data/boundaries/*.geojson is either still Cyrillic (Gabrovo,
-// Veliko Tarnovo) or a non-standard transliteration (Pazardzik, Smolian, and
-// the eight Sofia districts below). rowFrom (pages.go) already lets a
-// catalogue key "area.name.<slug>" override name_en; internal/i18n/en.json
-// now carries one for each broken slug.
+// Some boundary name_en values are Cyrillic or nonstandard; en.json overrides them per slug.
 
 // boundaryFeature is the subset of data/boundaries/*.geojson this test reads:
 // just the properties every feature carries, ignoring geometry entirely so a
