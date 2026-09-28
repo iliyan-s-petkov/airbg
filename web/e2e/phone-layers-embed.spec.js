@@ -45,6 +45,32 @@ for (const lang of ['bg', 'en']) {
   }
 }
 
+const overlap = (a, b) => a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height
+
+for (const vp of [{ width: 390, height: 844, shot: 'phone-embed.png' }, { width: 320, height: 568, shot: 'phone-embed-320.png' }]) {
+  test(`embed legend and footline do not overlap at ${vp.width}x${vp.height}`, async ({ browser }) => {
+    const context = await browser.newContext({ ...PHONE, viewport: { width: vp.width, height: vp.height } })
+    const page = await context.newPage()
+    await page.goto('/embed')
+    const legend = page.locator('.embed .scale--onmap')
+    const foot = page.locator('.embed__footline')
+    await expect(legend).toBeVisible()
+    await expect(foot).toBeVisible()
+    await page.waitForTimeout(500)
+    if (process.env.AIRBG_SHOT_DIR) await page.screenshot({ path: `${process.env.AIRBG_SHOT_DIR}/${vp.shot}` })
+    const l = await legend.boundingBox()
+    const f = await foot.boundingBox()
+    expect(overlap(l, f), `legend ${JSON.stringify(l)} vs footline ${JSON.stringify(f)}`).toBe(false)
+    for (const b of [l, f]) {
+      expect(b.x).toBeGreaterThanOrEqual(0)
+      expect(b.y).toBeGreaterThanOrEqual(0)
+      expect(b.x + b.width).toBeLessThanOrEqual(vp.width)
+      expect(b.y + b.height).toBeLessThanOrEqual(vp.height)
+    }
+    await context.close()
+  })
+}
+
 test('embed map fills the viewport and attribution starts collapsed on a phone', async ({ browser }) => {
   const context = await browser.newContext(PHONE)
   const page = await context.newPage()
@@ -54,7 +80,6 @@ test('embed map fills the viewport and attribution starts collapsed on a phone',
   await expect(page.locator('.maplibregl-ctrl-attrib')).toBeVisible()
   await expect(page.locator('.maplibregl-canvas')).toBeVisible()
   await page.waitForTimeout(500)
-  if (process.env.AIRBG_SHOT_DIR) await page.screenshot({ path: `${process.env.AIRBG_SHOT_DIR}/phone-embed.png` })
   const h = (await map.boundingBox()).height
   expect(h, 'embed map height').toBeGreaterThanOrEqual(844 - 1)
   await expect(page.locator('.maplibregl-ctrl-attrib')).not.toHaveClass(/maplibregl-compact-show/)

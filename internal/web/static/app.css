@@ -616,6 +616,11 @@ html:has(> body.embed) { block-size: 100%; }
 /* The phone and landscape .map--hero rules size the map for a page; a frame has no page. */
 .embed .map-shell:has(.map--hero) { block-size: 100%; max-block-size: none; }
 .embed .map.map--hero { block-size: 100%; min-block-size: 0; max-block-size: none; }
+/* Phone: the folded key owns the bottom-left corner, so the footline rides above it. */
+@media (max-width: 480px) {
+  .embed .embed__footline { inset-block-end: calc(44px + var(--space-2) + var(--space-2)); }
+  .embed .scale--onmap[open] { z-index: 5; }
+}
 /* The metric switcher moves onto the map. On the site it sits in a toolbar
    above; a frame has no toolbar, and a control below the map would take height
    from the only thing the host asked for. It joins the layers button's row —
