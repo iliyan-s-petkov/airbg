@@ -12,6 +12,7 @@ func TestAttributionsNameBothNetworksAndTheirMaps(t *testing.T) {
 	want := map[string]string{
 		"sensor.community": "https://maps.sensor.community/",
 		"eea":              "https://eea.government.bg/kav/",
+		"open-meteo":       "https://open-meteo.com/",
 	}
 	seen := map[string]bool{}
 	for _, a := range got {
@@ -38,7 +39,7 @@ func TestEveryIngestedSourceIsCredited(t *testing.T) {
 	for _, a := range api.Attributions() {
 		credited[a.Source] = true
 	}
-	for _, s := range []string{"sensor.community", "eea", "openstreetmap"} {
+	for _, s := range []string{"sensor.community", "eea", "openstreetmap", "open-meteo"} {
 		if !credited[s] {
 			t.Errorf("%s is used and not credited", s)
 		}

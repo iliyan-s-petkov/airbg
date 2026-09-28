@@ -126,8 +126,10 @@ func TestSourceNameKeysExistInEveryCatalogue(t *testing.T) {
 }
 
 // The wind overlay ran only the ECMWF model's name past the reader; the data
-// itself is Open-Meteo's, CC BY 4.0, which requires naming the source and
-// linking it (OpenProject #600).
+// itself is Open-Meteo's, CC BY 4.0, which requires naming the source. The
+// real link lives in the footer (web.TestFooterCreditsOpenMeteo) since this
+// text renders as plain textContent and cannot carry one; a bare URL here
+// would be dead text, so this only pins the name and the licence.
 func TestWindCreditsOpenMeteo(t *testing.T) {
 	c := loaded(t)
 	for _, lang := range c.Languages() {
@@ -135,11 +137,11 @@ func TestWindCreditsOpenMeteo(t *testing.T) {
 		if !strings.Contains(strings.ToLower(credit), "open-meteo.com") {
 			t.Errorf("%s wind.credit = %q does not name Open-Meteo", lang, credit)
 		}
-		if !strings.Contains(credit, "https://open-meteo.com/") {
-			t.Errorf("%s wind.credit = %q has no link to the source", lang, credit)
-		}
 		if !strings.Contains(credit, "CC BY 4.0") {
 			t.Errorf("%s wind.credit = %q does not name the licence", lang, credit)
+		}
+		if strings.Contains(credit, "http://") || strings.Contains(credit, "https://") {
+			t.Errorf("%s wind.credit = %q has a bare URL it cannot render as a link", lang, credit)
 		}
 	}
 }

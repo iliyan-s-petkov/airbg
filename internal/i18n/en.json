@@ -87,6 +87,7 @@
   "footer.data.map": "sensor.community map",
   "footer.official": "Official data from the Executive Environment Agency (ИАОС) via the European Environment Agency's air quality programme.",
   "footer.official.map": "Official government map",
+  "footer.wind": "Wind forecast data, resampled by airbg.org, from",
   "home.tier_covered": "provinces with data",
   "home.tier_sensors": "counted in the provincial medians",
   "home.tier_silent": "no recent readings",
@@ -298,7 +299,7 @@
   "unit.temperature": "°C",
   "wind.about": "About the wind layer",
   "wind.attribution": "Wind forecast · {model} model, {resolution}° grid · valid {time}",
-  "wind.credit": "Wind data: Open-Meteo.com (CC BY 4.0, https://creativecommons.org/licenses/by/4.0/), https://open-meteo.com/ - resampled by airbg.org.",
+  "wind.credit": "Data: Open-Meteo.com (CC BY 4.0)",
   "wind.note": "The arrows point where the wind blows and how hard; wind disperses the pollution, still air holds it in place.",
   "wind.toggle": "Wind"
 }
