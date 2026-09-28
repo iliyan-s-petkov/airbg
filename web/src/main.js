@@ -56,6 +56,37 @@ export async function runIsland(el, load, log = console.error) {
   }
 }
 
+// scheduleAfterFirstPaint defers `callback` past the browser's next paint. One
+// requestAnimationFrame is not enough: the callback given to rAF runs BEFORE
+// the frame it was scheduled for is painted, so mounting the map island there
+// still blocks the paint this exists to protect (see OpenProject #615 — the
+// SSR'd LCP text was measured painting ~1.2s after FCP because of exactly this
+// main-thread JS). Nesting a second rAF inside the first pushes the callback
+// to the frame AFTER the one that was about to paint, i.e. genuinely after
+// paint. Falls back to setTimeout when requestAnimationFrame does not exist
+// (Vitest's node environment, or a very old browser), so this stays callable
+// without jsdom.
+export function scheduleAfterFirstPaint(callback, raf = globalThis.requestAnimationFrame) {
+  if (typeof raf === 'function') {
+    raf(() => raf(callback))
+  } else {
+    setTimeout(callback, 0)
+  }
+}
+
+// mountIslands is the DOM walk that used to run straight from init(). Split
+// out so init() can hand it to scheduleAfterFirstPaint instead of calling it
+// itself — the fetch for an island's chunk may still start early (a
+// modulepreload hint is fine), but evaluating MapLibre and mounting the map
+// must not compete with the browser for the first paint.
+function mountIslands() {
+  for (const el of document.querySelectorAll('[data-island]')) {
+    const load = resolveLoader(el.dataset.island)
+    if (!load) continue // unknown island: leave the server-rendered fallback
+    runIsland(el, load)
+  }
+}
+
 function init() {
   // The masthead's two pickers are independent <details> and would otherwise
   // open on top of each other. Wired before the islands: the theme picker's
@@ -64,11 +95,7 @@ function init() {
   scrollCue(document, window)
   createBackToMap({ doc: document, win: window })
 
-  for (const el of document.querySelectorAll('[data-island]')) {
-    const load = resolveLoader(el.dataset.island)
-    if (!load) continue // unknown island: leave the server-rendered fallback
-    runIsland(el, load)
-  }
+  scheduleAfterFirstPaint(mountIslands)
 }
 
 // Guarded so this module can be imported by a Vitest run (no `document`
