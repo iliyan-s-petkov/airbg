@@ -188,26 +188,23 @@ prefix, e.g. `/en/`.
 | GET | `/metrics` | private only |
 | GET | `/healthz` | private only |
 
-### Why there is no bounding-box endpoint
+### Where a bounding box is and is not accepted
 
-> **Needs review.** This section predates `/api/v1/hexes`, which accepts an
-> optional viewport (`bbox`) and requires one at the individual-sensor tier.
-> The reasoning for that change is in the comment on `handleHexes` in
-> `internal/api/overview.go` and in `snapshot.HexResolutionKM`. The text below
-> is kept as it was until it is reconciled.
-
-No endpoint accepts a bounding box or a coordinate window. The API is tiered
-instead: a country-level overview, a city-level overview, and per-area detail
-that must be requested one named area at a time. This is the anti-extraction
-design — a bbox parameter would let one request return the whole country at
-full resolution, and no rate limit can distinguish that request from a
+`/api/v1/overview` takes no bounding box. The API is tiered instead: a
+country-level overview, a city-level overview, and per-area detail requested
+one named area at a time. A bbox there would let one request return the whole
+country at full resolution, and no rate limit can tell that request from a
 legitimate one. Bulk extraction therefore requires enumerating areas, which is
 what the breadth counters detect: they count *distinct* areas and sensors per
-client, not request volume, so a reader refreshing one city forever is never
-throttled while a crawler walking every area trips within a dozen requests.
+client, not request volume. `TestOverviewTakesNoBoundingBox` fails if the
+overview ever starts honouring a bbox.
 
-If a future change adds a bbox parameter, this entire defence is gone. The test
-`TestOverviewTakesNoBoundingBox` exists to make that change fail loudly.
+`/api/v1/hexes` does take `bbox=w,s,e,n`, snapped outward to a
+`snapshot.BBoxQuantumDegrees` (0.25°) grid so viewports share cache entries.
+At the hex tiers the answer is an aggregate, so the box only trims the payload.
+At the point tier (`resolution_km=0`) the bbox is required and may span at most
+`snapshot.MaxPointBBoxDegrees` (2°) per axis; without that guard one GET would
+return every sensor with its id.
 
 ### Why per-entity responses are not edge-cacheable
 
