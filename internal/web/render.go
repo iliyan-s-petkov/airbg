@@ -260,6 +260,8 @@ type PageData struct {
 	// a year, so the vocabulary is read rather than copied.
 	Periods      []string
 	PeriodLabels []string
+	// PeriodShortLabels are the same periods in the phone control's short form.
+	PeriodShortLabels []string
 
 	// PanelHostClass is an extra class on the sensor card's host div, beside
 	// the kit's own "place-host" — "" everywhere except the embed route,
@@ -694,6 +696,9 @@ func (p PageData) MetricUnitsAttr() string  { return strings.Join(p.MetricUnits,
 func (p PageData) PeriodsAttr() string      { return strings.Join(p.Periods, ",") }
 func (p PageData) PeriodLabelsAttr() string { return strings.Join(p.PeriodLabels, ",") }
 
+// PeriodShortLabelsAttr is the phone segmented control's labels (24h, 7d).
+func (p PageData) PeriodShortLabelsAttr() string { return strings.Join(p.PeriodShortLabels, ",") }
+
 // areaMeasuredMetrics is the metric keys the chart offers for this one area:
 // the default metric first if this area measures it, then whichever of the
 // rest this area actually reports, in canonical order — the same rule
@@ -881,8 +886,10 @@ func (rr *Renderer) newPageData(lang, path string, generatedAt time.Time) PageDa
 	// the labels from the catalogue, and the two ride as parallel lists the
 	// island reads by index.
 	periodLabels := make([]string, len(rr.periodNames))
+	periodShort := make([]string, len(rr.periodNames))
 	for i, p := range rr.periodNames {
 		periodLabels[i] = rr.cat.T(lang, "period."+p)
+		periodShort[i] = rr.cat.T(lang, "period.short."+p)
 	}
 	return PageData{
 		Lang: lang, RequestPath: path,
@@ -913,6 +920,7 @@ func (rr *Renderer) newPageData(lang, path string, generatedAt time.Time) PageDa
 		MetricUnits:        units,
 		Periods:            rr.periodNames,
 		PeriodLabels:       periodLabels,
+		PeriodShortLabels:  periodShort,
 	}
 }
 

@@ -5,6 +5,8 @@
   import NearbyPicker from './NearbyPicker.svelte'
   import PeriodPicker from './PeriodPicker.svelte'
   import ResetButton from './ResetButton.svelte'
+  import PanelMoreMenu from './PanelMoreMenu.svelte'
+  import { createPanelLink } from '../lib/panellink.svelte.js'
   import { unitFor } from '../lib/metrics.js'
   import { getScales, getSensorArea } from '../lib/sensors.svelte.js'
   import { nearbyOptions, nearbySources } from '../lib/nearby.js'
@@ -28,6 +30,9 @@
     nearbyLegend = '', nearbyOff = '', nearbySingleOnly = '', nearbyLabels = {},
     colours = [],
     timeLabel, empty, unavailable,
+    periodShortLabels = [], moreLabel = '', aboutLabel = '', shareLabel = '', embedLabel = '',
+    shareDone = '', embedDone = '', copyFailed = '',
+    link = createPanelLink(),
   } = $props()
 
   // Seeded from the server's defaults, owned here afterwards. The default
@@ -36,7 +41,9 @@
   const seedMetric = untrack(() =>
     (options.some((o) => o.metric === initialMetric) ? initialMetric : options[0]?.metric) ?? null)
 
-  let metrics = $state(seedMetric ? [seedMetric] : [])
+  // The metric selection lives in `link` so the panel's gauges can drive it.
+  untrack(() => { if (link.metrics.length === 0 && seedMetric) link.metrics = [seedMetric] })
+  const metrics = $derived(link.metrics)
   let period = $state(untrack(() => initialPeriod))
   let from = $state('')
   let to = $state('')
@@ -105,21 +112,102 @@
   })
 
   function reset() {
-    metrics = seedMetric ? [seedMetric] : []
+    link.metrics = seedMetric ? [seedMetric] : []
     nearby = []
     period = initialPeriod
     from = ''
     to = ''
     resetToken += 1
   }
+
+  // Phone controls: the segmented period and the "more" menu. Desktop keeps the
+  // pickers above; CSS shows one set or the other.
+  const shortLabel = (p, i) => periodShortLabels[i] || periodLabels[i] || p
+  const nearbyChoices = $derived(nearbyOptions(nearbyLabels))
+  const nearbyDetail = $derived(
+    nearbyChoices.filter((o) => nearby.includes(o.key)).map((o) => o.label).join(', ') || nearbyOff)
+
+  let status = $state('')
+  let statusTimer
+  function say(text) {
+    status = text
+    clearTimeout(statusTimer)
+    statusTimer = setTimeout(() => { status = '' }, 4000)
+  }
+
+  async function copy(text, done) {
+    try {
+      await navigator.clipboard.writeText(text)
+      say(done)
+    } catch {
+      say(copyFailed)
+    }
+  }
+
+  // The native share sheet where the browser has one; otherwise the link is copied.
+  async function share() {
+    const url = window.location.href
+    if (!navigator.share) return copy(url, shareDone)
+    try {
+      await navigator.share({ url })
+    } catch (e) {
+      if (e?.name !== 'AbortError') say(copyFailed)
+    }
+  }
+
+  function embed() {
+    const prefix = document.querySelector('[data-lang-prefix]')?.dataset.langPrefix ?? ''
+    const src = `${window.location.origin}${prefix}/embed?metric=${encodeURIComponent(metrics[0] ?? '')}`
+    copy(`<iframe src="${src}" width="100%" height="520" style="border:0" loading="lazy" title="airbg"></iframe>`, embedDone)
+  }
+
+  const menuItems = $derived([
+    {
+      key: 'nearby', label: nearbyLegend, detail: nearbyDetail, sub: true,
+      disabled: !bandable, hint: areaSlug ? nearbySingleOnly : '',
+    },
+    { key: 'custom', label: `${customLabel}…`, run: () => { period = CUSTOM } },
+    { key: 'reset', label: resetLabel, run: reset },
+    { key: 'about', label: aboutLabel, separator: true, run: () => { link.aboutOpen = true } },
+    { key: 'share', label: shareLabel, run: share },
+    { key: 'embed', label: embedLabel, run: embed },
+  ])
 </script>
 
 <div class="panel-chart">
+  <div class="panel-chart__phone">
+    <div class="period-seg" role="group" aria-label={periodLegend}>
+      {#each periods as p, i (p)}
+        <button
+          type="button"
+          aria-pressed={period === p}
+          onclick={() => { period = p; from = ''; to = '' }}
+        >{shortLabel(p, i)}</button>
+      {/each}
+    </div>
+    <PanelMoreMenu label={moreLabel} items={menuItems}>
+      {#snippet sub()}
+        {#each nearbyChoices as option (option.key)}
+          <label class="panel-menu__opt">
+            <input
+              type="checkbox"
+              name="phone-nearby"
+              value={option.key}
+              checked={nearby.includes(option.key)}
+              onchange={() => { nearby = nearby.includes(option.key) ? nearby.filter((k) => k !== option.key) : [...nearby, option.key] }}
+            >
+            <span>{option.label}</span>
+          </label>
+        {/each}
+      {/snippet}
+    </PanelMoreMenu>
+  </div>
+  <p class="panel-chart__status" role="status">{status}</p>
   <div class="panel-chart__controls">
     <MetricPicker
       {options}
       selected={metrics}
-      onchange={(next) => { metrics = next }}
+      onchange={(next) => { link.metrics = next }}
       legend={metricLegend}
     />
     {#if areaSlug}
