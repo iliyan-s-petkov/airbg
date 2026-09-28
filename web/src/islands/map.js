@@ -15,7 +15,6 @@ import { LAYER_ID, HEX_LAYER_ID, HEX_POINT_LAYER_ID, HEX_SOURCE_ID } from '../li
 import { MIN_ZOOM, readConfig } from '../lib/mapconfig.js'
 import { POINT_TIER_MIN_ZOOM } from '../lib/hexes.js'
 import { registerProtocols, mapStyle, installErrorHandler } from '../lib/mapstyle.js'
-import { paintWind } from '../lib/mapwind.js'
 import {
   hit, boundaryChoice, highlightBoundary, cellArea, BOUNDARY_FIT_PADDING,
 } from '../lib/mapboundaries.js'
@@ -119,7 +118,7 @@ export function mount(el) {
   // fetch for the whole country, cached for the page's life, because the
   // payload is a single forecast hour and does not change while the visitor
   // pans. See docs/wind-overlay.md.
-  const windState = { on: false, body: null, loading: false }
+  const windState = { on: false, body: null, loading: false, ready: false }
 
   // The province outlines' own state, on the same one-fetch-per-page terms as
   // the wind: the borders do not move, so the collection is fetched once and
@@ -147,7 +146,7 @@ export function mount(el) {
     for (const paint of paints) paint?.()
     // Only while the layer is on: the arrow lattice is sized to the viewport,
     // so a move that changes the zoom changes which arrows exist.
-    if (windState.on) paintWind(map, windState)
+    if (windState.on) import('../lib/mapwind.js').then((w) => w.paintWind(map, windState))
   }, MOVE_DEBOUNCE_MS)
 
   // The four teardowns are assigned inside installMapLoad (lib/mapload.js) and

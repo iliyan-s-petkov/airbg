@@ -513,12 +513,42 @@ describe('mount() opens on the world raster', () => {
   })
 })
 
+// Wind is added on the first ask for it, not at load.
+const tickWind = (el) => {
+  const box = el.querySelector('[data-layer-key="view:wind"]')
+  box.checked = true
+  box.dispatchEvent(new Event('change'))
+}
+
+describe('mount() leaves wind out until it is asked for', () => {
+  it('adds no wind source, image or layer at load', async () => {
+    const { map } = mountTestMap({ metric: 'P2' })
+    await new Promise((r) => setTimeout(r, 50))
+    expect(map.addImage.mock.calls.find((c) => c[0] === ARROW_IMAGE_ID)).toBeUndefined()
+    expect(map.addSource.mock.calls.find((c) => c[0] === WIND_SOURCE_ID)).toBeUndefined()
+    expect(map.addLayer.mock.calls.find((c) => c[0]?.id === WIND_LAYER_ID)).toBeUndefined()
+  })
+
+  it('adds the wind layer once however often it is toggled', async () => {
+    const { map, el } = mountTestMap({ metric: 'P2' })
+    const box = el.querySelector('[data-layer-key="view:wind"]')
+    for (const on of [true, false, true]) {
+      box.checked = on
+      box.dispatchEvent(new Event('change'))
+      await new Promise((r) => setTimeout(r, 20))
+    }
+    expect(map.addLayer.mock.calls.filter((c) => c[0]?.id === WIND_LAYER_ID)).toHaveLength(1)
+  })
+})
+
 // MapLibre resolves icon-image when the layer renders, and an unresolved one
 // draws nothing and says nothing — the exact failure the missing '→' glyph
 // already produced once. The ordering is what stops it happening again.
 describe('mount() registers the wind arrow before the layer that draws it', () => {
-  it('adds the arrow image, then the layer naming it', () => {
-    const { map } = mountTestMap({ metric: 'P2' })
+  it('adds the arrow image, then the layer naming it', async () => {
+    const { map, el } = mountTestMap({ metric: 'P2' })
+    tickWind(el)
+    await vi.waitFor(() => expect(map.addLayer.mock.calls.some((c) => c[0]?.id === WIND_LAYER_ID)).toBe(true))
 
     const image = map.addImage.mock.calls.find((c) => c[0] === ARROW_IMAGE_ID)
     expect(image, 'no arrow image registered').toBeDefined()
@@ -555,8 +585,10 @@ describe('mount() fades the held readings on the hex label layer', () => {
 // and hiding the digits — icon-allow-overlap/icon-ignore-placement keep the
 // arrows from yielding, so stacking order is the only thing that decides this.
 describe('mount() draws the wind arrows beneath the hex labels', () => {
-  it('adds the wind layer before the hex label layer', () => {
-    const { map } = mountTestMap({ metric: 'P2' })
+  it('adds the wind layer before the hex label layer', async () => {
+    const { map, el } = mountTestMap({ metric: 'P2' })
+    tickWind(el)
+    await vi.waitFor(() => expect(map.addLayer.mock.calls.some((c) => c[0]?.id === WIND_LAYER_ID)).toBe(true))
 
     const wind = map.addLayer.mock.calls.find((c) => c[0]?.id === WIND_LAYER_ID)
     expect(wind[1]).toBe(HEX_LABEL_LAYER_ID)

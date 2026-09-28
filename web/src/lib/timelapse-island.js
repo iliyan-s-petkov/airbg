@@ -279,7 +279,7 @@ export function installTimelapse(map, state, cfg, chrome, fetchJSON = getJSON) {
     raf = document.hidden ? null : requestAnimationFrame(tick)
   }
 
-  ui.ontoggle(async () => {
+  const toggle = async () => {
     if (running) {
       await stop()
       return
@@ -299,7 +299,8 @@ export function installTimelapse(map, state, cfg, chrome, fetchJSON = getJSON) {
     ui.playing(true)
     paint(head.i)
     run()
-  })
+  }
+  ui.ontoggle(toggle)
 
   // A press while paused is a question about the next play, not a request to
   // start one — so the clock is only rebuilt if it was already running.
@@ -334,6 +335,7 @@ export function installTimelapse(map, state, cfg, chrome, fetchJSON = getJSON) {
 
   // A different window or metric is a different animation; what is held is stale.
   return {
+    toggle,
     async reset() {
       open = false
       body = null

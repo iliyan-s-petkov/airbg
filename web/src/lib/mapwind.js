@@ -3,9 +3,28 @@
 // friends). Kept separate so the island stays importable on its own.
 import { getJSON } from './api.js'
 import {
-  WIND_LAYER_ID, WIND_SOURCE_ID, windFeatures, windField, windIsStale, windLabel,
+  WIND_LAYER_ID, WIND_SOURCE_ID, ARROW_IMAGE_ID, arrowImage, arrowLayout, arrowPaint,
+  windFeatures, windField, windIsStale, windLabel,
 } from '../islands/wind.js'
 import { paintSource } from './mapdata.js'
+import { emptyCollection } from './mapfeatures.js'
+import { HEX_LABEL_LAYER_ID } from './mapids.js'
+
+// addWindLayer adds the source, arrow image and layer, hidden and empty. Run
+// once, on the first ask for wind; the layer sits under the hex labels.
+export function addWindLayer(map, cfg) {
+  map.addSource(WIND_SOURCE_ID, { type: 'geojson', data: emptyCollection() })
+  // pixelRatio 2: the raster is drawn at twice its nominal size to stay sharp on retina.
+  map.addImage(ARROW_IMAGE_ID, arrowImage(cfg), { pixelRatio: 2 })
+  // Under the hex labels: icon-allow-overlap would paint the arrows over the digits.
+  map.addLayer({
+    id: WIND_LAYER_ID,
+    type: 'symbol',
+    source: WIND_SOURCE_ID,
+    layout: { ...arrowLayout(), visibility: 'none' },
+    paint: arrowPaint(cfg),
+  }, map.getLayer?.(HEX_LABEL_LAYER_ID) ? HEX_LABEL_LAYER_ID : undefined)
+}
 
 // setWind is the whole wind control: fetch once, then show or hide.
 //

@@ -14,9 +14,6 @@ import { chooseWindow } from './mapwindow.js'
 import { GRID_MIN_ZOOM_FRACTIONAL, POINT_TIER_MIN_ZOOM_FRACTIONAL } from './hexes.js'
 import { installLayers } from './maplayers.js'
 import {
-  WIND_SOURCE_ID, WIND_LAYER_ID, ARROW_IMAGE_ID, arrowImage, arrowLayout, arrowPaint,
-} from '../islands/wind.js'
-import {
   BOUNDARY_SOURCE_ID, BOUNDARY_FILL_LAYER_ID, BOUNDARY_LINE_LAYER_ID,
   BOUNDARY_SELECTED_LAYER_ID,
   boundaryFillPaint, boundaryLinePaint, boundarySelectedPaint,
@@ -33,7 +30,6 @@ import {
   hexLabelLayout, labelPaint, MARKER_PIXEL_RATIO,
 } from './mappaint.js'
 import { addBasemapOverlay } from './mapstyle.js'
-import { setWind, refreshWind } from './mapwind.js'
 import { setBoundaries } from './mapboundaries.js'
 import {
   refresh, refreshHexes, onMetricChange, applyMetricColours, initData,
@@ -42,7 +38,7 @@ import {
 import {
   locateVisitor, openDeepLinkedSensor, placeVisitor, prefetchPlacement, LOCATE_TIMEOUT_MS,
 } from './placement.js'
-import { installTimelapse } from './timelapse-island.js'
+import { installLazyTimelapse } from './timelapse-lazy.js'
 
 // Named rather than positional: windState and boundaryState are structurally
 // identical objects, so a transposed pair would be silent here and at runtime.
@@ -221,24 +217,6 @@ export function installMapLoad({ map, state, cfg, chrome, vs, windState, boundar
       paint: labelPaint(cfg),
     })
 
-    // The wind layer is added empty and hidden at load, not on first toggle:
-    // adding a source and a layer to a live map is the part that can fail, and
-    // failing it here — before any visitor has asked for wind — keeps the
-    // toggle itself down to setData plus a visibility flip.
-    map.addSource(WIND_SOURCE_ID, { type: 'geojson', data: emptyCollection() })
-    // pixelRatio 2: the raster is drawn at twice its nominal size so it stays
-    // sharp on a retina screen and when icon-size scales it past 1.
-    map.addImage(ARROW_IMAGE_ID, arrowImage(cfg), { pixelRatio: 2 })
-    // Under the hex labels, or icon-allow-overlap paints the arrows straight
-    // over the digits — see arrowLayout for why the arrows cannot yield instead.
-    map.addLayer({
-      id: WIND_LAYER_ID,
-      type: 'symbol',
-      source: WIND_SOURCE_ID,
-      layout: { ...arrowLayout(), visibility: 'none' },
-      paint: arrowPaint(cfg),
-    }, map.getLayer?.(HEX_LABEL_LAYER_ID) ? HEX_LABEL_LAYER_ID : undefined)
-
     // Wind is an overlay, so it belongs with the other overlays rather than in
     // a button of its own in the corner. Assembled here and not in mountChrome
     // because it is the only view that needs the map's source and the fetch
@@ -253,7 +231,16 @@ export function installMapLoad({ map, state, cfg, chrome, vs, windState, boundar
       // No needsMap: the arrows are this island's own source and layer, not the
       // basemap's, so they still draw on a map served without tiles.
       defaultOff: !chrome.phoneDefaults,
-      apply: (on) => setWind(map, cfg, chrome, windState, on),
+      apply: async (on) => {
+        // Off before it was ever on: nothing to load, nothing to hide.
+        if (!on && !windState.ready) return false
+        const wind = await import('./mapwind.js')
+        if (!windState.ready) {
+          wind.addWindLayer(map, cfg)
+          windState.ready = true
+        }
+        return wind.setWind(map, cfg, chrome, windState, on)
+      },
     }
 
     // No defaultOff: the outlines are on unless the reader has switched them
@@ -309,7 +296,7 @@ export function installMapLoad({ map, state, cfg, chrome, vs, windState, boundar
     // the same markers, and a map where half the picture averaged a week and
     // the other half did not would be two answers to one question.
     // On state so a metric switch, which holds no chrome of its own, can reset it.
-    state.timelapse = installTimelapse(map, state, cfg, chrome)
+    state.timelapse = installLazyTimelapse(map, state, cfg, chrome)
 
     chrome.windowMenu.onpick(async (name) => {
       if (!chooseWindow(state, name)) return
@@ -372,7 +359,8 @@ export function installMapLoad({ map, state, cfg, chrome, vs, windState, boundar
       clearCache()
       await refresh(map, state, cfg, chrome, true)
       await refreshHexes(map, state, cfg)
-      await refreshWind(map, cfg, chrome, windState)
+      // A forecast is only held once wind has been asked for.
+      if (windState.ready) await (await import('./mapwind.js')).refreshWind(map, cfg, chrome, windState)
     })
 
     // The opening camera is settled BEFORE the first paint, inside initData's
