@@ -31,6 +31,7 @@ type DataSource interface {
 	SensorSeries(ctx context.Context, sensorID int64, metric string, since time.Time, until *time.Time, hourly bool, bucket time.Duration) ([]store.Point, error)
 	AreaSeries(ctx context.Context, slug, metric string, since time.Time, until *time.Time, hourly bool, bucket time.Duration) ([]store.Point, error)
 	AreaSeriesBand(ctx context.Context, slug, metric string, since time.Time, until *time.Time, hourly bool, bucket time.Duration) ([]store.AreaBand, error)
+	VisitorDailyLast(ctx context.Context, n int) ([]store.VisitorDaily, error)
 }
 
 type Deps struct {
@@ -59,6 +60,9 @@ type Deps struct {
 	// crowd. NewRouter substitutes a default when nil, so a handler is never
 	// admitted without a cap.
 	Admission *admit.Semaphore
+
+	// visitors is set by NewRouter, one per router.
+	visitors *visitorCache
 }
 
 // Cache visibility. This is a security control, not a performance knob.
@@ -111,6 +115,8 @@ func NewRouter(d Deps) *http.ServeMux {
 		d.Admission = defaultAdmission()
 	}
 
+	d.visitors = &visitorCache{}
+
 	mux := http.NewServeMux()
 	for pattern, h := range d.handlers() {
 		mux.HandleFunc(pattern, h)
@@ -132,6 +138,7 @@ func (d Deps) handlers() map[string]http.HandlerFunc {
 		"GET /api/v1/areas":               d.handleAreas,
 		"GET /api/v1/meta":                d.handleMeta,
 		"GET /api/v1/scales":              d.handleScales,
+		"GET /api/v1/visitors":            d.handleVisitors,
 		"GET /api/v1/area/{slug}/sensors": d.handleAreaSensors,
 		"GET /api/v1/area/{slug}/series":  d.handleAreaSeries,
 		"GET /api/v1/sensor/{id}/series":  d.handleSensorSeries,

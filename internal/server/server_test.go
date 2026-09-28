@@ -598,6 +598,10 @@ func (b *blockingSeriesStore) AreaSeriesBand(ctx context.Context, slug, metric s
 	return nil, errors.New("blockingSeriesStore: AreaSeriesBand unexpectedly called")
 }
 
+func (b *blockingSeriesStore) VisitorDailyLast(ctx context.Context, n int) ([]store.VisitorDaily, error) {
+	return nil, errors.New("blockingSeriesStore: VisitorDailyLast unexpectedly called")
+}
+
 // TestSeriesAdmissionCapComesFromConfiguredMaxInflight proves
 // Config.Database.MaxInflight — not a package constant — is the size of the
 // admission semaphore server.New builds in front of the database-backed

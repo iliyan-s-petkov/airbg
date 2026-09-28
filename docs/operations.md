@@ -180,6 +180,7 @@ prefix, e.g. `/en/`.
 | GET | `/api/v1/areas` | public |
 | GET | `/api/v1/meta` | public |
 | GET | `/api/v1/scales` | public |
+| GET | `/api/v1/visitors` | public |
 | GET | `/api/v1/area/{slug}/sensors` | public |
 | GET | `/api/v1/area/{slug}/series` | public |
 | GET | `/api/v1/sensor/{id}/series` | public |

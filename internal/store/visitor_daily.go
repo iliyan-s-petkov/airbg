@@ -30,6 +30,29 @@ func (s *Store) VisitorDailyMaxDay(ctx context.Context) (time.Time, bool, error)
 	return *day, true, nil
 }
 
+// VisitorDailyLast returns the newest n stored rows, oldest first. It counts
+// rows, not calendar days: a missing day stays a gap and is never filled.
+func (s *Store) VisitorDailyLast(ctx context.Context, n int) ([]VisitorDaily, error) {
+	rows, err := s.pool.Query(ctx,
+		`SELECT day, uniques, requests, page_views, fetched_at FROM (
+		   SELECT day, uniques, requests, page_views, fetched_at
+		   FROM visitor_daily ORDER BY day DESC LIMIT $1
+		 ) newest ORDER BY day ASC`, n)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := make([]VisitorDaily, 0, min(n, 365))
+	for rows.Next() {
+		var v VisitorDaily
+		if err := rows.Scan(&v.Day, &v.Uniques, &v.Requests, &v.PageViews, &v.FetchedAt); err != nil {
+			return nil, err
+		}
+		out = append(out, v)
+	}
+	return out, rows.Err()
+}
+
 // UpsertVisitorDaily replaces each named day: a re-fetch is a correction,
 // since Cloudflare's own daily group can still shift for a day or two.
 func (s *Store) UpsertVisitorDaily(ctx context.Context, vs []VisitorDaily) (int64, error) {
