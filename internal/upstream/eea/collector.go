@@ -17,12 +17,7 @@ import (
 // once history backfills; one unbounded batch would be all-or-nothing.
 const writeChunkSize = 2000
 
-// StalenessWarnThreshold is how far behind now the newest fetched EEA row can
-// be before RunOnce logs a WARN. It matches airbg.yaml's
-// store.official_freshness_window: past that window the snapshot layer
-// already excludes EEA readings as stale and areas fall back to
-// sensor.community, so this is the earliest signal of exactly that failure
-// mode (see OpenProject #616).
+// StalenessWarnThreshold equals store.official_freshness_window; older EEA rows drop out of the snapshot.
 const StalenessWarnThreshold = 12 * time.Hour
 
 // fileFetchTTL bounds how long a URL's entry is kept in lastFileFetch once
