@@ -148,12 +148,12 @@ export function mount(el, doc = document) {
     },
   })
 
-  // The pager belongs under the table it pages. It is rendered inside this
-  // island — one component, one piece of state — and moved here, because the
-  // alternative is a second component below the table holding a second copy of
-  // the same page number.
+  // Moved into the reserved .pager-slot (OpenProject #609): an unreserved
+  // insertion after the table was the /areas CLS.
   const pager = el.querySelector('.pager')
-  if (pager) table.after(pager)
+  const slot = doc.querySelector('.pager-slot')
+  if (pager && slot) slot.replaceWith(pager)
+  else if (pager) table.after(pager)
 
   return component
 }
