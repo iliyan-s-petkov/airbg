@@ -4,5 +4,5 @@ contact_links:
     url: https://airbg.org
     about: Visit the live site
   - name: Report a security vulnerability
-    url: https://github.com/iliyan-s-petkov/airtube-web/security/advisories/new
+    url: https://github.com/iliyan-s-petkov/airbg/security/advisories/new
     about: Please report vulnerabilities privately, not as a public issue

@@ -8,7 +8,7 @@ import (
 // The masthead's link to the source repository. It sits ahead of the language
 // picker, which is the first control in the nav, so the two assertions that
 // matter are that it points at the repository and that it comes first.
-const sourceRepoURL = "https://github.com/iliyan-s-petkov/airtube-web"
+const sourceRepoURL = "https://github.com/iliyan-s-petkov/airbg"
 
 // The href form, because the JSON-LD in <head> also names the repository (sameAs).
 const sourceRepoHref = `href="` + sourceRepoURL + `"`
