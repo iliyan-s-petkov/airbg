@@ -269,6 +269,17 @@ type PageData struct {
 	// rather than a second copy of the block.
 	PanelHostClass string
 
+	// StorageKeys is the privacy section's rendered allow-list — every
+	// browser-storage key this site writes, each with its plain-language
+	// purpose from the catalogue. Built from static/storage-keys.json (the
+	// same file the vitest/e2e guards check code and the browser against), so
+	// the published list cannot drift from the enforced one — see
+	// storageKeyInfos in storagekeys.go.
+	StorageKeys []StorageKeyInfo
+	// StorageKeysCSV is the same keys, comma-joined, for the "clear my
+	// settings" island's data-keys attribute — see clearsettings.js.
+	StorageKeysCSV string
+
 	cat *i18n.Catalogue
 	// sofiaLoc is the zone the area sentences' {time} placeholders are
 	// printed in — see Renderer.sofiaLoc.
