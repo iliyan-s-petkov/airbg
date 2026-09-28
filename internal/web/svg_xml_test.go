@@ -6,47 +6,44 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 )
 
-// TestStaticSVGsAreWellFormedXML decodes every *.svg under static/ token by
-// token to EOF. encoding/xml does not reject "--" inside a comment (XML
-// forbids it), so each comment's text is also checked by hand.
+// Browsers refuse to decode a malformed SVG used as <img>, so every static SVG
+// must be well-formed XML. encoding/xml rejects "--" inside comments itself.
 func TestStaticSVGsAreWellFormedXML(t *testing.T) {
+	var paths []string
 	err := filepath.WalkDir("static", func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
+		if err == nil && !d.IsDir() && filepath.Ext(path) == ".svg" {
+			paths = append(paths, path)
 		}
-		if d.IsDir() || !strings.HasSuffix(path, ".svg") {
-			return nil
-		}
-		t.Run(path, func(t *testing.T) {
-			f, err := os.Open(path)
-			if err != nil {
-				t.Fatal(err)
-			}
-			defer f.Close()
-
-			dec := xml.NewDecoder(f)
-			for {
-				tok, err := dec.Token()
-				if err == io.EOF {
-					break
-				}
-				if err != nil {
-					t.Fatalf("%s: %v", path, err)
-				}
-				if c, ok := tok.(xml.Comment); ok {
-					if strings.Contains(string(c), "--") {
-						t.Fatalf("%s: comment contains \"--\", which XML forbids: %q", path, string(c))
-					}
-				}
-			}
-		})
-		return nil
+		return err
 	})
 	if err != nil {
 		t.Fatal(err)
+	}
+	if len(paths) == 0 {
+		t.Fatal("no SVGs found under static/; the test would pass vacuously")
+	}
+	for _, path := range paths {
+		if err := decodeToEOF(path); err != nil {
+			t.Errorf("%s: %v", path, err)
+		}
+	}
+}
+
+func decodeToEOF(path string) error {
+	f, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	dec := xml.NewDecoder(f)
+	for {
+		if _, err := dec.Token(); err == io.EOF {
+			return nil
+		} else if err != nil {
+			return err
+		}
 	}
 }
