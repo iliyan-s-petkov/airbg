@@ -487,6 +487,7 @@ describe('the shape swatch', () => {
     expect(rule.slice(0, 400), 'panel does not grow past the kit floor').toContain('max-content')
     expect(rule.slice(0, 400), 'panel uncapped on a narrow viewport').toContain('max-inline-size')
     expect(css, 'options still allowed to wrap').toContain('.map__layers .colmenu__opt { white-space: nowrap; }')
+    expect(css, 'phone options cannot wrap inside the capped panel').toContain('@media (max-width: 480px) { .map__layers .colmenu__opt { white-space: normal; } }')
   })
 
   it('leaves a view that names no shape exactly as it was', () => {
