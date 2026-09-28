@@ -210,6 +210,21 @@ eea:
   metadata_interval: "168h"
   max_payload_bytes: 67108864
 
+# Daily unique visitors, pulled from Cloudflare's GraphQL analytics API. See
+# internal/upstream/cloudflare/README.md. The API token is env-only
+# (AIRBG_CF_ANALYTICS_TOKEN, OpenProject #591) — writing it here is a startup
+# error, same as database.url. zone_id is not secret: it is derivable from the
+# domain once it resolves through Cloudflare, so it is committed here.
+cloudflare:
+  enabled: true
+  url: "https://api.cloudflare.com/client/v4/graphql"
+  zone_id: "b9c4f3ae6570006c5b2d62f114dd4fd9"
+  request_timeout: "30s"
+  # Once a day is enough: the API groups by day, and today's row is still
+  # accumulating until the UTC day rolls over. Each run re-pulls the last 3
+  # days to catch late-arriving/corrected data.
+  poll_interval: "24h"
+
 store:
   # Minimum sensors before an area gets a value at all. Below it the area is
   # painted "no data" — one sensor must never be presented as an oblast.

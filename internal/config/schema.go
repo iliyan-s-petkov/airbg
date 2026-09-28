@@ -9,22 +9,23 @@ package config
 // The yaml tags are load-bearing twice over: they name the file's keys, and the
 // environment overlay derives AIRBG_* names from the tag path (see envName).
 type raw struct {
-	Listen    *rawListen    `yaml:"listen"`
-	Timeouts  *rawTimeouts  `yaml:"timeouts"`
-	Database  *rawDatabase  `yaml:"database"`
-	RateLimit *rawRateLimit `yaml:"ratelimit"`
-	Cache     *rawCache     `yaml:"cache"`
-	Upstream  *rawUpstream  `yaml:"upstream"`
-	Wind      *rawWind      `yaml:"wind"`
-	EEA       *rawEEA       `yaml:"eea"`
-	Store     *rawStore     `yaml:"store"`
-	Series    *rawSeries    `yaml:"series"`
-	Quality   *rawQuality   `yaml:"quality"`
-	Backfill  *rawBackfill  `yaml:"backfill"`
-	Frontend  *rawFrontend  `yaml:"frontend"`
-	Tiles     *rawTiles     `yaml:"tiles"`
-	I18n      *rawI18n      `yaml:"i18n"`
-	DesignKit *rawDesignKit `yaml:"design_kit"`
+	Listen     *rawListen     `yaml:"listen"`
+	Timeouts   *rawTimeouts   `yaml:"timeouts"`
+	Database   *rawDatabase   `yaml:"database"`
+	RateLimit  *rawRateLimit  `yaml:"ratelimit"`
+	Cache      *rawCache      `yaml:"cache"`
+	Upstream   *rawUpstream   `yaml:"upstream"`
+	Wind       *rawWind       `yaml:"wind"`
+	EEA        *rawEEA        `yaml:"eea"`
+	Cloudflare *rawCloudflare `yaml:"cloudflare"`
+	Store      *rawStore      `yaml:"store"`
+	Series     *rawSeries     `yaml:"series"`
+	Quality    *rawQuality    `yaml:"quality"`
+	Backfill   *rawBackfill   `yaml:"backfill"`
+	Frontend   *rawFrontend   `yaml:"frontend"`
+	Tiles      *rawTiles      `yaml:"tiles"`
+	I18n       *rawI18n       `yaml:"i18n"`
+	DesignKit  *rawDesignKit  `yaml:"design_kit"`
 }
 
 type rawListen struct {
@@ -148,6 +149,18 @@ type rawEEA struct {
 	MinPollInterval  *Duration `yaml:"min_poll_interval"`
 	MetadataInterval *Duration `yaml:"metadata_interval"`
 	MaxPayloadBytes  *int64    `yaml:"max_payload_bytes"`
+}
+
+// rawCloudflare configures the daily-uniques job. The API token is
+// deliberately absent here — it is env-only (AIRBG_CF_ANALYTICS_TOKEN), like
+// database.url — and the generic secret-key check rejects a "token" key
+// anywhere in this file, so there is nothing to add to make that an error.
+type rawCloudflare struct {
+	Enabled        *bool     `yaml:"enabled"`
+	URL            *string   `yaml:"url"`
+	ZoneID         *string   `yaml:"zone_id"`
+	RequestTimeout *Duration `yaml:"request_timeout"`
+	PollInterval   *Duration `yaml:"poll_interval"`
 }
 
 type rawStore struct {
