@@ -24,7 +24,7 @@ vi.mock('uplot', () => ({
   }),
 }))
 
-import { readFileSync } from 'node:fs'
+import { readFileSync, readdirSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -55,8 +55,6 @@ const PANEL_ATTR_FIXTURES = {
   tFlagStuck: 'This reading has not changed in a while.',
   tFlagSpatialOutlier: 'This reading disagrees with nearby sensors.',
   tFlagSourceInvalid: 'The newest reading was rejected by its source; this is the last accepted one.',
-  tChartTitle: 'Chart',
-  tChartValue: 'Value',
   tChartTime: 'Time',
   tChartEmpty: 'empty',
   tChartUnavailable: 'unavailable',
@@ -81,6 +79,12 @@ const PANEL_ATTR_FIXTURES = {
   tStationCode: 'EoI code',
   tStationType: 'Station type',
   tStationArea: 'Area type',
+  tNearbyLegend: 'Nearby sensors',
+  tNearbyOff: 'off',
+  tNearbySingleOnly: 'Available while one metric is shown',
+  tNearbyLow: 'Nearby lowest',
+  tNearbyMedian: 'Nearby median',
+  tNearbyHigh: 'Nearby highest',
 }
 
 // islandFrom returns the REAL server template's island container as a live DOM
@@ -98,20 +102,47 @@ const PANEL_ATTR_FIXTURES = {
 // block?) is covered separately by internal/web/sensor_card_host_test.go's
 // golden tests against rendered output; this file only proves the markup
 // itself carries every data-* the island reads.
-function islandFrom(templateName, island) {
+// Scans every template file for the island instead of trusting a
+// hand-maintained island-to-file map: whichever template now defines
+// data-island="<island>" is found regardless of which file that is, so
+// moving or renaming a partial cannot silently break this lookup. Zero or
+// more than one match throws, rather than returning null (a moved island
+// with no test failure until a much later assertion) or the wrong element
+// (two templates defining the same island, picked arbitrarily).
+// sensorCardHost pulls in a second define ({{template "panelNearbyLabels"
+// .}}) for its nearby-sensors attributes. Inlining it before the action-strip
+// below is what lets those attributes reach the parsed DOM at all — the
+// naive strip would otherwise delete the call and leave nothing behind.
+function inlineTemplateCalls(src) {
+  const defines = new Map()
+  for (const m of src.matchAll(/\{\{define\s+"([^"]+)"\}\}([\s\S]*?)\{\{end\}\}/g)) {
+    defines.set(m[1], m[2])
+  }
+  return src.replace(/\{\{template\s+"([^"]+)"\s+\.\}\}/g, (call, name) => defines.get(name) ?? call)
+}
+
+function islandFrom(island) {
   // join(dirname(fileURLToPath(...))) rather than new URL(path, import.meta.url):
   // Vite rewrites the latter into an ASSET import at transform time and then
   // refuses the path for being outside the project root — it never reaches
   // readFileSync at all.
-  const here = dirname(fileURLToPath(import.meta.url))
-  // The panel island's markup was factored out of the per-page templates into
-  // one "sensorCardHost" partial in base.gohtml; read it from there rather
-  // than from templateName, which no longer contains it.
-  const file = island === 'panel' ? 'base.gohtml' : templateName
-  const path = join(here, '..', '..', '..', '..', 'internal', 'web', 'templates', file)
-  const src = readFileSync(path, 'utf8').replace(/\{\{[\s\S]*?\}\}/g, '')
-  const doc = new DOMParser().parseFromString(src, 'text/html')
-  return doc.querySelector(`[data-island="${island}"]`)
+  const dir = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', '..', 'internal', 'web', 'templates')
+  const hits = []
+  for (const name of readdirSync(dir)) {
+    if (!name.endsWith('.gohtml')) continue
+    const raw = inlineTemplateCalls(readFileSync(join(dir, name), 'utf8'))
+    const src = raw.replace(/\{\{[\s\S]*?\}\}/g, '')
+    const doc = new DOMParser().parseFromString(src, 'text/html')
+    const el = doc.querySelector(`[data-island="${island}"]`)
+    if (el) hits.push({ file: name, el })
+  }
+  if (hits.length === 0) {
+    throw new Error(`no template under ${dir} defines data-island="${island}"`)
+  }
+  if (hits.length > 1) {
+    throw new Error(`data-island="${island}" is defined in more than one template: ${hits.map((h) => h.file).join(', ')}`)
+  }
+  return hits[0].el
 }
 
 function fillFixtures(el) {
@@ -124,6 +155,34 @@ function fillFixtures(el) {
   }
   return el
 }
+
+// Reads panel.js's own source for every `d.xxx` it destructures from the
+// island's dataset, rather than hand-listing them — a hand list would just
+// move the drift this ticket is about from the template side to this file.
+function datasetKeysReadByPanelJs() {
+  const here = dirname(fileURLToPath(import.meta.url))
+  const src = readFileSync(join(here, '..', 'panel.js'), 'utf8')
+  const keys = new Set()
+  for (const m of src.matchAll(/\bd\.([a-zA-Z_]\w*)\b/g)) keys.add(m[1])
+  return keys
+}
+
+describe('sensorCardHost data-t-* attributes', () => {
+  // Mutation check: removing data-t-title from the sensorCardHost partial
+  // (internal/web/templates/base.gohtml) drops "tTitle" from the rendered
+  // island's dataset while panel.js still reads d.tTitle — "missing" catches
+  // that. Renaming an attribute panel.js reads to one the template no longer
+  // emits, or leaving an attribute in the template nothing reads any more,
+  // is caught the same way via "unread".
+  it('renders exactly the attributes panel.js reads back, no more and no fewer', () => {
+    const el = islandFrom('panel')
+    const rendered = new Set(Object.keys({ ...el.dataset }).filter((k) => k !== 'island'))
+    const read = datasetKeysReadByPanelJs()
+    const missing = [...read].filter((k) => !rendered.has(k)).sort()
+    const unread = [...rendered].filter((k) => !read.has(k)).sort()
+    expect({ missing, unread }).toEqual({ missing: [], unread: [] })
+  })
+})
 
 beforeEach(() => setSensors(null))
 
@@ -384,8 +443,6 @@ describe('mount() end to end: deep link before data', () => {
     el.dataset.tFlagOutOfRange = 'out of range'
     el.dataset.tFlagStuck = 'stuck'
     el.dataset.tFlagSpatialOutlier = 'outlier'
-    el.dataset.tChartTitle = 'Chart'
-    el.dataset.tChartValue = 'Value'
     el.dataset.tChartEmpty = 'empty'
     el.dataset.tChartUnavailable = 'unavailable'
 
@@ -433,8 +490,8 @@ describe('the home page mounts the panel island', () => {
   // a behaviour the home page silently loses (a missing data-t-* renders as an
   // empty string, which is invisible rather than broken).
   it('gives it the same attributes area.gohtml does', () => {
-    const home = islandFrom('index.gohtml', 'panel')
-    const area = islandFrom('area.gohtml', 'panel')
+    const home = islandFrom('panel')
+    const area = islandFrom('panel')
     expect(area).not.toBeNull()
     expect(home).not.toBeNull()
     const names = (el) => el.getAttributeNames().sort()
@@ -442,7 +499,7 @@ describe('the home page mounts the panel island', () => {
   })
 
   it('opens a sensor clicked on the home page instead of only changing the hash', async () => {
-    const el = fillFixtures(islandFrom('index.gohtml', 'panel'))
+    const el = fillFixtures(islandFrom('panel'))
     document.body.append(el)
     mount(el)
 
@@ -473,7 +530,7 @@ describe('mount() puts the panel copy on screen', () => {
   // different path than the one these three tests are about.
   function mountPanel(sensorId) {
     history.replaceState(null, '', `/#sensor=${sensorId}`)
-    const el = fillFixtures(islandFrom('area.gohtml', 'panel'))
+    const el = fillFixtures(islandFrom('panel'))
     document.body.append(el)
     mount(el)
     return el
@@ -618,7 +675,7 @@ describe('the island hands the chart both line colours', () => {
 
   it('strokes the first line, then the second, in the configured colours', async () => {
     history.replaceState(null, '', '/#sensor=42')
-    const el = fillFixtures(islandFrom('area.gohtml', 'panel'))
+    const el = fillFixtures(islandFrom('panel'))
     document.body.append(el)
     mount(el)
     setSensors({ sensors: { id: [42], quality: ['ok'], P2: [12], P1: [20] } })
