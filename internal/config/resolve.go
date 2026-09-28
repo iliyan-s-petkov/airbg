@@ -10,22 +10,23 @@ import (
 // a nil leaf. That guarantee is why resolve can dereference freely and why the
 // consuming packages never see an Option or a nil check.
 type Config struct {
-	Listen    Listen
-	Timeouts  Timeouts
-	Database  Database
-	RateLimit RateLimit
-	Cache     Cache
-	Upstream  Upstream
-	Wind      Wind
-	EEA       EEA
-	Store     Store
-	Series    Series
-	Quality   Quality
-	Backfill  Backfill
-	Frontend  Frontend
-	Tiles     Tiles
-	I18n      I18n
-	DesignKit DesignKit
+	Listen     Listen
+	Timeouts   Timeouts
+	Database   Database
+	RateLimit  RateLimit
+	Cache      Cache
+	Upstream   Upstream
+	Wind       Wind
+	EEA        EEA
+	Cloudflare Cloudflare
+	Store      Store
+	Series     Series
+	Quality    Quality
+	Backfill   Backfill
+	Frontend   Frontend
+	Tiles      Tiles
+	I18n       I18n
+	DesignKit  DesignKit
 }
 
 type Listen struct {
@@ -168,6 +169,19 @@ type EEA struct {
 	MinPollInterval  time.Duration
 	MetadataInterval time.Duration
 	MaxPayloadBytes  int64
+}
+
+// Cloudflare configures the visitor_daily job. See
+// internal/upstream/cloudflare/README.md. ZoneID is not secret (the zone is
+// public knowledge once the domain resolves), so it lives here; the API
+// token is env-only (AIRBG_CF_ANALYTICS_TOKEN) and is not a field of this
+// struct at all.
+type Cloudflare struct {
+	Enabled        bool
+	URL            string
+	ZoneID         string
+	RequestTimeout time.Duration
+	PollInterval   time.Duration
 }
 
 type Store struct {
@@ -424,6 +438,13 @@ func resolve(r *raw) Config {
 			MinPollInterval:  r.EEA.MinPollInterval.Std(),
 			MetadataInterval: r.EEA.MetadataInterval.Std(),
 			MaxPayloadBytes:  *r.EEA.MaxPayloadBytes,
+		},
+		Cloudflare: Cloudflare{
+			Enabled:        *r.Cloudflare.Enabled,
+			URL:            *r.Cloudflare.URL,
+			ZoneID:         *r.Cloudflare.ZoneID,
+			RequestTimeout: r.Cloudflare.RequestTimeout.Std(),
+			PollInterval:   r.Cloudflare.PollInterval.Std(),
 		},
 		Store: Store{
 			CoverageThreshold:       *r.Store.CoverageThreshold,

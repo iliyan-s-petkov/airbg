@@ -7,6 +7,14 @@ around it or goose splits it on the semicolons inside.
 The reasoning behind a migration lives here, not in the file. Numbers below are
 the ones documented so far.
 
+## 00013 — `visitor_daily`
+
+Daily unique-visitor counts from Cloudflare's GraphQL analytics API
+(`internal/upstream/cloudflare/README.md`, OpenProject #591). Plain table, not
+a hypertable: one row per day, ~30 days retained by the job itself (it only
+ever asks Cloudflare for the last ~30 days), so there is nothing here for
+TimescaleDB's chunking or retention policies to do.
+
 ## 00010 — `wind_forecast`
 
 Storage for the forecast overlay (`docs/wind-overlay.md`). The only table here

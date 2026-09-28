@@ -25,6 +25,7 @@ import (
 	"airbg.org/internal/snapshot"
 	"airbg.org/internal/store"
 	"airbg.org/internal/upstream"
+	"airbg.org/internal/upstream/cloudflare"
 	"airbg.org/internal/upstream/eea"
 	"airbg.org/internal/web"
 	"airbg.org/internal/wind"
@@ -34,7 +35,7 @@ import (
 
 func main() {
 	if len(os.Args) < 2 {
-		fmt.Fprintln(os.Stderr, "usage: airbg <migrate|collect|serve|backfill|rollup|import-areas|purge-outside-boundary|validate-config|contract|healthz>")
+		fmt.Fprintln(os.Stderr, "usage: airbg <migrate|collect|serve|backfill|rollup|import-areas|purge-outside-boundary|seed-visitor-daily|validate-config|contract|healthz>")
 		os.Exit(2)
 	}
 
@@ -107,6 +108,10 @@ func main() {
 		}
 		if cfg.EEA.Enabled {
 			go eea.NewCollector(cfg.EEA, store.New(pool, cfg.Store, cfg.Database.StatementTimeouts.Series), quality.NewScorer(cfg.Quality)).Loop(ctx)
+		}
+		if cfg.Cloudflare.Enabled {
+			cfStore := store.New(pool, cfg.Store, cfg.Database.StatementTimeouts.Series)
+			go cloudflare.NewCollector(cfg.Cloudflare, os.Getenv(cloudflare.TokenEnv), cfStore).Loop(ctx)
 		}
 		client := upstream.New(cfg.Upstream)
 		ing := ingest.New(client, store.New(pool, cfg.Store, cfg.Database.StatementTimeouts.Series), quality.NewHistory(cfg.Quality.HistoryDepth), quality.NewScorer(cfg.Quality), cfg.Database.StatementTimeouts.Assign, cfg.Upstream.Countries)
@@ -196,6 +201,37 @@ func main() {
 			os.Exit(1)
 		}
 		slog.Info("rollup complete", "buckets", n)
+
+	// One-time (or re-runnable) load from a JSON snapshot, for a host that
+	// cannot reach Cloudflare's API directly, or to seed history predating
+	// this job. See internal/upstream/cloudflare/README.md, "Seeding".
+	case "seed-visitor-daily":
+		if len(os.Args) < 3 {
+			fmt.Fprintln(os.Stderr, "usage: airbg seed-visitor-daily <path.json>")
+			os.Exit(2)
+		}
+		f, err := os.Open(os.Args[2])
+		if err != nil {
+			slog.Error("seed visitor daily", "error", err)
+			os.Exit(1)
+		}
+		points, err := cloudflare.ParseSeedFile(f)
+		f.Close()
+		if err != nil {
+			slog.Error("seed visitor daily", "error", err)
+			os.Exit(1)
+		}
+		rows := make([]store.VisitorDaily, len(points))
+		fetchedAt := time.Now().UTC()
+		for i, p := range points {
+			rows[i] = store.VisitorDaily{Day: p.Date, Uniques: p.Uniques, Requests: p.Requests, PageViews: p.PageViews, FetchedAt: fetchedAt}
+		}
+		n, err := store.New(pool, cfg.Store, cfg.Database.StatementTimeouts.Operator).SeedVisitorDaily(ctx, rows)
+		if err != nil {
+			slog.Error("seed visitor daily", "error", err)
+			os.Exit(1)
+		}
+		slog.Info("seed visitor daily complete", "path", os.Args[2], "rows", n)
 
 	case "purge-outside-boundary":
 		// Deliberately a separate, operator-invoked step (task-17 review
@@ -351,6 +387,20 @@ func runServe(ctx context.Context, cfg config.Config, apiPool, collectorPool *pg
 		close(eeaDone)
 	}
 
+	// Runs on cfg.Cloudflare.PollInterval, sharing the collector pool. With no
+	// AIRBG_CF_ANALYTICS_TOKEN set, Loop logs once and returns immediately —
+	// see internal/upstream/cloudflare/README.md.
+	cfDone := make(chan struct{})
+	if cfg.Cloudflare.Enabled {
+		cc := cloudflare.NewCollector(cfg.Cloudflare, os.Getenv(cloudflare.TokenEnv), collectorStore)
+		go func() {
+			defer close(cfDone)
+			cc.Loop(pollCtx)
+		}()
+	} else {
+		close(cfDone)
+	}
+
 	err = srv.Run(ctx)
 
 	// Stop the poller and wait for it, so the process does not exit with a
@@ -359,5 +409,6 @@ func runServe(ctx context.Context, cfg config.Config, apiPool, collectorPool *pg
 	<-polled
 	<-windDone
 	<-eeaDone
+	<-cfDone
 	return err
 }

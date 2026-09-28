@@ -74,6 +74,7 @@ func (c Config) Validate() error {
 	c.validateUpstreamAndCache(&p)
 	c.validateWind(&p)
 	c.validateEEA(&p)
+	c.validateCloudflare(&p)
 	c.validateStoreAndSeries(&p)
 	c.validateQuality(&p)
 	c.validateFrontend(&p)
@@ -385,6 +386,28 @@ func (c Config) validateEEA(p *problems) {
 	if c.EEA.MetadataCache == "" {
 		p.addf("eea.metadata_cache must name a directory for the coordinate file")
 	}
+}
+
+// validateCloudflare runs whether or not the job is enabled, same reasoning
+// as validateEEA. It never looks at a token: that credential is env-only and
+// is not part of Config at all.
+func (c Config) validateCloudflare(p *problems) {
+	u, err := url.Parse(c.Cloudflare.URL)
+	if err != nil {
+		p.addf("cloudflare.url = %q is not a URL: %v", c.Cloudflare.URL, err)
+	} else {
+		if u.Scheme != "https" {
+			p.addf("cloudflare.url = %q must use https", c.Cloudflare.URL)
+		}
+		if u.Host == "" {
+			p.addf("cloudflare.url = %q must be absolute", c.Cloudflare.URL)
+		}
+	}
+	if c.Cloudflare.ZoneID == "" {
+		p.addf("cloudflare.zone_id must be set")
+	}
+	p.positive("cloudflare.request_timeout", c.Cloudflare.RequestTimeout)
+	p.positive("cloudflare.poll_interval", c.Cloudflare.PollInterval)
 }
 
 func (c Config) validateStoreAndSeries(p *problems) {
