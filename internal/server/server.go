@@ -224,24 +224,45 @@ func New(opts Options) (*Server, error) {
 
 func privateMux(opts Options) *http.ServeMux {
 	mux := http.NewServeMux()
-
-	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
-		// Liveness, not readiness: the process is up. Readiness would depend on
-		// the snapshot, and a restart loop caused by a slow first ingest is a
-		// worse outcome than a page that says "data is not ready yet".
-		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-		_, _ = w.Write([]byte("ok\n"))
-	})
-
-	metricsHandler := metrics.Handler()
-	mux.Handle("GET /metrics", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if opts.Publisher != nil {
-			opts.Publisher.ObserveAge(time.Now().UTC())
-		}
-		metricsHandler.ServeHTTP(w, r)
-	}))
-
+	for pattern, h := range privateHandlers(opts) {
+		mux.Handle(pattern, h)
+	}
 	return mux
+}
+
+// privateHandlers is the single source of truth for the private listener:
+// pattern to handler. privateMux registers it; PrivateRoutePatterns lists its
+// keys.
+func privateHandlers(opts Options) map[string]http.Handler {
+	metricsHandler := metrics.Handler()
+	return map[string]http.Handler{
+		"GET /healthz": http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			// Liveness, not readiness: the process is up. Readiness would depend
+			// on the snapshot, and a restart loop caused by a slow first ingest
+			// is a worse outcome than a page that says "data is not ready yet".
+			w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+			_, _ = w.Write([]byte("ok\n"))
+		}),
+		"GET /metrics": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if opts.Publisher != nil {
+				opts.Publisher.ObserveAge(time.Now().UTC())
+			}
+			metricsHandler.ServeHTTP(w, r)
+		}),
+	}
+}
+
+// PrivateRoutePatterns lists every pattern privateMux registers, in no
+// particular order. Derived from the same map privateMux ranges over, so
+// OpenProject #584's privacy guard test enumerates the real surface, not a
+// second, driftable list.
+func PrivateRoutePatterns(opts Options) []string {
+	h := privateHandlers(opts)
+	patterns := make([]string, 0, len(h))
+	for pattern := range h {
+		patterns = append(patterns, pattern)
+	}
+	return patterns
 }
 
 // Run starts every configured listener and blocks until ctx is cancelled, then
