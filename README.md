@@ -189,20 +189,20 @@ Endpoints:
 | GET | `/metrics` | private only |
 | GET | `/healthz` | private only |
 
-### Why there is no bounding-box endpoint
+### Bounding-box support
 
-No endpoint accepts a bounding box or a coordinate window. The API is tiered
-instead: a country-level overview, a city-level overview, and per-area detail
-that must be requested one named area at a time. This is the anti-extraction
-design — a bbox parameter would let one request return the whole country at
-full resolution, and no rate limit can distinguish that request from a
-legitimate one. Bulk extraction therefore requires enumerating areas, which is
-what the breadth counters detect: they count *distinct* areas and sensors per
-client, not request volume, so a reader refreshing one city forever is never
-throttled while a crawler walking every area trips within a dozen requests.
+The overview endpoints (`/api/v1/overview/area` and `/api/v1/overview/city`) do
+not accept a bounding box. This is the anti-extraction design — a bbox on the
+overview would let one request return the whole country at full resolution, and
+no rate limit can distinguish that request from a legitimate one. Bulk
+extraction therefore requires enumerating areas, which is what the breadth
+counters detect: they count *distinct* areas and sensors per client, not
+request volume.
 
-If a future change adds a bbox parameter, this entire defence is gone. The test
-`TestOverviewTakesNoBoundingBox` exists to make that change fail loudly.
+The hexes endpoint (`/api/v1/hexes`) does accept a `bbox` parameter, quantised
+to a 0.25-degree grid with a maximum extent of 2.0 degrees. This supports
+interactive map queries. The test `TestOverviewTakesNoBoundingBox` enforces the
+invariant on overviews.
 
 ### Why per-entity responses are not edge-cacheable
 
