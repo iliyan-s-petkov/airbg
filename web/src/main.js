@@ -24,6 +24,7 @@ const ISLANDS = {
   readouts: () => import('./islands/readouts.svelte.js'),
   sensorbar: () => import('./islands/sensorbar.js'),
   theme: () => import('./islands/theme.js'),
+  clearsettings: () => import('./islands/clearsettings.js'),
 }
 
 // resolveLoader is the pure lookup at the heart of "leave the server-rendered
