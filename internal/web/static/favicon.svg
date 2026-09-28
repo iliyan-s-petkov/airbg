@@ -1,8 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="My Air">
-  <!-- Colours are literal, not var(--accent): an <img>-referenced SVG is a
+  <!-- Colours are literal, not the accent token: an <img>-referenced SVG is a
        separate document and never sees theme.css. Keep in step with it by hand.
-       #0f62fe = --accent, #161616 = --fg. Rounded, like every other corner
-       (DESIGN.md 4.3): rx is 7 at 32, which is the 10px radius at 46px. -->
+       #0f62fe is the accent token, #161616 is the fg token. Rounded, like every
+       other corner (DESIGN.md 4.3): rx is 7 at 32, which is the 10px radius at 46px. -->
   <rect width="32" height="32" rx="7" fill="#161616"/>
   <!-- A map dot, which is the site's whole idiom. One disc, no detail: at 16 px
        a favicon has about 12 usable pixels across and anything finer is mud. -->
