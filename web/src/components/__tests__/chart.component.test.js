@@ -3,6 +3,9 @@ import { describe, it, expect, vi, afterEach } from 'vitest'
 import { mount, unmount } from 'svelte'
 import Chart from '../Chart.svelte'
 import { clearCache } from '../../lib/api.js'
+import { contrastRatio, legibleStroke } from '../../lib/axiscolour.js'
+
+const WHITE_BG = 'rgb(255, 255, 255)' // Chart.svelte's fallback for --bg
 
 // uPlot needs layout the jsdom environment does not provide, so it is stubbed:
 // this test is about which BRANCH runs and what text the reader ends up with,
@@ -160,6 +163,52 @@ describe('Chart.svelte', () => {
     expect(opts.axes.map((a) => a.side)).toEqual([undefined, 3, 1])
   })
 
+  // uPlot's own default axis colour is black — on the dark theme's #161616
+  // surface that is a 1.16:1 contrast, unreadable. Ticks and the time axis
+  // stroke take --fg-2; grid lines take the subtler --border-faint, or they
+  // read as a loud mesh at --fg-2's full 11:1 strength.
+  it('gives every axis an explicit stroke, ticks from --fg-2 and grid from --border-faint', async () => {
+    document.documentElement.style.setProperty('--fg-2', '#c6c6c6')
+    document.documentElement.style.setProperty('--border-faint', '#393939')
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ t: ['2026-08-14T00:00:00Z', '2026-08-14T01:00:00Z'], v: [12.3, 13.1] }), { status: 200 }),
+    )
+    vi.stubGlobal('ResizeObserver', class { observe() {} disconnect() {} })
+    render({ timeLabel: 'Време', valueUnit: 'µg/m³', lineColour: '#111111' })
+
+    await vi.waitFor(() => expect(uplotCalls).toHaveLength(1))
+    const { opts } = uplotCalls[0]
+
+    expect(opts.axes[0].stroke).toBe('#c6c6c6')
+    expect(opts.axes[0].ticks.stroke).toBe('#c6c6c6')
+    expect(opts.axes[0].grid.stroke).toBe('#393939')
+    expect(opts.axes[1].ticks.stroke).toBe('#c6c6c6')
+    expect(opts.axes[1].grid.stroke).toBe('#393939')
+
+    document.documentElement.style.removeProperty('--fg-2')
+    document.documentElement.style.removeProperty('--border-faint')
+  })
+
+  // The line's own colour (server config, frontend.chart_*_colour — see
+  // islands/chart.js and islands/panel.js) is picked once for both themes, so
+  // #2563eb reads only 3.6:1 on dark's #161616. legibleStroke lifts it toward
+  // white until it clears 4.5:1, keeping the hue.
+  it('lifts a y-axis line colour that fails 4.5:1 against dark --bg, and leaves one that already passes', async () => {
+    document.documentElement.style.setProperty('--bg', '#161616')
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ t: ['2026-08-14T00:00:00Z', '2026-08-14T01:00:00Z'], v: [12.3, 13.1] }), { status: 200 }),
+    )
+    vi.stubGlobal('ResizeObserver', class { observe() {} disconnect() {} })
+    render({ valueUnit: 'µg/m³', lineColour: '#2563eb' })
+
+    await vi.waitFor(() => expect(uplotCalls).toHaveLength(1))
+    const stroke = uplotCalls[0].opts.axes[1].stroke
+    expect(stroke).not.toBe('#2563eb')
+    expect(contrastRatio(stroke, '#161616')).toBeGreaterThanOrEqual(4.5)
+
+    document.documentElement.style.removeProperty('--bg')
+  })
+
   // Distinct colours and units, so a swapped mapping cannot pass.
   it('paints each y axis in its own line s colour and labels it with that line s unit', async () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation((input) =>
@@ -180,7 +229,15 @@ describe('Chart.svelte', () => {
 
     await vi.waitFor(() => expect(uplotCalls).toHaveLength(1))
     const { opts } = uplotCalls[0]
-    expect(opts.axes.map((a) => a.stroke)).toEqual([undefined, '#111', '#f90'])
+    // The time axis has no line of its own to borrow a colour from, so it
+    // falls back to the --fg-2 token (unset here, so the light-theme default).
+    // The line colours run through legibleStroke against the light --bg
+    // fallback, same as the component, rather than being asserted verbatim.
+    expect(opts.axes.map((a) => a.stroke)).toEqual([
+      'rgb(82, 82, 82)',
+      legibleStroke('#111', WHITE_BG),
+      legibleStroke('#f90', WHITE_BG),
+    ])
     expect(opts.axes.map((a) => a.label)).toEqual(['Време', 'µg/m³', '°C'])
   })
 

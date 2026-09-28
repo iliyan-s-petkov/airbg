@@ -4,6 +4,7 @@
   import { mergeSeries } from '../lib/series.js'
   import { tickValues } from '../lib/timeaxis.js'
   import { getJSON } from '../lib/api.js'
+  import { legibleStroke } from '../lib/axiscolour.js'
 
   // Two ways in, one way through. `url`/`lineColour`/`valueLabel` describe a
   // single line — the area chart, which has only ever had one — and `sources`
@@ -54,9 +55,45 @@
     return { width: host.clientWidth || 600, height: Math.max(160, dragged) }
   }
 
+  // Token reads, not hex literals (literals.test.js bans those in web/src).
+  // Fallbacks are the kit's light-theme values as rgb(), for when the
+  // stylesheet hasn't loaded yet.
+  const FALLBACK_AXIS_COLOUR = 'rgb(82, 82, 82)' // --fg-2 light
+  const FALLBACK_GRID_COLOUR = 'rgb(224, 224, 224)' // --border-soft light
+  const FALLBACK_BG = 'rgb(255, 255, 255)' // --bg light
+  function token(name, fallback) {
+    if (typeof document === 'undefined') return fallback
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback
+  }
+  const axisColour = () => token('--fg-2', FALLBACK_AXIS_COLOUR)
+  const gridColour = () => token('--border-faint', FALLBACK_GRID_COLOUR)
+  const bgColour = () => token('--bg', FALLBACK_BG)
+
+  // uPlot paints the canvas once and never re-reads CSS, so a theme toggle
+  // needs this to repaint the axes rather than a stylesheet swap.
+  function restyleAxes(u, scales, lines) {
+    const tick = axisColour()
+    const grid = gridColour()
+    const bg = bgColour()
+    u.axes[0].stroke = tick
+    u.axes[0].ticks.stroke = tick
+    u.axes[0].grid.stroke = grid
+    scales.forEach((scale, i) => {
+      const line = lines.find((s) => (s.scale ?? 'y') === scale)
+      const axis = u.axes[i + 1]
+      axis.stroke = line?.colour ? legibleStroke(line.colour, bg) : tick
+      axis.ticks.stroke = tick
+      axis.grid.stroke = grid
+    })
+    u.redraw()
+  }
+
   $effect(() => {
     let chart
     let observer
+    let themeObserver
+    let media
+    let onMediaChange
     let cancelled = false
 
     // Back to 'loading' before the new url is fetched. The url changes when the
@@ -100,6 +137,9 @@
       // first on the left as usual, a second on the right, so two units can
       // share the plot without either being squashed into the other's range.
       const scales = [...new Set(lines.map((s) => s.scale ?? 'y'))]
+      const axisStroke = axisColour()
+      const grid = gridColour()
+      const bg = bgColour()
 
       const size = plotSize()
       chart = new uPlot({
@@ -128,9 +168,14 @@
         ],
         axes: [
           // Labels from the data's span, not uPlot's tick spacing — timeaxis.js.
+          // Explicit colours: uPlot's default axis stroke is black, unreadable
+          // on dark surfaces.
           {
             values: tickValues(data[0], document.documentElement.lang || undefined),
             label: timeLabel || undefined,
+            stroke: axisStroke,
+            ticks: { stroke: axisStroke },
+            grid: { stroke: grid },
           },
           ...scales.map((scale, i) => {
             // Colour and unit of the line measured against it — two unlabelled
@@ -139,10 +184,13 @@
             return {
               scale,
               side: i === 0 ? 3 : 1,
-              stroke: line?.colour,
+              // Keeps the metric's colour identity, lifted just enough to
+              // clear 4.5:1 on the current --bg (legibleStroke).
+              stroke: line?.colour ? legibleStroke(line.colour, bg) : axisStroke,
               label: line?.unit || undefined,
+              ticks: { stroke: axisStroke },
               // One grid only: two is a lattice nobody can read a value off.
-              grid: { show: i === 0 },
+              grid: { show: i === 0, stroke: grid },
             }
           }),
         ],
@@ -175,9 +223,28 @@
         if (next.width > 0) chart.setSize(next)
       })
       observer.observe(resizable ? frame : host)
+
+      // theme.js toggles data-theme with no reload; "auto" follows the OS
+      // scheme instead. Either needs a repaint or the chart keeps the old
+      // theme's axis colours until the reader reloads.
+      if (typeof MutationObserver !== 'undefined') {
+        themeObserver = new MutationObserver(() => restyleAxes(chart, scales, lines))
+        themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
+      }
+      if (typeof matchMedia === 'function') {
+        media = matchMedia('(prefers-color-scheme: dark)')
+        onMediaChange = () => restyleAxes(chart, scales, lines)
+        media.addEventListener?.('change', onMediaChange)
+      }
     })()
 
-    return () => { cancelled = true; observer?.disconnect(); chart?.destroy?.() }
+    return () => {
+      cancelled = true
+      observer?.disconnect()
+      themeObserver?.disconnect()
+      media?.removeEventListener?.('change', onMediaChange)
+      chart?.destroy?.()
+    }
   })
 </script>
 
