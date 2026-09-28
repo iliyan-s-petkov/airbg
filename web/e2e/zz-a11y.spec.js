@@ -65,3 +65,29 @@ test('the map is a named region, described, and every control shows a focus ring
 
   await page.close()
 })
+
+// #563: the top switcher and the chart's own metric menu both read "Metric:
+// PM2.5" — a screen reader user hears the same control twice with nothing to
+// tell them apart. Walks every <button> rather than naming the two ids, so a
+// third collision (e.g. the sensor panel's picker) trips this too.
+test('no two buttons on the area page share an accessible name', async ({ ctx }) => {
+  const page = await ctx.newPage()
+  await page.goto('/en/area/sofia')
+
+  // Only buttons a screen reader would actually meet on this page: hidden
+  // panels (the closed sensor card, the unopened sheet) carry their own
+  // Close/Reset buttons too, and those are not in the accessibility tree
+  // until the panel opens.
+  const names = await page.locator('button').evaluateAll((buttons) => buttons
+    .filter((b) => b.checkVisibility())
+    .map((b) => (b.getAttribute('aria-label') || b.textContent || '').trim())
+    .filter(Boolean))
+
+  const seen = new Map()
+  for (const name of names) seen.set(name, (seen.get(name) ?? 0) + 1)
+  const dupes = [...seen.entries()].filter(([, count]) => count > 1).map(([name]) => name)
+
+  expect(dupes, `accessible names shared by more than one button: ${dupes.join(', ')}`).toEqual([])
+
+  await page.close()
+})
