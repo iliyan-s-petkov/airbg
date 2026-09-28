@@ -22,7 +22,9 @@ async function prepareMap(page, path) {
 }
 
 // Client coordinates of a station on `layer`: a marker, or the centre of a hex
-// cell naming one station. Clear of the sticky masthead and the frame's edges.
+// cell naming one station. Clear of the sticky masthead and the frame's edges,
+// and not under an overlay (legend, controls, fullscreen sheet) — a point the
+// map itself is not what a real tap would land on.
 const featurePoint = (page, layer) => page.evaluate((layer) => {
   const map = document.querySelector('[data-island="map"]').__map
   if (!map?.getLayer?.(layer)) return null
@@ -39,7 +41,9 @@ const featurePoint = (page, layer) => page.evaluate((layer) => {
     const p = map.project(c)
     const y = box.top + p.y
     if (p.x < 30 || p.x > box.width - 30 || y < 80 || p.y > box.height - 30) continue
-    return { x: box.left + p.x, y }
+    const x = box.left + p.x
+    if (document.elementFromPoint(x, y) !== map.getCanvas()) continue
+    return { x, y }
   }
   return null
 }, layer)

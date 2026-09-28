@@ -40,6 +40,11 @@ func Attributions() []Attribution {
 			Text:   "Boundaries © OpenStreetMap contributors, ODbL 1.0",
 			URL:    "https://www.openstreetmap.org/copyright",
 		},
+		{
+			Source: "open-meteo",
+			Text:   "Wind forecast data by Open-Meteo.com, CC BY 4.0",
+			URL:    "https://open-meteo.com/",
+		},
 	}
 }
 

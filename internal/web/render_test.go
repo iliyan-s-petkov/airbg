@@ -880,3 +880,20 @@ func TestEmbedCreditsBothDataSources(t *testing.T) {
 		}
 	}
 }
+
+// The wind overlay's forecast is Open-Meteo's, not ECMWF's — ECMWF only runs
+// the model Open-Meteo serves. CC BY 4.0 requires naming and linking the
+// source, which the wind disclosure alone (plain textContent) cannot do; the
+// footer is where every other credited source gets its real link (OpenProject
+// #600).
+func TestFooterCreditsOpenMeteo(t *testing.T) {
+	for _, path := range []string{"/", "/en/"} {
+		page := fetch(t, renderer(t, fixture(t)), path).Body.String()
+		if !strings.Contains(page, `href="https://open-meteo.com/"`) {
+			t.Errorf("%s: footer has no link to open-meteo.com:\n%s", path, page)
+		}
+		if !strings.Contains(page, `href="https://creativecommons.org/licenses/by/4.0/"`) {
+			t.Errorf("%s: footer has no link to the CC BY 4.0 licence", path)
+		}
+	}
+}
