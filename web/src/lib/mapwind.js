@@ -27,6 +27,8 @@ export async function setWind(map, cfg, chrome, state, on, fetchJSON = getJSON) 
   if (!on) {
     state.on = false
     map.setLayoutProperty(WIND_LAYER_ID, 'visibility', 'none')
+    state.streaks?.stop()
+    state.streaks = null
     chrome.showWind(false, '')
     return false
   }
@@ -47,9 +49,23 @@ export async function setWind(map, cfg, chrome, state, on, fetchJSON = getJSON) 
     }
   }
   paintWind(map, state)
-  map.setLayoutProperty(WIND_LAYER_ID, 'visibility', 'visible')
+  const streaks = await startStreaksIfAsked(map, cfg, state)
+  map.setLayoutProperty(WIND_LAYER_ID, 'visibility', streaks ? 'none' : 'visible')
   state.on = true
   chrome.showWind(true, windLabel(state.body, cfg.t))
+  return true
+}
+
+// SPIKE #576: ?windfx=streaks swaps the arrows for the canvas streaks. The module is a
+// dynamic import so a page without the flag never downloads it.
+async function startStreaksIfAsked(map, cfg, state) {
+  if (typeof window === 'undefined' || !map.getCanvasContainer) return false
+  if (new URLSearchParams(window.location.search).get('windfx') !== 'streaks') return false
+  const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
+  const fx = await import('./windstreaks.js')
+  if (fx.windfxMode(window.location.search, reduced) !== 'streaks') return false
+  state.streaks?.stop()
+  state.streaks = fx.startStreaks(map, state.body, cfg.labelColour)
   return true
 }
 
@@ -76,7 +92,7 @@ export async function refreshWind(map, cfg, chrome, state, now = new Date(), fet
 // onto a screen-sized lattice instead; the values are still the model's, only
 // repeated, and the disclosure already names the grid they came from.
 export function paintWind(map, state) {
-  if (!state.body) return
+  if (!state.body || state.streaks) return
   if (!map.getSource(WIND_SOURCE_ID)) return
   const b = map.getBounds?.()
   const features = b
