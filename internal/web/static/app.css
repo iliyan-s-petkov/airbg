@@ -283,6 +283,13 @@ strong, b { font-weight: var(--weight-emphasis); }
   /* Keeps a swipe inside the list from being taken by the map underneath. */
   overscroll-behavior: contain;
   touch-action: pan-y;
+  /* Frosted glass (issue 578): the map stays legible under the open list instead
+     of disappearing behind a solid card. Fallbacks below restore the kit's
+     solid --bg where backdrop-filter is unsupported or unwanted. */
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
 }
 .map__layers .colmenu__opt { white-space: nowrap; }
 /* The shape each network is drawn in, beside its name in the layers menu. The
@@ -512,6 +519,20 @@ strong, b { font-weight: var(--weight-emphasis); }
    wins on z-index, so a folded legend — its summary alone, 16px off the bottom —
    vanished underneath and could not be unfolded again. */
 .map-shell .scale--onmap { inset-block-end: 3.5rem; }
+/* Frosted glass (issue 578), expanded only — folded stays the kit's text-halo
+   pill, no box at all. The colour bar's own swatches are solid, unaffected
+   background-color declarations, so they stay opaque under this. Fallbacks
+   below restore a solid --bg where backdrop-filter is unsupported or
+   unwanted; the phone block further down restates this over its own solid
+   pill, at higher specificity so it wins regardless of source order. */
+.scale--onmap[open] {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius);
+  box-shadow: var(--elev-float);
+}
 .map-freshness .data-refresh {
   margin: 0; background: var(--overlay-bg); border-radius: var(--radius);
   box-shadow: var(--elev-raised); padding: var(--space-1);
@@ -847,6 +868,13 @@ html:has(> body.embed) { block-size: 100%; }
      rides above .map-freshness rather than under it. */
   .map-shell .scale--onmap[open] {
     inline-size: calc(100% - 7rem); z-index: 4;
+    /* Frosted glass (issue 578), restated at this selector's higher specificity
+       (.map-shell .scale--onmap[open] beats .scale--onmap[open] above) so it
+       wins over the solid pill background set on .map-shell .scale--onmap
+       just above, regardless of source order. */
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
   }
   /* Folded, the pill's own surface padding stands down — the toggle IS the
      pill, and a padded surface around an already-44px toggle overshot the
@@ -1133,4 +1161,23 @@ html:has(> body.embed) { block-size: 100%; }
 /* Pinch replaces the zoom pair on touch; the reset/grid button stays. */
 @media (hover: none) and (pointer: coarse) {
   .map-zoom__btn[data-act="in"], .map-zoom__btn[data-act="out"] { display: none; }
+}
+
+/* Solid-surface fallbacks for the issue-578 glass (last, so specificity ties
+   resolve here): a browser with no backdrop-filter would otherwise show
+   --glass-bg's low alpha with no blur under it, which reads as washed-out
+   rather than frosted; a reader who asked for less transparency gets the
+   kit's plain card back, blur included, since only the reduced-transparency
+   query fires for them. */
+@supports not (backdrop-filter: blur(1px)) {
+  .map__layers .colmenu__panel, .map-shell .scale--onmap[open] {
+    background: var(--bg);
+  }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .map__layers .colmenu__panel, .map-shell .scale--onmap[open] {
+    background: var(--bg);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
 }

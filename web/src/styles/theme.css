@@ -45,4 +45,15 @@
   --masthead-h: 48px;
   /* Horizontal scale ramp; legend.js sets it at runtime from /api/v1/scales. */
   --ramp-h: none;
+
+  /* Frosted glass (issue 578): the open layers list and expanded legend sit on the
+     map, so a solid card hides it and full transparency makes the labels
+     unreadable. Literal first, the floor for a browser without color-mix
+     (same reasoning as --overlay-bg above); color-mix follows --bg so the
+     surface stays translucent in both themes rather than always light. */
+  --glass-bg: rgba(255, 255, 255, 0.78);
+  --glass-bg: color-mix(in srgb, var(--bg) 78%, transparent);
+  --glass-border: rgba(0, 0, 0, 0.12);
+  --glass-border: color-mix(in srgb, var(--fg) 20%, transparent);
+  --glass-blur: blur(12px) saturate(160%);
 }
