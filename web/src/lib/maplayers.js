@@ -87,7 +87,7 @@ export function writeState(state, storage = safeStorage()) {
 // and whose camera calls are one blob is a control no test can reach.
 //
 // It starts hidden. installLayers reveals it once the panel holds something.
-export function mountLayers(frame, { label }, doc = document, win = window) {
+export function mountLayers(frame, { label, onToggle }, doc = document, win = window) {
   const root = document.createElement('div')
   root.className = 'colmenu map__layers'
   root.hidden = true
@@ -149,6 +149,8 @@ export function mountLayers(frame, { label }, doc = document, win = window) {
     panel.hidden = !yes
     if (yes) startFit()
     else stopFit()
+    // #579: lets chrome.js fold/restore the legend, the other on-map popover.
+    onToggle?.(yes)
   }
   button.addEventListener('click', () => open(button.getAttribute('aria-expanded') !== 'true'))
   // Escape closes and returns focus to the button; a click outside closes
