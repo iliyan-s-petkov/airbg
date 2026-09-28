@@ -94,6 +94,13 @@
   --elev-float: 0 8px 24px rgba(22, 22, 22, .16);
   --focus-ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
   --control-height: 48px;
+
+  /* Frosted glass (issue 578): the open layers list and expanded legend sit on the
+     map. This file has no dark theme (no-Node fallback only), so a single
+     literal value is enough. */
+  --glass-bg: rgba(255, 255, 255, 0.78);
+  --glass-border: rgba(0, 0, 0, 0.12);
+  --glass-blur: blur(12px) saturate(160%);
 }
 
 @media (min-width: 672px) {
