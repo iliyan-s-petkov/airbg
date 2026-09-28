@@ -96,11 +96,11 @@ func Scales() []Scale {
 	particulate := []Scale{
 		{Name: "eaqi", Metric: "P2", Unit: "µg/m³", Bands: eaqiPM25,
 			Notes:   "European Air Quality Index bands for PM2.5. " + indicative,
-			NotesBG: "Класове на Европейския индекс за качество на въздуха за ПМ2.5. " + indicativeBG,
+			NotesBG: "Класове на Европейския индекс за качество на въздуха за ФПЧ2.5. " + indicativeBG,
 			Source:  "https://airindex.eea.europa.eu/"},
 		{Name: "eaqi", Metric: "P1", Unit: "µg/m³", Bands: eaqiPM10,
 			Notes:   "European Air Quality Index bands for PM10. " + indicative,
-			NotesBG: "Класове на Европейския индекс за качество на въздуха за ПМ10. " + indicativeBG,
+			NotesBG: "Класове на Европейския индекс за качество на въздуха за ФПЧ10. " + indicativeBG,
 			Source:  "https://airindex.eea.europa.eu/"},
 	}
 

@@ -147,7 +147,7 @@ func TestJSONLDAboutHasDataset(t *testing.T) {
 		}
 		pm25, pm10 := "PM2.5", "PM10"
 		if !strings.HasPrefix(path, "/en/") {
-			pm25, pm10 = "ПМ2.5", "ПМ10"
+			pm25, pm10 = "ФПЧ2.5", "ФПЧ10"
 		}
 		if !names[pm25] || !names[pm10] {
 			t.Errorf("%s: variableMeasured %v lacks %s or %s", path, names, pm25, pm10)

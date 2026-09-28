@@ -160,7 +160,7 @@ func TestAreaNowStates(t *testing.T) {
 		{"stale covered", covered, stale, "последните данни са от"},
 		{"no sensors", noSensors, fresh, "няма сензор със скорошни данни."},
 		{"few", few, fresh, "със скорошни данни. Стойност"},
-		{"covered, no value for the metric", noMetric, fresh, "137 сензора със скорошни данни, но нито един не измерва ПМ2.5."},
+		{"covered, no value for the metric", noMetric, fresh, "137 сензора със скорошни данни, но нито един не измерва ФПЧ2.5."},
 	}
 	for _, c := range cases {
 		p := acPageData(rr, i18n.DefaultLang, t0, c.now)
