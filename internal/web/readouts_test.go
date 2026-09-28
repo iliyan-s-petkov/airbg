@@ -241,7 +241,7 @@ func TestMeasuredCellsNameTheMetric(t *testing.T) {
 	got := readoutsFor(t, "bg", []AreaRow{row("Смолян", 18.2, true, true, 4)})
 
 	for i, r := range got[:2] {
-		if !strings.HasPrefix(r.Label, "ПМ2.5 · ") {
+		if !strings.HasPrefix(r.Label, "ФПЧ2.5 · ") {
 			t.Errorf("readout %d label = %q, want it to open with the metric", i, r.Label)
 		}
 	}

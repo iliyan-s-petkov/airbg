@@ -146,14 +146,14 @@ describe('Chart.svelte', () => {
       url: undefined,
       timeLabel: 'Време',
       sources: [
-        { url: '/api/v1/sensor/1/series?metric=P2', label: 'ПМ2.5', colour: '#111', scale: 'y' },
+        { url: '/api/v1/sensor/1/series?metric=P2', label: 'ФПЧ2.5', colour: '#111', scale: 'y' },
         { url: '/api/v1/sensor/2/series?metric=temperature', label: '°C', colour: '#f90', scale: 'y2' },
       ],
     })
 
     await vi.waitFor(() => expect(uplotCalls).toHaveLength(1))
     const { opts, data } = uplotCalls[0]
-    expect(opts.series.map((s) => s.label)).toEqual(['Време', 'ПМ2.5', '°C'])
+    expect(opts.series.map((s) => s.label)).toEqual(['Време', 'ФПЧ2.5', '°C'])
     expect(opts.series[1].scale).toBe('y')
     expect(opts.series[2].scale).toBe('y2')
     expect(opts.series[2].stroke).toBe('#f90')
@@ -222,7 +222,7 @@ describe('Chart.svelte', () => {
       url: undefined,
       timeLabel: 'Време',
       sources: [
-        { url: '/api/v1/sensor/1/series?metric=P2', label: 'ПМ2.5', colour: '#111', scale: 'y', unit: 'µg/m³' },
+        { url: '/api/v1/sensor/1/series?metric=P2', label: 'ФПЧ2.5', colour: '#111', scale: 'y', unit: 'µg/m³' },
         { url: '/api/v1/sensor/2/series?metric=temperature', label: 'Температура', colour: '#f90', scale: 'y2', unit: '°C' },
       ],
     })
@@ -277,7 +277,7 @@ describe('Chart.svelte', () => {
     const target = render({
       url: undefined,
       sources: [
-        { url: '/api/v1/sensor/1/series?metric=P2', label: 'ПМ2.5', colour: '#111', scale: 'y' },
+        { url: '/api/v1/sensor/1/series?metric=P2', label: 'ФПЧ2.5', colour: '#111', scale: 'y' },
         { url: '/api/v1/sensor/2/series?metric=temperature', label: '°C', colour: '#f90', scale: 'y2' },
       ],
     })
