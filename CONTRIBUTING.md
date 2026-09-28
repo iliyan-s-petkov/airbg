@@ -1,12 +1,12 @@
 # Contributing
 
-Thanks for looking at airbg.org. This project is a Go backend + Vite/vanilla-JS
+Thanks for looking at airbg.org. This project is a Go backend + Svelte/Vite
 frontend for an air quality map of Bulgaria.
 
 ## Setup
 
-See [`docs/development.md`](docs/development.md) for local setup (Postgres via
-Docker Compose, environment variables, running the server).
+See the [README](README.md) for running it locally and
+[`docs/configuration.md`](docs/configuration.md) for the environment variables.
 
 ## Building and testing
 
@@ -19,15 +19,16 @@ cd web && npm run build                # frontend build
 ```
 
 The integration tier starts its own Postgres container via testcontainers. On
-macOS with Colima, that needs `DOCKER_HOST` pointed at the Colima socket
-before running it.
+macOS with Colima, that needs
+`DOCKER_HOST=unix://$HOME/.colima/default/docker.sock` and
+`TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE=/var/run/docker.sock`.
 
 The e2e tier is a Go test that serves the built frontend, so it must run in
-this order:
+this order (`-count=1` stops Go reusing a cached pass against an old bundle):
 
 ```bash
 cd web && VITE_E2E_MAP_HANDLE=1 npm run build
-go test -tags e2e ./internal/e2e/
+go test -tags e2e -count=1 ./internal/e2e/
 cd web && npm run build   # rebuild without the E2E flag before committing/serving normally
 ```
 
