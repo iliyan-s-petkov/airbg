@@ -18,22 +18,6 @@ import (
 	"airbg.org/internal/store"
 )
 
-// FreePort asks the OS for a loopback port and immediately releases it. A
-// fixed port would make any suite that uses this fail on a developer machine
-// that already runs the app; there is a race between release and the
-// server's own bind, but it is the same idiom internal/server's own tests
-// already rely on.
-func FreePort(t *testing.T) string {
-	t.Helper()
-	l, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		t.Fatalf("listen: %v", err)
-	}
-	addr := l.Addr().String()
-	_ = l.Close()
-	return addr
-}
-
 // WaitReady polls the private listener's health endpoint until it answers or
 // the deadline passes, so callers never race the server's own goroutine.
 func WaitReady(t *testing.T, addr string) {
@@ -103,7 +87,17 @@ func StartServer(t *testing.T, st *store.Store, cfg config.Config, configure ...
 		t.Fatalf("i18n.Load: %v", err)
 	}
 
-	public, private = FreePort(t), FreePort(t)
+	// Bind once, here, and hand the same listeners to server.New: no address
+	// is ever reserved then released for the server to rebind later.
+	publicLn, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listen: %v", err)
+	}
+	privateLn, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listen: %v", err)
+	}
+	public, private = publicLn.Addr().String(), privateLn.Addr().String()
 	cfg.Listen.Addr = public
 	cfg.Listen.MetricsAddr = private
 	cfg.Listen.BaseURL = "http://" + public
@@ -111,7 +105,9 @@ func StartServer(t *testing.T, st *store.Store, cfg config.Config, configure ...
 	opts := server.Options{
 		Config:    cfg,
 		Catalogue: cat, Snapshots: holder, Store: st, Publisher: pub,
-		Logger: log,
+		Logger:          log,
+		PublicListener:  publicLn,
+		PrivateListener: privateLn,
 	}
 	for _, fn := range configure {
 		fn(&opts)
