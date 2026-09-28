@@ -1,0 +1,11 @@
+{
+  "localStorage": [
+    "airbg:theme",
+    "airbg:map-layers",
+    "airbg:legend-open",
+    "airbg:play-speed",
+    "airbg:map-window",
+    "airbg:auto-refresh"
+  ],
+  "sessionStorage": []
+}

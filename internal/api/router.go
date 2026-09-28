@@ -9,6 +9,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -111,33 +112,53 @@ func NewRouter(d Deps) *http.ServeMux {
 	}
 
 	mux := http.NewServeMux()
-
-	// Method-qualified patterns, so ServeMux answers 405 for anything else
-	// without a per-handler check.
-	mux.HandleFunc("GET /api/v1/overview", d.handleOverview)
-	mux.HandleFunc("GET /api/v1/hexes", d.handleHexes)
-	mux.HandleFunc("GET /api/v1/timelapse", d.handleTimelapse)
-	mux.HandleFunc("GET /api/v1/wind", d.handleWind)
-	mux.HandleFunc("GET /api/v1/boundaries", d.handleBoundaries)
-	mux.HandleFunc("GET /api/v1/areas", d.handleAreas)
-	mux.HandleFunc("GET /api/v1/meta", d.handleMeta)
-	mux.HandleFunc("GET /api/v1/scales", d.handleScales)
-	mux.HandleFunc("GET /api/v1/area/{slug}/sensors", d.handleAreaSensors)
-	mux.HandleFunc("GET /api/v1/area/{slug}/series", d.handleAreaSeries)
-	mux.HandleFunc("GET /api/v1/sensor/{id}/series", d.handleSensorSeries)
-	mux.HandleFunc("GET /api/v1/sensor/{id}/locate", d.handleSensorLocate)
-	mux.HandleFunc("GET /api/v1/locate", d.handleLocate)
-
-	// Phase 1 §7.4's partner API is deferred to Phase 4. The path is reserved
-	// now so the version namespace cannot be taken by anything else, and it
-	// answers a truthful 501 rather than a 404 that would suggest the design
-	// never existed.
-	mux.HandleFunc("/api/partner/v1/", func(w http.ResponseWriter, _ *http.Request) {
-		writeError(w, http.StatusNotImplemented, "not_implemented",
-			"The partner API is not available yet.")
-	})
-
+	for pattern, h := range d.handlers() {
+		mux.HandleFunc(pattern, h)
+	}
 	return mux
+}
+
+// handlers is the single source of truth for the API router: pattern to
+// handler. NewRouter registers it on a mux; RoutePatterns lists its keys.
+func (d Deps) handlers() map[string]http.HandlerFunc {
+	return map[string]http.HandlerFunc{
+		// Method-qualified patterns, so ServeMux answers 405 for anything else
+		// without a per-handler check.
+		"GET /api/v1/overview":            d.handleOverview,
+		"GET /api/v1/hexes":               d.handleHexes,
+		"GET /api/v1/timelapse":           d.handleTimelapse,
+		"GET /api/v1/wind":                d.handleWind,
+		"GET /api/v1/boundaries":          d.handleBoundaries,
+		"GET /api/v1/areas":               d.handleAreas,
+		"GET /api/v1/meta":                d.handleMeta,
+		"GET /api/v1/scales":              d.handleScales,
+		"GET /api/v1/area/{slug}/sensors": d.handleAreaSensors,
+		"GET /api/v1/area/{slug}/series":  d.handleAreaSeries,
+		"GET /api/v1/sensor/{id}/series":  d.handleSensorSeries,
+		"GET /api/v1/sensor/{id}/locate":  d.handleSensorLocate,
+		"GET /api/v1/locate":              d.handleLocate,
+		// Phase 1 §7.4's partner API is deferred to Phase 4. The path is
+		// reserved now so the version namespace cannot be taken by anything
+		// else, and it answers a truthful 501 rather than a 404 that would
+		// suggest the design never existed.
+		"/api/partner/v1/": func(w http.ResponseWriter, _ *http.Request) {
+			writeError(w, http.StatusNotImplemented, "not_implemented",
+				"The partner API is not available yet.")
+		},
+	}
+}
+
+// RoutePatterns lists every pattern NewRouter registers, in no particular
+// order. Derived from the same map NewRouter ranges over, so OpenProject
+// #584's privacy guard test enumerates the real surface, not a second list.
+func RoutePatterns(d Deps) []string {
+	h := d.handlers()
+	patterns := make([]string, 0, len(h))
+	for pattern := range h {
+		patterns = append(patterns, pattern)
+	}
+	sort.Strings(patterns)
+	return patterns
 }
 
 // errorBody is the single failure envelope. Fixed code, fixed sentence — never a

@@ -50,6 +50,29 @@ var mapLibreUnhashedAssets = []string{
 // "/energy" could be mistaken for English.
 func (rr *Renderer) Routes() *http.ServeMux {
 	mux := http.NewServeMux()
+	for pattern, h := range rr.handlers() {
+		mux.Handle(pattern, h)
+	}
+	return mux
+}
+
+// RoutePatterns lists every pattern Routes registers, in no particular order.
+// Built from the same map Routes ranges over, so OpenProject #584's privacy
+// guard test enumerates the real surface instead of a second, driftable list.
+func (rr *Renderer) RoutePatterns() []string {
+	h := rr.handlers()
+	patterns := make([]string, 0, len(h))
+	for pattern := range h {
+		patterns = append(patterns, pattern)
+	}
+	sort.Strings(patterns)
+	return patterns
+}
+
+// handlers is the single source of truth for the page router: pattern to
+// handler. Routes registers it on a mux; RoutePatterns lists its keys.
+func (rr *Renderer) handlers() map[string]http.Handler {
+	h := map[string]http.Handler{}
 
 	// One prefix per loaded language: "" for the default, "/<lang>" for the
 	// rest. Derived from the catalogue rather than written out, so a language
@@ -62,36 +85,36 @@ func (rr *Renderer) Routes() *http.ServeMux {
 			prefix = "/" + lang
 		}
 		root := prefix + "/{$}" // exact match only, so it does not swallow every path
-		mux.HandleFunc("GET "+root, rr.handleIndex)
-		mux.HandleFunc("GET "+prefix+"/areas", rr.handleIndex)
-		mux.HandleFunc("GET "+prefix+"/area/{slug}", rr.handleArea)
-		mux.HandleFunc("GET "+prefix+"/about-the-data", rr.handleAbout)
-		mux.HandleFunc("GET "+prefix+"/embed", rr.handleEmbed)
+		h["GET "+root] = http.HandlerFunc(rr.handleIndex)
+		h["GET "+prefix+"/areas"] = http.HandlerFunc(rr.handleIndex)
+		h["GET "+prefix+"/area/{slug}"] = http.HandlerFunc(rr.handleArea)
+		h["GET "+prefix+"/about-the-data"] = http.HandlerFunc(rr.handleAbout)
+		h["GET "+prefix+"/embed"] = http.HandlerFunc(rr.handleEmbed)
 	}
 
 	// One robots.txt and one sitemap for all languages.
-	mux.HandleFunc("GET /robots.txt", rr.handleRobots)
-	mux.HandleFunc("GET /sitemap.xml", rr.handleSitemap)
+	h["GET /robots.txt"] = http.HandlerFunc(rr.handleRobots)
+	h["GET /sitemap.xml"] = http.HandlerFunc(rr.handleSitemap)
 
 	// Content-hashed bundles: cacheable forever, because the name changes when
 	// the content does. This is the payoff for `manifest: true` in the Vite
 	// config; without it the hashing buys nothing. The two MapLibre worker
 	// files under the same tree are the deliberate exception — see
 	// buildAssetCacheControl and mapLibreUnhashedAssets.
-	mux.Handle("GET /static/build/", http.StripPrefix("/static/build/",
-		noDirList(buildAssetCacheControl(http.FileServer(http.FS(distSubFS()))))))
+	h["GET /static/build/"] = http.StripPrefix("/static/build/",
+		noDirList(buildAssetCacheControl(http.FileServer(http.FS(distSubFS())))))
 
 	// Hand-written files keep stable names, so the templates stamp them with a
 	// content hash instead and this decides the TTL from that stamp — see
 	// staticAssetCacheControl.
-	mux.Handle("GET /static/", staticAssetCacheControl(noDirList(http.FileServer(http.FS(staticFS))), rr.static))
+	h["GET /static/"] = staticAssetCacheControl(noDirList(http.FileServer(http.FS(staticFS))), rr.static)
 
 	// Anything unmatched is a rendered 404, not net/http's bare text one.
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	h["/"] = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		rr.RenderError(w, r, http.StatusNotFound, "not_found")
 	})
 
-	return mux
+	return h
 }
 
 func (rr *Renderer) handleIndex(w http.ResponseWriter, r *http.Request) {
