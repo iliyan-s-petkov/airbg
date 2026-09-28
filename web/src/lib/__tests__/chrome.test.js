@@ -449,6 +449,7 @@ describe('mountChrome() folds the key by default on a phone', () => {
     expect(legend.open).toBe(true)
 
     chrome.closeLegend()
+    legend.dispatchEvent(new Event('toggle'))
 
     expect(legend.open).toBe(false)
     expect(store.get(LEGEND_FOLD_KEY), 'auto-close must not persist').toBe('true')
@@ -464,6 +465,7 @@ describe('mountChrome() folds the key by default on a phone', () => {
     expect(legend.open).toBe(true)
 
     chrome.player.show(3)
+    legend.dispatchEvent(new Event('toggle'))
 
     expect(legend.open).toBe(false)
     expect(legend.isConnected).toBe(true)
@@ -758,6 +760,173 @@ describe('hintController', () => {
     c.showHint('Select an area')
 
     expect(rendered).toEqual(['Map data is unavailable right now'])
+  })
+})
+
+// #579: the legend and the layers list are two on-map popovers that collide on
+// a phone. Opening one folds the other, and closing the list restores the
+// legend only if the list is what folded it — a reader's own fold must stick.
+describe('mountChrome() keeps the legend and the layers list mutually exclusive', () => {
+  const chromeFrame = () => {
+    const shell = document.createElement('div')
+    shell.className = 'map-shell'
+    const el = document.createElement('div')
+    el.className = 'map'
+    shell.appendChild(el)
+    document.body.appendChild(shell)
+    return { shell, el }
+  }
+
+  beforeEach(() => { localStorage.removeItem(LEGEND_FOLD_KEY) })
+  afterEach(() => { document.body.innerHTML = '' })
+
+  // jsdom never fires toggle on a programmatic .open write, unlike a real
+  // browser's queued task — dispatch it by hand so the guard is actually
+  // exercised, not just the synchronous .open flip.
+  it('opening the layers list folds an open legend, without persisting the fold', () => {
+    const { shell, el } = chromeFrame()
+    mountChrome(el, readConfig(el))
+    const legend = shell.querySelector('details.scale')
+    const layersBtn = el.querySelector('.map__layers .colmenu__btn')
+    expect(legend.open).toBe(true)
+
+    layersBtn.click()
+    legend.dispatchEvent(new Event('toggle'))
+
+    expect(legend.open).toBe(false)
+    expect(localStorage.getItem(LEGEND_FOLD_KEY)).toBeNull()
+  })
+
+  it('closing the layers list re-opens a legend it folded', () => {
+    const { shell, el } = chromeFrame()
+    mountChrome(el, readConfig(el))
+    const legend = shell.querySelector('details.scale')
+    const layersBtn = el.querySelector('.map__layers .colmenu__btn')
+
+    layersBtn.click()
+    legend.dispatchEvent(new Event('toggle'))
+    expect(legend.open).toBe(false)
+    layersBtn.click()
+    legend.dispatchEvent(new Event('toggle'))
+
+    expect(legend.open).toBe(true)
+    expect(localStorage.getItem(LEGEND_FOLD_KEY)).toBeNull()
+  })
+
+  it('does not re-open the legend on close when it was already folded', () => {
+    const { shell, el } = chromeFrame()
+    mountChrome(el, readConfig(el))
+    const legend = shell.querySelector('details.scale')
+    legend.open = false
+    legend.dispatchEvent(new Event('toggle'))
+    const layersBtn = el.querySelector('.map__layers .colmenu__btn')
+
+    layersBtn.click()
+    layersBtn.click()
+
+    expect(legend.open).toBe(false)
+  })
+
+  it('opening the legend closes an open layers list', () => {
+    const { shell, el } = chromeFrame()
+    mountChrome(el, readConfig(el))
+    const legend = shell.querySelector('details.scale')
+    const layersBtn = el.querySelector('.map__layers .colmenu__btn')
+    legend.open = false
+    legend.dispatchEvent(new Event('toggle'))
+
+    layersBtn.click()
+    expect(layersBtn.getAttribute('aria-expanded')).toBe('true')
+
+    legend.open = true
+    legend.dispatchEvent(new Event('toggle'))
+
+    expect(layersBtn.getAttribute('aria-expanded')).toBe('false')
+  })
+})
+
+// #580: the disclosure triangle is a hard target on a phone; the whole open
+// legend body folds it instead, except its interactive children.
+describe('mountChrome() folds the open legend on a tap anywhere inside it', () => {
+  const chromeFrame = () => {
+    const shell = document.createElement('div')
+    shell.className = 'map-shell'
+    const el = document.createElement('div')
+    el.className = 'map'
+    shell.appendChild(el)
+    document.body.appendChild(shell)
+    return { shell, el }
+  }
+
+  afterEach(() => { document.body.innerHTML = '' })
+
+  it('folds on a click on the legend body', () => {
+    const { shell, el } = chromeFrame()
+    mountChrome(el, readConfig(el))
+    const legend = shell.querySelector('details.scale')
+    expect(legend.open).toBe(true)
+
+    legend.querySelector('.scale__label').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+
+    expect(legend.open).toBe(false)
+  })
+
+  it('leaves the info button to open the scale dialog instead of folding', () => {
+    const { shell, el } = chromeFrame()
+    const chrome = mountChrome(el, readConfig(el))
+    chrome.showLegend({ bands: [], tier: null, metric: 'P2', scale: { bands: [] } })
+    const legend = shell.querySelector('details.scale')
+    const info = legend.querySelector('.scale__info')
+    expect(info, 'no info button rendered').toBeTruthy()
+    // jsdom does not implement showModal in every version the project targets.
+    el.querySelector('dialog').showModal = vi.fn(function () { this.open = true })
+
+    info.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+
+    expect(legend.open, 'the info button folded the legend').toBe(true)
+  })
+
+  it('leaves a link inside the legend to navigate rather than fold', () => {
+    const { shell, el } = chromeFrame()
+    mountChrome(el, readConfig(el))
+    const legend = shell.querySelector('details.scale')
+    const link = document.createElement('a')
+    link.href = '#somewhere'
+    legend.appendChild(link)
+
+    let followed = false
+    link.addEventListener('click', (e) => { e.preventDefault(); followed = true })
+    link.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+
+    expect(followed, 'the link never received the click').toBe(true)
+    expect(legend.open, 'the link click folded the legend instead of following it').toBe(true)
+  })
+
+  it('ignores a click whose target is the summary (native toggle owns it)', () => {
+    const { shell, el } = chromeFrame()
+    mountChrome(el, readConfig(el))
+    const legend = shell.querySelector('details.scale')
+    const summary = legend.querySelector(':scope > .scale__toggle')
+
+    // Simulates the summary's own click, with no state change from OUR
+    // handler: closest('summary') must short-circuit before touching .open.
+    const event = new MouseEvent('click', { bubbles: true, cancelable: true })
+    Object.defineProperty(event, 'target', { value: summary })
+    legend.dispatchEvent(event)
+
+    expect(legend.open, 'the click-anywhere handler acted on a summary target').toBe(true)
+  })
+
+  it('Escape folds the open legend and returns focus to the toggle', () => {
+    const { shell, el } = chromeFrame()
+    mountChrome(el, readConfig(el))
+    const legend = shell.querySelector('details.scale')
+    document.body.appendChild(legend)
+
+    legend.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+
+    expect(legend.open).toBe(false)
+    expect(document.activeElement).toBe(legend.querySelector(':scope > .scale__toggle'))
   })
 })
 

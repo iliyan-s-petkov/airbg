@@ -102,23 +102,76 @@ export function mountChrome(el, cfg) {
   const phoneDefaults = phone
   const legend = document.createElement('details')
   legend.className = LEGEND_CLASSES
-  // Phones default folded (a stored choice still wins); desktop still defaults
-  // open. autoClosing guards the toggle listener below so a programmatic
-  // close (map move) never overwrites a reader's stored preference.
+  // Phones default folded (a stored choice still wins); desktop still defaults open.
   legend.open = readFlag(LEGEND_FOLD_KEY, !phone)
-  let autoClosing = false
+  // #579: true while the layers list is the reason the legend is folded, so
+  // closing the list can restore it — but only that fold, never a reader's own.
+  let legendFoldedForLayers = false
+  // A programmatic legend.open write (map move, the layers list) must not
+  // persist as a reader's own choice. <details> fires `toggle` as a queued
+  // task, coalescing several synchronous writes into one event by the time it
+  // runs — so the guard records the TARGET state rather than a boolean, and
+  // the listener only skips writeFlag when the event still matches it.
+  let autoTarget = null
+  const setLegendOpen = (open) => {
+    if (legend.open === open) return
+    autoTarget = open
+    legend.open = open
+  }
+
+  // The layers menu takes the frame's top-left corner, which is why the hint
+  // and the note below are offset past it in app.css rather than sharing it.
+  // Built here, filled later: its options are read off the mounted style, which
+  // does not exist until MapLibre has loaded one.
+  // #579: opening the list folds an open legend (not persisted); closing the
+  // list restores it, but only when the list is what folded it.
+  const layers = mountLayers(el, {
+    label: cfg.t.layersButton,
+    onToggle: (open) => {
+      if (open) {
+        if (legend.open) {
+          legendFoldedForLayers = true
+          setLegendOpen(false)
+        }
+      } else if (legendFoldedForLayers) {
+        legendFoldedForLayers = false
+        setLegendOpen(true)
+      }
+    },
+  })
+
   legend.addEventListener('toggle', () => {
-    if (autoClosing) return
+    if (autoTarget !== null && legend.open === autoTarget) {
+      autoTarget = null
+      return
+    }
+    autoTarget = null
     writeFlag(LEGEND_FOLD_KEY, legend.open)
+    // Opening the legend, by any real interaction, closes an open layers list.
+    if (legend.open && layers.button.getAttribute('aria-expanded') === 'true') {
+      legendFoldedForLayers = false
+      layers.open(false)
+    }
   })
   shell.appendChild(legend)
 
-  // Fold without persisting; autoClosing makes the toggle listener skip writeFlag.
-  const closeLegend = () => {
-    if (!phone || !legend.open) return
-    autoClosing = true
+  // #580: a tap anywhere on the open legend folds it, same as the triangle —
+  // except its interactive children, which keep their own behaviour.
+  legend.addEventListener('click', (e) => {
+    if (!legend.open) return
+    if (e.target.closest('button, a, summary')) return
     legend.open = false
-    autoClosing = false
+  })
+  legend.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape' || !legend.open) return
+    legend.open = false
+    legend.querySelector(':scope > .scale__toggle')?.focus()
+  })
+
+  // Fold without persisting.
+  const closeLegend = () => {
+    if (!phone) return
+    setLegendOpen(false)
   }
 
   // The key says which colour is worse; it cannot say what 25 µg/m³ IS, whose
@@ -184,12 +237,6 @@ export function mountChrome(el, cfg) {
     outLabel: cfg.t.zoomOut,
     resetLabel: cfg.t.zoomReset,
   })
-
-  // The layers menu takes the frame's top-left corner, which is why the hint
-  // and the note below are offset past it in app.css rather than sharing it.
-  // Built here, filled later: its options are read off the mounted style, which
-  // does not exist until MapLibre has loaded one.
-  const layers = mountLayers(el, { label: cfg.t.layersButton })
 
   // The averaging window. Built with the chrome and wired by mount(), which
   // owns what a pick costs — see lib/mapwindow.js on why it is a menu in the
