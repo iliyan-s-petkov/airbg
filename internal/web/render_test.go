@@ -610,12 +610,30 @@ func TestLegendTierIsServerRendered(t *testing.T) {
 		{"/area/sofia", "Всяка клетка е медиана за площта под нея"},
 		// Above zoom_sensor, but below the grid's point handover (cellTier, mapdata.js).
 		{"/area/hitier", "Всяка клетка е медиана за площта под нея"},
+		// OpenProject #609: no prior assertion covered the bare /en/ home.
+		{"/en/", "Each cell is the median of the ground beneath it"},
+		{"/en/area/sofia", "Each cell is the median of the ground beneath it"},
 	}
 	for _, c := range cases {
 		body := fetch(t, rr, c.path).Body.String()
 		if !strings.Contains(body, `<p class="legend__tier map-tier">`+c.want+`</p>`) {
 			t.Errorf("%s: body missing server-rendered legend__tier %q", c.path, c.want)
 		}
+	}
+}
+
+// OpenProject #609: /areas CLS 0.315, mostly #below-map, from the table
+// island's pager inserting with no SSR placeholder. The reserved slot must
+// sit right after the table.
+func TestAreasTableReservesThePagerSlot(t *testing.T) {
+	body := fetch(t, renderer(t, fixture(t)), "/areas").Body.String()
+	tableEnd := strings.Index(body, "</table>")
+	if tableEnd == -1 {
+		t.Fatalf("no <table> in /areas body")
+	}
+	after := body[tableEnd+len("</table>"):]
+	if !strings.Contains(after, `<div class="pager-slot"></div>`) {
+		t.Errorf("no reserved .pager-slot immediately after </table>:\n%s", after[:min(200, len(after))])
 	}
 }
 

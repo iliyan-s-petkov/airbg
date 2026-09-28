@@ -382,6 +382,115 @@ func TestRunOnceFlagsAnImplausibleReadingAndKeepsItOutOfAggregates(t *testing.T)
 	}
 }
 
+// TestRunOnceWarnsWhenNewestRowIsStale covers #616: prod kept serving
+// sensor.community everywhere because the EEA feed's newest row had fallen
+// behind store.official_freshness_window (12h), so the snapshot layer
+// excluded it, and nothing said so. The fixture's row timestamp is fixed at
+// 2026-09-09T09:00Z; the clock here is pushed five days past it.
+func TestRunOnceWarnsWhenNewestRowIsStale(t *testing.T) {
+	parquet, err := os.ReadFile("testdata/spo_bg0070a_06001_100.parquet")
+	if err != nil {
+		t.Fatal(err)
+	}
+	metadata, err := os.ReadFile("testdata/metadata_extract.csv")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var srv *httptest.Server
+	srv = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/ParquetFile/urls":
+			_, _ = w.Write([]byte(srv.URL + "/a.parquet\n"))
+		case "/metadata.csv":
+			_, _ = w.Write(metadata)
+		default:
+			_, _ = w.Write(parquet)
+		}
+	}))
+	defer srv.Close()
+
+	ctx, s := newStoreForCollector(t)
+
+	cfg := testConfig(srv.URL, srv.URL+"/metadata.csv")
+	cfg.MetadataCache = t.TempDir()
+	cfg.MaxPayloadBytes = 64 << 20
+
+	c := eea.NewCollector(cfg, s, shippedScorer(t))
+	c.SetClockForTesting(func() time.Time {
+		return time.Date(2026, 9, 14, 9, 0, 0, 0, time.UTC) // fixture row + 5 days
+	})
+
+	var buf bytes.Buffer
+	prev := slog.Default()
+	slog.SetDefault(slog.New(slog.NewTextHandler(&buf, nil)))
+	defer slog.SetDefault(prev)
+
+	st, err := c.RunOnce(ctx)
+	if err != nil {
+		t.Fatalf("RunOnce: %v", err)
+	}
+
+	wantNewest := time.Date(2026, 9, 9, 9, 0, 0, 0, time.UTC)
+	if !st.NewestRow.Equal(wantNewest) {
+		t.Errorf("NewestRow = %v, want %v", st.NewestRow, wantNewest)
+	}
+	if !strings.Contains(buf.String(), "eea data stale") {
+		t.Fatalf("expected a staleness WARN log, got:\n%s", buf.String())
+	}
+}
+
+// TestRunOnceDoesNotWarnWhenNewestRowIsFresh is the negative case: a newest
+// row inside the staleness threshold must not log the WARN TestRunOnce
+// WarnsWhenNewestRowIsStale checks for.
+func TestRunOnceDoesNotWarnWhenNewestRowIsFresh(t *testing.T) {
+	parquet, err := os.ReadFile("testdata/spo_bg0070a_06001_100.parquet")
+	if err != nil {
+		t.Fatal(err)
+	}
+	metadata, err := os.ReadFile("testdata/metadata_extract.csv")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var srv *httptest.Server
+	srv = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/ParquetFile/urls":
+			_, _ = w.Write([]byte(srv.URL + "/a.parquet\n"))
+		case "/metadata.csv":
+			_, _ = w.Write(metadata)
+		default:
+			_, _ = w.Write(parquet)
+		}
+	}))
+	defer srv.Close()
+
+	ctx, s := newStoreForCollector(t)
+
+	cfg := testConfig(srv.URL, srv.URL+"/metadata.csv")
+	cfg.MetadataCache = t.TempDir()
+	cfg.MaxPayloadBytes = 64 << 20
+
+	c := eea.NewCollector(cfg, s, shippedScorer(t))
+	c.SetClockForTesting(func() time.Time {
+		return time.Date(2026, 9, 9, 10, 0, 0, 0, time.UTC) // fixture row + 1h
+	})
+
+	var buf bytes.Buffer
+	prev := slog.Default()
+	slog.SetDefault(slog.New(slog.NewTextHandler(&buf, nil)))
+	defer slog.SetDefault(prev)
+
+	if _, err := c.RunOnce(ctx); err != nil {
+		t.Fatalf("RunOnce: %v", err)
+	}
+
+	if strings.Contains(buf.String(), "eea data stale") {
+		t.Errorf("unexpected staleness WARN log with a fresh newest row:\n%s", buf.String())
+	}
+}
+
 // TestRunOnceNeverLogsAURLQueryString covers the SAS-token leak: EEA download
 // URLs carry a SAS token in the query string, so a log line built from the
 // raw URL would put a credential in the log stream. A failed fetch is the

@@ -1,7 +1,9 @@
-{{/* Static prose, no islands and no data attributes: everything on this page
-     is a property of the data that does not change between requests. It is
-     also the one page that must render when there is no snapshot — see
-     handleAbout — so it may not depend on .Areas or .Area. */}}
+{{/* Mostly static prose — everything up to the privacy section is a property
+     of the data that does not change between requests. It is also the one
+     page that must render when there is no snapshot — see handleAbout — so it
+     may not depend on .Areas or .Area. The privacy section's one island (the
+     "clear my settings" button) is the exception: it needs JavaScript to do
+     anything, and degrades to a plain, inert button without it. */}}
 {{define "main"}}
 {{/* Prose, so .measure and not .frame: this page is read, not scanned. */}}
 <div class="measure">
@@ -26,6 +28,19 @@
 
 <h2>{{.T "about.sources.heading"}}</h2>
 <p>{{.T "about.sources.body"}}</p>
+
+<h2>{{.T "about.privacy.heading"}}</h2>
+<p>{{.T "about.privacy.cookies"}}</p>
+<p>{{.T "about.privacy.storage_intro"}}</p>
+<ul>
+{{range .StorageKeys}}
+  <li><code>{{.Key}}</code> — {{.Purpose}}</li>
+{{end}}
+</ul>
+<div class="privacy-clear" data-island="clearsettings" data-keys="{{.StorageKeysCSV}}" data-confirm="{{.T "about.privacy.clear_done"}}">
+  <button type="button">{{.T "about.privacy.clear_button"}}</button>
+  <p data-role="status" role="status" aria-live="polite"></p>
+</div>
 
 <p><a href="{{.Path "/"}}">{{.T "area.back_to_map"}}</a></p>
 </div>

@@ -230,6 +230,10 @@ func (rr *Renderer) handleAbout(w http.ResponseWriter, r *http.Request) {
 	data.Title = composeTitle(rr.cat.T(lang, "seo.about_data.title"), rr.cat.T(lang, "site.title"))
 	data.Description = rr.cat.T(lang, "seo.about_data.description")
 	data.JSONLD = rr.mustJSONLD(data.datasetJSONLD())
+	// The privacy section (OpenProject #585): every key comes from the
+	// embedded allow-list, never hand-typed here — see storagekeys.go.
+	data.StorageKeys = storageKeyInfos(rr.cat, lang)
+	data.StorageKeysCSV = storageKeysCSV()
 	rr.render(w, r, http.StatusOK, "about", data)
 }
 

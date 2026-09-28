@@ -17,6 +17,9 @@ import (
 // once history backfills; one unbounded batch would be all-or-nothing.
 const writeChunkSize = 2000
 
+// StalenessWarnThreshold equals store.official_freshness_window; older EEA rows drop out of the snapshot.
+const StalenessWarnThreshold = 12 * time.Hour
+
 // fileFetchTTL bounds how long a URL's entry is kept in lastFileFetch once
 // the collector stops seeing it. The upstream file list rotates (dated file
 // names, rotated SAS tokens), so without a bound the map grows by one entry
@@ -44,6 +47,7 @@ type Stats struct {
 	OutOfRange       int
 	UnknownPollutant int
 	UntrustedURL     int
+	NewestRow        time.Time
 }
 
 type Collector struct {
@@ -175,7 +179,14 @@ func (c *Collector) RunOnce(ctx context.Context) (Stats, error) {
 	}
 	usable := make([]keyed, 0, len(rows))
 
+	var newest time.Time
 	for _, r := range rows {
+		// Tracked over every decoded row, placeable or not: this is how fresh
+		// upstream's own data is, independent of whether this host can place
+		// or store any of it.
+		if r.Start.After(newest) {
+			newest = r.Start
+		}
 		station, ok := c.metadata.Lookup(r.Samplingpoint)
 		if !ok {
 			unplaceable[r.Samplingpoint] = true
@@ -188,9 +199,14 @@ func (c *Collector) RunOnce(ctx context.Context) (Stats, error) {
 		stations[r.Samplingpoint] = station
 		usable = append(usable, keyed{row: r, station: station})
 	}
+	st.NewestRow = newest
 	st.Unplaceable = len(unplaceable)
 	for sp := range unplaceable {
 		slog.Warn("eea sampling point has no coordinates in the metadata file", "sampling_point", sp)
+	}
+
+	if age, stale := staleness(newest, now, StalenessWarnThreshold); stale {
+		slog.Warn("eea data stale", "age", age.Round(time.Minute).String(), "newest_row", newest, "threshold", StalenessWarnThreshold.String())
 	}
 
 	if len(stations) == 0 {
@@ -267,6 +283,17 @@ func (c *Collector) RunOnce(ctx context.Context) (Stats, error) {
 		}
 	}
 	return st, nil
+}
+
+// staleness reports how far behind now newest is, and whether that exceeds
+// threshold. newest is zero when a cycle decoded no rows at all — that case
+// is reported by the rows/unmodified counters instead, not as staleness.
+func staleness(newest, now time.Time, threshold time.Duration) (time.Duration, bool) {
+	if newest.IsZero() {
+		return 0, false
+	}
+	age := now.Sub(newest)
+	return age, age > threshold
 }
 
 // Loop runs RunOnce on the configured interval until ctx is done. A failed

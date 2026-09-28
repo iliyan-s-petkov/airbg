@@ -283,6 +283,11 @@ strong, b { font-weight: var(--weight-emphasis); }
   /* Keeps a swipe inside the list from being taken by the map underneath. */
   overscroll-behavior: contain;
   touch-action: pan-y;
+  /* Frosted glass (issue 578); solid fallbacks at the end of the file. */
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
 }
 .map__layers .colmenu__opt { white-space: nowrap; }
 /* The shape each network is drawn in, beside its name in the layers menu. The
@@ -512,6 +517,15 @@ strong, b { font-weight: var(--weight-emphasis); }
    wins on z-index, so a folded legend — its summary alone, 16px off the bottom —
    vanished underneath and could not be unfolded again. */
 .map-shell .scale--onmap { inset-block-end: 3.5rem; }
+/* Frosted glass (issue 578), expanded legend only; the colour bar stays opaque. */
+.scale--onmap[open] {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius);
+  box-shadow: var(--elev-float);
+}
 .map-freshness .data-refresh {
   margin: 0; background: var(--overlay-bg); border-radius: var(--radius);
   box-shadow: var(--elev-raised); padding: var(--space-1);
@@ -531,6 +545,18 @@ strong, b { font-weight: var(--weight-emphasis); }
 /* Island hosts render empty until mount; reserve their measured height (area-page CLS). */
 [data-island="switcher"] { min-block-size: var(--control-height); }
 [data-island="sensorbar"] { min-block-size: 102px; }
+/* OpenProject 609: /areas CLS 0.315, mostly #below-map. Table controls reflow
+   with viewport width (flex-wrap), so one reservation would over- or
+   under-shoot; tiered to the 393/768/1280 widths the Lighthouse audit used. */
+[data-island="table"] { min-block-size: 88px; }
+.pager-slot { min-block-size: 57px; }
+@media (max-width: 900px) {
+  [data-island="table"] { min-block-size: 160px; }
+}
+@media (max-width: 672px) {
+  [data-island="table"] { min-block-size: 256px; }
+  .pager-slot { min-block-size: 69px; }
+}
 
 /* Separate cards rather than the kit's hairline-divided strip, each one centred
    on its own figure so the four line up whatever their labels wrap to. */
@@ -847,6 +873,10 @@ html:has(> body.embed) { block-size: 100%; }
      rides above .map-freshness rather than under it. */
   .map-shell .scale--onmap[open] {
     inline-size: calc(100% - 7rem); z-index: 4;
+    /* Restated to beat the solid phone pill above. */
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
   }
   /* Folded, the pill's own surface padding stands down — the toggle IS the
      pill, and a padded surface around an already-44px toggle overshot the
@@ -1133,4 +1163,18 @@ html:has(> body.embed) { block-size: 100%; }
 /* Pinch replaces the zoom pair on touch; the reset/grid button stays. */
 @media (hover: none) and (pointer: coarse) {
   .map-zoom__btn[data-act="in"], .map-zoom__btn[data-act="out"] { display: none; }
+}
+
+/* Solid fallbacks for the issue-578 glass: no backdrop-filter, or reduced transparency. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .map__layers .colmenu__panel, .map-shell .scale--onmap[open] {
+    background: var(--bg);
+  }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .map__layers .colmenu__panel, .map-shell .scale--onmap[open] {
+    background: var(--bg);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
 }
