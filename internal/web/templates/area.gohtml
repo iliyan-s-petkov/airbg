@@ -211,7 +211,9 @@
             metric, and a pre-composed sentence could not be rewritten for
             either. */}}
        data-t-tier="{{.AreaTier}}"
-       data-t-legend="{{.T "metric.legend"}}"
+       {{/* #563: own key, not metric.legend — the top switcher already uses
+            that string and a screen reader must tell the two buttons apart. */}}
+       data-t-chart-metric-legend="{{.T "chart.metric.legend"}}"
        data-t-period-legend="{{.T "period.legend"}}"
        data-t-period-custom="{{.T "period.custom"}}"
        data-t-period-from="{{.T "period.from"}}"
