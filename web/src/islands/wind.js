@@ -122,7 +122,10 @@ export function windLabel(body, t, formatTime = defaultFormatTime) {
     .replace('{time}', formatTime(body.valid_at))
   // The note leads: a visitor who has just turned the layer on needs to know
   // what the arrows mean before they need to know which model drew them.
-  return t.windNote ? `${t.windNote} ${attribution}` : attribution
+  const labelled = t.windNote ? `${t.windNote} ${attribution}` : attribution
+  // CC BY 4.0 needs the data's own source named, not only the model run on
+  // top of it (OpenProject #600).
+  return t.windCredit ? `${labelled} ${t.windCredit}` : labelled
 }
 
 // windIsStale asks whether the held forecast is still the current hour's.

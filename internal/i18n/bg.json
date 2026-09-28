@@ -298,6 +298,7 @@
   "unit.temperature": "°C",
   "wind.about": "За слоя с вятъра",
   "wind.attribution": "Прогноза за вятъра · модел {model}, мрежа {resolution}° · за {time}",
+  "wind.credit": "Данни за вятъра: Open-Meteo.com (CC BY 4.0, https://creativecommons.org/licenses/by/4.0/), https://open-meteo.com/ - обработени от airbg.org.",
   "wind.note": "Стрелките сочат накъде духа вятърът и колко силно; вятърът разнася замърсяването, затишието го задържа.",
   "wind.toggle": "Вятър"
 }

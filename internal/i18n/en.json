@@ -298,6 +298,7 @@
   "unit.temperature": "°C",
   "wind.about": "About the wind layer",
   "wind.attribution": "Wind forecast · {model} model, {resolution}° grid · valid {time}",
+  "wind.credit": "Wind data: Open-Meteo.com (CC BY 4.0, https://creativecommons.org/licenses/by/4.0/), https://open-meteo.com/ - resampled by airbg.org.",
   "wind.note": "The arrows point where the wind blows and how hard; wind disperses the pollution, still air holds it in place.",
   "wind.toggle": "Wind"
 }

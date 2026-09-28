@@ -185,6 +185,7 @@ export function readConfig(el) {
       windAbout: d.tWindAbout || '',
       windNote: d.tWindNote || '',
       windAttribution: d.tWindAttribution || '',
+      windCredit: d.tWindCredit || '',
     },
   }
 }

@@ -279,6 +279,16 @@ describe('windLabel', () => {
   it('still names the model when no note is translated', () => {
     expect(windLabel(body, { ...t, windNote: '' })).toContain('ecmwf_ifs025')
   })
+
+  // CC BY 4.0 requires naming the source and linking it, not only the model
+  // that runs on top of it (OpenProject #600).
+  it('credits Open-Meteo with a link and its licence, not only the model', () => {
+    const withCredit = { ...t, windCredit: 'Data: Open-Meteo.com (CC BY 4.0) https://open-meteo.com/' }
+    const label = windLabel(body, withCredit)
+    expect(label).toContain('Open-Meteo.com')
+    expect(label).toContain('https://open-meteo.com/')
+    expect(label).toContain('CC BY 4.0')
+  })
 })
 
 describe('setWind', () => {
