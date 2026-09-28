@@ -226,7 +226,7 @@ func main() {
 		for i, p := range points {
 			rows[i] = store.VisitorDaily{Day: p.Date, Uniques: p.Uniques, Requests: p.Requests, PageViews: p.PageViews, FetchedAt: fetchedAt}
 		}
-		n, err := store.New(pool, cfg.Store, cfg.Database.StatementTimeouts.Operator).UpsertVisitorDaily(ctx, rows)
+		n, err := store.New(pool, cfg.Store, cfg.Database.StatementTimeouts.Operator).SeedVisitorDaily(ctx, rows)
 		if err != nil {
 			slog.Error("seed visitor daily", "error", err)
 			os.Exit(1)

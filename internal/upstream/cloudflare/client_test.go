@@ -118,6 +118,29 @@ func TestFetchDailyRejectsNonOKStatus(t *testing.T) {
 	}
 }
 
+// An empty zones list means the configured zone_id matched nothing. The
+// error must name the zone id, since that is what an operator needs to fix,
+// and must never mention the token.
+func TestFetchDailyEmptyZonesErrorNamesZoneNotToken(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"data": {"viewer": {"zones": []}}}`))
+	}))
+	defer srv.Close()
+
+	c := cloudflare.New(testConfig(srv.URL), "s3cr3t-token")
+	_, err := c.FetchDaily(context.Background(), time.Now(), time.Now())
+	if err == nil {
+		t.Fatal("err = nil, want an error for an empty zones list")
+	}
+	if !strings.Contains(err.Error(), "b9c4f3ae6570006c5b2d62f114dd4fd9") {
+		t.Errorf("err = %q, want it to name the zone id", err.Error())
+	}
+	if strings.Contains(err.Error(), "s3cr3t-token") {
+		t.Errorf("err = %q, must never contain the token", err.Error())
+	}
+}
+
 func TestFetchDailySendsZoneAndDateRange(t *testing.T) {
 	var gotBody map[string]any
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

@@ -1,6 +1,5 @@
 // Package cloudflare pulls daily unique-visitor counts from Cloudflare's
-// GraphQL analytics API. See README.md for the shape of the job and its
-// backfill/retention behaviour.
+// GraphQL analytics API. See README.md for the job's shape and scheduling.
 package cloudflare
 
 import (
@@ -141,7 +140,7 @@ func (c *Client) FetchDaily(ctx context.Context, since, until time.Time) ([]Dail
 		return nil, fmt.Errorf("cloudflare: graphql error(s): %s", strings.Join(msgs, "; "))
 	}
 	if len(out.Data.Viewer.Zones) == 0 {
-		return nil, nil
+		return nil, fmt.Errorf("cloudflare: fetch daily: no zone matched zone_id %q", c.cfg.ZoneID)
 	}
 
 	rows := out.Data.Viewer.Zones[0].HTTPRequests1dGroups

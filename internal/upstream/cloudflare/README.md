@@ -1,8 +1,7 @@
 # internal/upstream/cloudflare
 
 Daily unique-visitor counts, pulled from Cloudflare's GraphQL analytics API
-into `visitor_daily` (OpenProject #591). Spike results: see the PR that added
-this package, or ask for `/tmp/airbg-cf-spike.md`.
+into `visitor_daily` (OpenProject #591).
 
 ## What is stored
 
@@ -18,18 +17,17 @@ In-process, like `wind` and `eea`: `Collector.Loop` runs inside `airbg serve`
 pool. Not an ofelia job — see `deploy/ofelia.ini`'s header comment for why a
 one-shot container is the wrong shape for a loop that never returns.
 
-## Backfill vs. rolling window
+## Backfill vs. gap-fill
 
-Every run asks `Store.VisitorDailyEmpty`. An empty table means this is the
-first run ever (or after a restore): it pulls `backfillDays` (30) days. Any
-other run pulls the trailing `lookbackDays` (3) days, because Cloudflare's own
-daily group can still shift for a day or two after it closes — a lookback
-window "corrects" rather than duplicates via `ON CONFLICT (day) DO UPDATE`.
+Every run asks `Store.VisitorDailyMaxDay` and sizes its pull to the gap:
+`clamp(today - max(day) + minLookbackDays, minLookbackDays, maxLookbackDays)`.
+No stored day means the full `maxLookbackDays` (30) window. The `+3` always
+re-checks a few recent days, since Cloudflare's own daily group can still
+shift for a day or two after it closes; `ON CONFLICT (day) DO UPDATE`
+corrects rather than duplicates.
 
-30 days, not more: the spike found actual stored retention on this plan is
-~29-30 days, well short of the ~52-week query-range cap the API itself
-enforces. Backfilling wider than that returns the same rows the API already
-has, not more history.
+30 days, not more: actual stored retention on this plan is ~29-30 days, well
+short of the ~52-week query-range cap the API itself enforces.
 
 ## The token
 
@@ -47,8 +45,8 @@ resolves through Cloudflare — so it is committed in `airbg.yaml`.
 ## Seeding
 
 `airbg seed-visitor-daily <path.json>` loads a JSON array of
-`{date,uniques,requests,pageViews}` rows (the shape Cloudflare's own export
-uses) and upserts them, for backfilling history predating this job or
-restoring from a snapshot. `cloudflare.ParseSeedFile` does the parsing and is
-unit-tested with no database; the command itself is not exercised in tests
-against any real database — see the PR description for why.
+`{date,uniques,requests,pageViews}` rows and fills gaps only, via
+`Store.SeedVisitorDaily` (`ON CONFLICT DO NOTHING`) — it never overwrites a
+day the collector already wrote. `cloudflare.ParseSeedFile` does the parsing
+and is unit-tested with no database; the command itself is not run against a
+real database in tests.
