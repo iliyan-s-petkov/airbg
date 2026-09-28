@@ -140,6 +140,12 @@ strong, b { font-weight: var(--weight-emphasis); }
    over the left third of the map the moment it appeared.
    TestAppCSSDoesNotCoAnchorAKitSelector is the guard. */
 .map-hint[hidden] { display: none; }
+/* The kit's .map__layers (z-index:3, position:absolute) is a stacking context of
+   its own, so the panel's z-index:20 only wins INSIDE it — against a same-tier
+   sibling context (the time pill's .map-freshness, also z-index:3) the tie goes
+   to DOM order, and the pill paints later. Bump the ancestor itself, only while
+   open, above every other map overlay (max elsewhere is 6, back-to-map). */
+.map__layers:has(.colmenu__panel:not([hidden])) { z-index: 7; }
 /* The note is site-only, so it keeps the top-left corner and is offset past the
    layers menu rather than sharing it. The kit gives the frame's top-left to
    .map__layers — a 32px button inset 12px, so it owns 12px..44px on both
