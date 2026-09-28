@@ -1,0 +1,44 @@
+name: Data problem
+description: A sensor, area, or reading looks wrong on the map
+labels: ["data"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        If the raw reading looks wrong upstream (not just on this site), please
+        also report it to sensor.community: https://community.sensor.community/
+  - type: input
+    id: sensor-or-area
+    attributes:
+      label: Sensor ID or area slug
+      description: The sensor.community sensor ID, or the area/city slug shown on the map
+    validations:
+      required: true
+  - type: input
+    id: metric
+    attributes:
+      label: Metric
+      description: e.g. PM2.5 (P2), PM10 (P1), temperature, humidity
+    validations:
+      required: true
+  - type: input
+    id: time-window
+    attributes:
+      label: Time window
+      description: When did you observe this (date/time range, timezone)?
+    validations:
+      required: true
+  - type: textarea
+    id: whats-wrong
+    attributes:
+      label: What looks wrong
+      description: e.g. value stuck, spike, missing data, wrong location, wrong color
+    validations:
+      required: true
+  - type: textarea
+    id: screenshot
+    attributes:
+      label: Screenshot
+      description: Please attach a screenshot of the map or chart showing the issue
+    validations:
+      required: false
