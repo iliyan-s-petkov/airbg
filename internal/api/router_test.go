@@ -65,6 +65,24 @@ type stubSource struct {
 	lastUntil  *time.Time
 	lastHourly bool
 	lastBucket time.Duration
+
+	// visitors is what VisitorDailyLast returns (oldest first, as the store does);
+	// visitorCalls counts the calls so the cache tests can assert on them.
+	visitors     []store.VisitorDaily
+	visitorsErr  error
+	visitorCalls int
+}
+
+func (s *stubSource) VisitorDailyLast(_ context.Context, n int) ([]store.VisitorDaily, error) {
+	s.visitorCalls++
+	if s.visitorsErr != nil {
+		return nil, s.visitorsErr
+	}
+	rows := s.visitors
+	if len(rows) > n {
+		rows = rows[len(rows)-n:]
+	}
+	return rows, nil
 }
 
 func (s *stubSource) recordWindow(since time.Time, until *time.Time, hourly bool, bucket time.Duration) {

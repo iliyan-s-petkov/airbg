@@ -44,6 +44,10 @@ func (s *blockingSource) AreaSeriesBand(_ context.Context, _, _ string, _ time.T
 	return nil, nil
 }
 
+func (s *blockingSource) VisitorDailyLast(_ context.Context, _ int) ([]store.VisitorDaily, error) {
+	return nil, nil
+}
+
 // trustedLocateHandler builds ONE router, wrapped so the Cloudflare headers are
 // honoured. Built once rather than per request because the sharing test needs
 // two distinct routers and must control exactly how many exist.
