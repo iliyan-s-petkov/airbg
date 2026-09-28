@@ -59,6 +59,33 @@ for (const vp of VIEWPORTS) {
       await context.close()
     })
 
+    test('the layers list folding/restoring the legend does not persist, even once the toggle event settles', async ({ browser }) => {
+      const { name, ...opts } = vp
+      const context = await browser.newContext(opts)
+      const page = await context.newPage()
+      await withLegend(page, true)
+      await page.goto('/en')
+
+      const legend = page.locator('.scale--onmap')
+      const layersBtn = page.locator('.map__layers .colmenu__btn')
+      await expect(legend).toHaveAttribute('open', '')
+
+      await openLayers(page)
+      await expect(legend).not.toHaveAttribute('open', '')
+      // <details> fires `toggle` as a queued task, not synchronously with the
+      // .open write — give it a turn before reading what got persisted.
+      await page.waitForTimeout(150)
+      expect(await page.evaluate(() => localStorage.getItem('airbg:legend-open'))).toBe('true')
+
+      await layersBtn.click()
+      await expect(page.locator('.map__layers .colmenu__panel')).toBeHidden()
+      await expect(legend).toHaveAttribute('open', '')
+      await page.waitForTimeout(150)
+      expect(await page.evaluate(() => localStorage.getItem('airbg:legend-open'))).toBe('true')
+
+      await context.close()
+    })
+
     test('the layers list does not re-open the legend once the reader folded it themself', async ({ browser }) => {
       const { name, ...opts } = vp
       const context = await browser.newContext(opts)

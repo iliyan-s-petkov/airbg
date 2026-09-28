@@ -449,6 +449,7 @@ describe('mountChrome() folds the key by default on a phone', () => {
     expect(legend.open).toBe(true)
 
     chrome.closeLegend()
+    legend.dispatchEvent(new Event('toggle'))
 
     expect(legend.open).toBe(false)
     expect(store.get(LEGEND_FOLD_KEY), 'auto-close must not persist').toBe('true')
@@ -464,6 +465,7 @@ describe('mountChrome() folds the key by default on a phone', () => {
     expect(legend.open).toBe(true)
 
     chrome.player.show(3)
+    legend.dispatchEvent(new Event('toggle'))
 
     expect(legend.open).toBe(false)
     expect(legend.isConnected).toBe(true)
@@ -778,6 +780,9 @@ describe('mountChrome() keeps the legend and the layers list mutually exclusive'
   beforeEach(() => { localStorage.removeItem(LEGEND_FOLD_KEY) })
   afterEach(() => { document.body.innerHTML = '' })
 
+  // jsdom never fires toggle on a programmatic .open write, unlike a real
+  // browser's queued task — dispatch it by hand so the guard is actually
+  // exercised, not just the synchronous .open flip.
   it('opening the layers list folds an open legend, without persisting the fold', () => {
     const { shell, el } = chromeFrame()
     mountChrome(el, readConfig(el))
@@ -786,6 +791,7 @@ describe('mountChrome() keeps the legend and the layers list mutually exclusive'
     expect(legend.open).toBe(true)
 
     layersBtn.click()
+    legend.dispatchEvent(new Event('toggle'))
 
     expect(legend.open).toBe(false)
     expect(localStorage.getItem(LEGEND_FOLD_KEY)).toBeNull()
@@ -798,8 +804,10 @@ describe('mountChrome() keeps the legend and the layers list mutually exclusive'
     const layersBtn = el.querySelector('.map__layers .colmenu__btn')
 
     layersBtn.click()
+    legend.dispatchEvent(new Event('toggle'))
     expect(legend.open).toBe(false)
     layersBtn.click()
+    legend.dispatchEvent(new Event('toggle'))
 
     expect(legend.open).toBe(true)
     expect(localStorage.getItem(LEGEND_FOLD_KEY)).toBeNull()
