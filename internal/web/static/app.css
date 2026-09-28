@@ -531,6 +531,18 @@ strong, b { font-weight: var(--weight-emphasis); }
 /* Island hosts render empty until mount; reserve their measured height (area-page CLS). */
 [data-island="switcher"] { min-block-size: var(--control-height); }
 [data-island="sensorbar"] { min-block-size: 102px; }
+/* OpenProject 609: /areas CLS 0.315, mostly #below-map. Table controls reflow
+   with viewport width (flex-wrap), so one reservation would over- or
+   under-shoot; tiered to the 393/768/1280 widths the Lighthouse audit used. */
+[data-island="table"] { min-block-size: 88px; }
+.pager-slot { min-block-size: 57px; }
+@media (max-width: 900px) {
+  [data-island="table"] { min-block-size: 160px; }
+}
+@media (max-width: 672px) {
+  [data-island="table"] { min-block-size: 256px; }
+  .pager-slot { min-block-size: 69px; }
+}
 
 /* Separate cards rather than the kit's hairline-divided strip, each one centred
    on its own figure so the four line up whatever their labels wrap to. */

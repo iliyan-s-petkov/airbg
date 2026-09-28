@@ -145,6 +145,34 @@ func seedFixtures(t *testing.T, st *store.Store) {
 		t.Fatalf("seed oblast area: %v", err)
 	}
 
+	// 27 more oblasts, spaced 2° apart so their boxes never touch "sofia"'s
+	// sensors or each other: /areas' ranked table (areaRows, kind "oblast")
+	// needs 28 rows — Bulgaria's real count — to reproduce the per-page
+	// select's option set (14, 7) and the resulting control-row wrap that
+	// production shows; 2 rows was not enough for table.js to even mount
+	// (it needs 2+), and a handful understated the OpenProject #609 CLS
+	// reservation the table/pager islands need at each breakpoint.
+	for i := 1; i <= 27; i++ {
+		lon := 23.32 + float64(i)*2
+		lat := 42.69
+		boxWKT := fmt.Sprintf(
+			"MULTIPOLYGON(((%f %f, %f %f, %f %f, %f %f, %f %f)))",
+			lon-delta, lat-delta,
+			lon+delta, lat-delta,
+			lon+delta, lat+delta,
+			lon-delta, lat+delta,
+			lon-delta, lat-delta,
+		)
+		slug := fmt.Sprintf("oblast-%d", i)
+		_, err = st.Pool().Exec(ctx,
+			`INSERT INTO area (slug, kind, name_bg, name_en, geom)
+			 VALUES ($1, $2, $3, $4, ST_SetSRID(ST_GeomFromText($5), 4326)::geography)`,
+			slug, "oblast", fmt.Sprintf("Област %d", i), fmt.Sprintf("Oblast %d", i), boxWKT)
+		if err != nil {
+			t.Fatalf("seed oblast area %s: %v", slug, err)
+		}
+	}
+
 	// A third area, kind "neighbourhood", wholly inside the "sofia" city
 	// square above — store.AreaParents assigns it "sofia" as ParentSlug by
 	// largest polygon overlap, giving the SEO6 breadcrumb/link-block specs a
