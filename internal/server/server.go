@@ -43,6 +43,10 @@ type Options struct {
 	Store     api.DataSource
 	Publisher *Publisher
 	Logger    *slog.Logger
+	// Pre-bound listeners, for tests that need the OS-assigned port before
+	// Run starts. Nil means Run binds Config.Listen.Addr/MetricsAddr and
+	// Config.Tiles.Addr itself, as before.
+	PublicListener, PrivateListener, TilesListener net.Listener
 }
 
 type Server struct {
@@ -50,12 +54,14 @@ type Server struct {
 	private *http.Server
 	// tiles is nil when no basemap is configured, which is the shipped
 	// configuration. Nil means two listeners, exactly as before.
-	tiles         *http.Server
-	limiter       *ratelimit.Limiter
-	breadth       *ratelimit.Breadth
-	seriesLimiter *ratelimit.Limiter
-	log           *slog.Logger
-	maxConns      int32
+	tiles *http.Server
+	// Pre-bound listeners; nil unless Options set them. See serveCapped/listen.
+	publicLn, privateLn, tilesLn net.Listener
+	limiter                      *ratelimit.Limiter
+	breadth                      *ratelimit.Breadth
+	seriesLimiter                *ratelimit.Limiter
+	log                          *slog.Logger
+	maxConns                     int32
 	// One eviction interval per limiter, because each limiter has its own key
 	// (see startEvicting). A single shared interval silently ignored
 	// ratelimit.series.evict_interval for as long as both values happened to be
@@ -173,6 +179,8 @@ func New(opts Options) (*Server, error) {
 			IdleTimeout:       opts.Config.Timeouts.Idle,
 			MaxHeaderBytes:    maxHeaderBytes,
 		},
+		publicLn:            opts.PublicListener,
+		privateLn:           opts.PrivateListener,
 		limiter:             limiter,
 		breadth:             breadth,
 		seriesLimiter:       seriesLimiter,
@@ -209,6 +217,7 @@ func New(opts Options) (*Server, error) {
 			MaxHeaderBytes:    maxHeaderBytes,
 			ErrorLog:          slog.NewLogLogger(opts.Logger.Handler(), slog.LevelWarn),
 		}
+		s.tilesLn = opts.TilesListener
 	}
 	return s, nil
 }
@@ -242,10 +251,10 @@ func (s *Server) Run(ctx context.Context) error {
 	// dies during shutdown never blocks forever on an unread channel.
 	errCh := make(chan error, 3)
 
-	go func() { errCh <- s.serveCapped(s.public) }()
-	go func() { errCh <- listen(s.private) }()
+	go func() { errCh <- s.serveCapped(s.public, s.publicLn) }()
+	go func() { errCh <- listen(s.private, s.privateLn) }()
 	if s.tiles != nil {
-		go func() { errCh <- s.serveCapped(s.tiles) }()
+		go func() { errCh <- s.serveCapped(s.tiles, s.tilesLn) }()
 	}
 
 	s.startEvicting(ctx)
@@ -313,10 +322,15 @@ func (s *Server) startEvicting(ctx context.Context) {
 // accepted: dozens of range requests per map load and one JSON request per page
 // are different workloads sharing a knob, so an operator who raises the cap for
 // tiles raises it for the API too.
-func (s *Server) serveCapped(srv *http.Server) error {
-	ln, err := net.Listen("tcp", srv.Addr)
-	if err != nil {
-		return fmt.Errorf("listening on %s: %w", srv.Addr, err)
+func (s *Server) serveCapped(srv *http.Server, ln net.Listener) error {
+	// ln nil means no pre-bound listener was supplied; bind srv.Addr now, as
+	// before. Non-nil is a test-supplied listener already bound to :0.
+	if ln == nil {
+		var err error
+		ln, err = net.Listen("tcp", srv.Addr)
+		if err != nil {
+			return fmt.Errorf("listening on %s: %w", srv.Addr, err)
+		}
 	}
 	if err := srv.Serve(httpx.LimitListener(ln, int(s.maxConns))); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		return fmt.Errorf("serving %s: %w", srv.Addr, err)
@@ -324,8 +338,16 @@ func (s *Server) serveCapped(srv *http.Server) error {
 	return nil
 }
 
-func listen(srv *http.Server) error {
-	if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+// listen serves srv on ln, or binds srv.Addr itself when ln is nil.
+func listen(srv *http.Server, ln net.Listener) error {
+	if ln == nil {
+		var err error
+		ln, err = net.Listen("tcp", srv.Addr)
+		if err != nil {
+			return fmt.Errorf("listening on %s: %w", srv.Addr, err)
+		}
+	}
+	if err := srv.Serve(ln); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		return fmt.Errorf("listening on %s: %w", srv.Addr, err)
 	}
 	return nil
