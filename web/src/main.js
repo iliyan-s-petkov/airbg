@@ -57,6 +57,24 @@ export async function runIsland(el, load, log = console.error) {
   }
 }
 
+// Two rAFs: a single rAF callback runs before its frame paints.
+export function scheduleAfterFirstPaint(callback, raf = globalThis.requestAnimationFrame) {
+  if (typeof raf === 'function') {
+    raf(() => raf(callback))
+  } else {
+    setTimeout(callback, 0)
+  }
+}
+
+// Deferred past first paint so MapLibre evaluation does not delay the SSR'd LCP text.
+function mountIslands() {
+  for (const el of document.querySelectorAll('[data-island]')) {
+    const load = resolveLoader(el.dataset.island)
+    if (!load) continue // unknown island: leave the server-rendered fallback
+    runIsland(el, load)
+  }
+}
+
 function init() {
   // The masthead's two pickers are independent <details> and would otherwise
   // open on top of each other. Wired before the islands: the theme picker's
@@ -65,11 +83,7 @@ function init() {
   scrollCue(document, window)
   createBackToMap({ doc: document, win: window })
 
-  for (const el of document.querySelectorAll('[data-island]')) {
-    const load = resolveLoader(el.dataset.island)
-    if (!load) continue // unknown island: leave the server-rendered fallback
-    runIsland(el, load)
-  }
+  scheduleAfterFirstPaint(mountIslands)
 }
 
 // Guarded so this module can be imported by a Vitest run (no `document`

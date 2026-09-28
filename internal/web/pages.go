@@ -107,7 +107,7 @@ func (rr *Renderer) handlers() map[string]http.Handler {
 	// Hand-written files keep stable names, so the templates stamp them with a
 	// content hash instead and this decides the TTL from that stamp — see
 	// staticAssetCacheControl.
-	h["GET /static/"] = staticAssetCacheControl(noDirList(http.FileServer(http.FS(staticFS))), rr.static)
+	h["GET /static/"] = staticAssetCacheControl(noDirList(serveStaticFiles(rr.static, staticFS)), rr.static)
 
 	// Anything unmatched is a rendered 404, not net/http's bare text one.
 	h["/"] = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

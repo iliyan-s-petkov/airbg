@@ -30,9 +30,11 @@ test('clicking "clear my settings" removes the allow-listed keys and confirms in
   await expect(status).toHaveAttribute('aria-live', 'polite')
   await expect(status).toBeEmpty()
 
-  await island.locator('button').click()
-
-  await expect(status).not.toBeEmpty()
+  // Islands mount after first paint; retry until the handler is wired.
+  await expect(async () => {
+    await island.locator('button').click()
+    await expect(status).not.toBeEmpty({ timeout: 500 })
+  }).toPass({ timeout: 5000 })
 
   const remaining = await page.evaluate(() => Object.keys(localStorage))
   for (const key of allowedKeys) {

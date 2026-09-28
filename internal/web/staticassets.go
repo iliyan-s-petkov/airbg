@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"net/http"
 	"path"
+	"strconv"
 	"strings"
 )
 
@@ -20,14 +21,16 @@ const staticVersionParam = "v"
 // URL instead, which changes the cache key on every edit.
 type StaticAssets struct {
 	versions map[string]string // "app.css" -> hex digest prefix
+	content  map[string][]byte // "app.css" -> minified bytes actually served
 }
 
 // LoadStaticAssets hashes every embedded file under static/.
+// CSS is minified here and hashed as served, so a minifier change busts caches.
 //
 // A read failure leaves that file unversioned rather than failing the process:
 // an unversioned URL still resolves, it just falls back to revalidating.
 func LoadStaticAssets() StaticAssets {
-	sa := StaticAssets{versions: make(map[string]string)}
+	sa := StaticAssets{versions: make(map[string]string), content: make(map[string][]byte)}
 	_ = fs.WalkDir(staticFS, "static", func(p string, d fs.DirEntry, err error) error {
 		if err != nil || d.IsDir() {
 			return nil
@@ -36,11 +39,23 @@ func LoadStaticAssets() StaticAssets {
 		if err != nil {
 			return nil
 		}
-		sum := sha256.Sum256(raw)
-		sa.versions[strings.TrimPrefix(p, "static/")] = hex.EncodeToString(sum[:])[:12]
+		name := strings.TrimPrefix(p, "static/")
+		served := raw
+		if strings.HasSuffix(name, ".css") {
+			served = minifyCSS(raw)
+			sa.content[name] = served
+		}
+		sum := sha256.Sum256(served)
+		sa.versions[name] = hex.EncodeToString(sum[:])[:12]
 		return nil
 	})
 	return sa
+}
+
+// Content returns the served bytes for name when they differ from the source.
+func (sa StaticAssets) Content(name string) ([]byte, bool) {
+	b, ok := sa.content[name]
+	return b, ok
 }
 
 // URL is the served path for a static file, stamped with its content hash.
@@ -55,6 +70,23 @@ func (sa StaticAssets) URL(name string) string {
 func (sa StaticAssets) version(name string) (string, bool) {
 	v, ok := sa.versions[name]
 	return v, ok
+}
+
+// serveStaticFiles serves minified CSS from sa and everything else from fsys.
+func serveStaticFiles(sa StaticAssets, fsys fs.FS) http.Handler {
+	fileServer := http.FileServer(http.FS(fsys))
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		name := strings.TrimPrefix(path.Clean(r.URL.Path), "/static/")
+		if content, ok := sa.Content(name); ok {
+			w.Header().Set("Content-Type", "text/css; charset=utf-8")
+			w.Header().Set("Content-Length", strconv.Itoa(len(content)))
+			if r.Method != http.MethodHead {
+				w.Write(content)
+			}
+			return
+		}
+		fileServer.ServeHTTP(w, r)
+	})
 }
 
 // staticAssetCacheControl marks a request immutable only when it carries the
