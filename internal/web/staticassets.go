@@ -25,12 +25,7 @@ type StaticAssets struct {
 }
 
 // LoadStaticAssets hashes every embedded file under static/.
-//
-// CSS files are minified once here (comments and whitespace only — see
-// cssmin.go; no rule is pruned) and the hash is taken over the minified bytes,
-// not the source: the hash is a cache-busting token for what the browser
-// actually receives, so it must change whenever that does, even if a future
-// change to the minifier itself is the only thing that moved.
+// CSS is minified here and hashed as served, so a minifier change busts caches.
 //
 // A read failure leaves that file unversioned rather than failing the process:
 // an unversioned URL still resolves, it just falls back to revalidating.
@@ -57,9 +52,7 @@ func LoadStaticAssets() StaticAssets {
 	return sa
 }
 
-// Content returns the bytes actually served for name, when they differ from
-// the embedded source (currently: minified CSS). The second return is false
-// for anything the raw file server should keep handling unmodified.
+// Content returns the served bytes for name when they differ from the source.
 func (sa StaticAssets) Content(name string) ([]byte, bool) {
 	b, ok := sa.content[name]
 	return b, ok
@@ -79,10 +72,7 @@ func (sa StaticAssets) version(name string) (string, bool) {
 	return v, ok
 }
 
-// serveStaticFiles serves the embedded static/ tree, substituting sa's
-// minified bytes for any CSS file rather than the raw embedded ones. Anything
-// sa has no override for (JS, SVG, the theme-init.js classic script) falls
-// straight through to the ordinary embedded-FS file server, unmodified.
+// serveStaticFiles serves minified CSS from sa and everything else from fsys.
 func serveStaticFiles(sa StaticAssets, fsys fs.FS) http.Handler {
 	fileServer := http.FileServer(http.FS(fsys))
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

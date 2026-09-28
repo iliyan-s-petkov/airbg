@@ -1,15 +1,7 @@
 package web
 
-// minifyCSS strips comments and collapses whitespace runs in raw CSS bytes.
-// It does not touch selectors, declarations or values — no rule is pruned,
-// no property renamed — only bytes a browser never needed are removed
-// (app.css's own comments are prose explaining a design decision, useful to a
-// reader of the source file and worthless over the wire).
-//
-// A string-aware scan, not a regex: CSS content values can hold "/*" inside a
-// quoted string (e.g. content: "/* not a comment */") and that must survive
-// untouched, so comment/whitespace collapsing is suspended while inside a
-// quoted string.
+// minifyCSS strips comments and collapses whitespace outside quoted strings.
+// Rules and values are left as written.
 func minifyCSS(raw []byte) []byte {
 	out := make([]byte, 0, len(raw))
 	inString := byte(0) // 0 = not in a string, else the quote byte that opened it
@@ -21,9 +13,7 @@ func minifyCSS(raw []byte) []byte {
 		if inString != 0 {
 			out = append(out, c)
 			if c == '\\' && i+1 < len(raw) {
-				// An escaped character inside a string is never the closing
-				// quote, and must be copied verbatim so `\"` does not end the
-				// string early.
+				// An escaped quote does not close the string.
 				i++
 				out = append(out, raw[i])
 				continue

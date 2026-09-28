@@ -56,16 +56,7 @@ export async function runIsland(el, load, log = console.error) {
   }
 }
 
-// scheduleAfterFirstPaint defers `callback` past the browser's next paint. One
-// requestAnimationFrame is not enough: the callback given to rAF runs BEFORE
-// the frame it was scheduled for is painted, so mounting the map island there
-// still blocks the paint this exists to protect (see OpenProject #615 — the
-// SSR'd LCP text was measured painting ~1.2s after FCP because of exactly this
-// main-thread JS). Nesting a second rAF inside the first pushes the callback
-// to the frame AFTER the one that was about to paint, i.e. genuinely after
-// paint. Falls back to setTimeout when requestAnimationFrame does not exist
-// (Vitest's node environment, or a very old browser), so this stays callable
-// without jsdom.
+// Two rAFs: a single rAF callback runs before its frame paints.
 export function scheduleAfterFirstPaint(callback, raf = globalThis.requestAnimationFrame) {
   if (typeof raf === 'function') {
     raf(() => raf(callback))
@@ -74,11 +65,7 @@ export function scheduleAfterFirstPaint(callback, raf = globalThis.requestAnimat
   }
 }
 
-// mountIslands is the DOM walk that used to run straight from init(). Split
-// out so init() can hand it to scheduleAfterFirstPaint instead of calling it
-// itself — the fetch for an island's chunk may still start early (a
-// modulepreload hint is fine), but evaluating MapLibre and mounting the map
-// must not compete with the browser for the first paint.
+// Deferred past first paint so MapLibre evaluation does not delay the SSR'd LCP text.
 function mountIslands() {
   for (const el of document.querySelectorAll('[data-island]')) {
     const load = resolveLoader(el.dataset.island)
