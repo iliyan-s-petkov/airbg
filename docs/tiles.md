@@ -419,8 +419,8 @@ consideration when choosing the host, not as an attack that has been closed.
 
 ## Deployment decisions
 
-Both questions this section used to leave open are settled in
-`docs/superpowers/specs/2026-08-17-airbg-deployment-design.md`:
+Both questions this section used to leave open are settled (see also
+[deployment.md](deployment.md)):
 
 - `tiles.dir` is a **bind-mounted host directory** (`/var/lib/airbg/tiles`),
   mounted read-only into the app container. The image stays ~27 MB and
