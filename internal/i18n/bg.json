@@ -57,6 +57,7 @@
   "chart.axis.time": "Време",
   "chart.axis.value": "µg/m³",
   "chart.empty": "Няма данни за избрания период",
+  "chart.metric.legend": "Показател на графиката",
   "chart.nearby.high": "Наблизо · максимум",
   "chart.nearby.legend": "Сензори наблизо",
   "chart.nearby.low": "Наблизо · минимум",

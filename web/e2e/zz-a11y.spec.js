@@ -65,3 +65,23 @@ test('the map is a named region, described, and every control shows a focus ring
 
   await page.close()
 })
+
+// #563: every visible button, not just the two metric menus, so a new collision trips too.
+test('no two buttons on the area page share an accessible name', async ({ ctx }) => {
+  const page = await ctx.newPage()
+  await page.goto('/en/area/sofia')
+
+  // Hidden panels carry their own Close/Reset buttons; only visible ones are in the a11y tree.
+  const names = await page.locator('button').evaluateAll((buttons) => buttons
+    .filter((b) => b.checkVisibility())
+    .map((b) => (b.getAttribute('aria-label') || b.textContent || '').trim())
+    .filter(Boolean))
+
+  const seen = new Map()
+  for (const name of names) seen.set(name, (seen.get(name) ?? 0) + 1)
+  const dupes = [...seen.entries()].filter(([, count]) => count > 1).map(([name]) => name)
+
+  expect(dupes, `accessible names shared by more than one button: ${dupes.join(', ')}`).toEqual([])
+
+  await page.close()
+})

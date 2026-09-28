@@ -44,7 +44,8 @@ export function mount(el) {
       // y-axis unit whenever the metric changes.
       metricUnits: Object.fromEntries(areaMetrics.map((m, i) => [m, areaMetricUnits[i] || ''])),
       onMetricChange: (m) => vs.setMetric(m),
-      metricLegend: d.tLegend || '',
+      // Own attribute, not the switcher's tLegend (#563).
+      metricLegend: d.tChartMetricLegend || '',
       periods: list(d.periods),
       periodLabels: list(d.periodLabels),
       initialPeriod: d.period,
