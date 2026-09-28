@@ -4,6 +4,7 @@
   import { mergeSeries } from '../lib/series.js'
   import { tickValues } from '../lib/timeaxis.js'
   import { getJSON } from '../lib/api.js'
+  import { legibleStroke } from '../lib/axiscolour.js'
 
   // Two ways in, one way through. `url`/`lineColour`/`valueLabel` describe a
   // single line — the area chart, which has only ever had one — and `sources`
@@ -54,38 +55,35 @@
     return { width: host.clientWidth || 600, height: Math.max(160, dragged) }
   }
 
-  // uPlot's own default axis colour is black. That is invisible against the
-  // kit's dark surfaces — the bug this reads for is the time axis at 1.16:1 on
-  // #161616 — so every axis needs an explicit colour rather than uPlot's
-  // default. Read from the theme rather than hardcoded, so light and dark both
-  // resolve to a colour the kit has already proven readable on --bg.
-  // rgb(), not a hex literal: literals.test.js bans hex colours in web/src —
-  // paint values belong to the kit's tokens, and this is only the floor for
-  // when the stylesheet carrying --fg-2 has not loaded. Same value as the
-  // kit's light-theme --fg-2 (#525252).
-  const FALLBACK_AXIS_COLOUR = 'rgb(82, 82, 82)'
-  function axisColour() {
-    if (typeof document === 'undefined') return FALLBACK_AXIS_COLOUR
-    const value = getComputedStyle(document.documentElement).getPropertyValue('--fg-2').trim()
-    return value || FALLBACK_AXIS_COLOUR
+  // Token reads, not hex literals (literals.test.js bans those in web/src).
+  // Fallbacks are the kit's light-theme values as rgb(), for when the
+  // stylesheet hasn't loaded yet.
+  const FALLBACK_AXIS_COLOUR = 'rgb(82, 82, 82)' // --fg-2 light
+  const FALLBACK_GRID_COLOUR = 'rgb(224, 224, 224)' // --border-soft light
+  const FALLBACK_BG = 'rgb(255, 255, 255)' // --bg light
+  function token(name, fallback) {
+    if (typeof document === 'undefined') return fallback
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback
   }
+  const axisColour = () => token('--fg-2', FALLBACK_AXIS_COLOUR)
+  const gridColour = () => token('--border-faint', FALLBACK_GRID_COLOUR)
+  const bgColour = () => token('--bg', FALLBACK_BG)
 
-  // Reapplies stroke/ticks/grid colours to an already-built chart. uPlot does
-  // not read CSS on its own — it painted the canvas once, from whatever the
-  // token resolved to at construction — so a theme switch after the chart
-  // exists needs this to repaint it, not just a stylesheet swap.
+  // uPlot paints the canvas once and never re-reads CSS, so a theme toggle
+  // needs this to repaint the axes rather than a stylesheet swap.
   function restyleAxes(u, scales, lines) {
-    const axisStroke = axisColour()
-    u.axes[0].stroke = axisStroke
-    u.axes[0].ticks.stroke = axisStroke
-    u.axes[0].grid.stroke = axisStroke
+    const tick = axisColour()
+    const grid = gridColour()
+    const bg = bgColour()
+    u.axes[0].stroke = tick
+    u.axes[0].ticks.stroke = tick
+    u.axes[0].grid.stroke = grid
     scales.forEach((scale, i) => {
       const line = lines.find((s) => (s.scale ?? 'y') === scale)
-      const colour = line?.colour ?? axisStroke
       const axis = u.axes[i + 1]
-      axis.stroke = colour
-      axis.ticks.stroke = colour
-      axis.grid.stroke = axisStroke
+      axis.stroke = line?.colour ? legibleStroke(line.colour, bg) : tick
+      axis.ticks.stroke = tick
+      axis.grid.stroke = grid
     })
     u.redraw()
   }
@@ -140,6 +138,8 @@
       // share the plot without either being squashed into the other's range.
       const scales = [...new Set(lines.map((s) => s.scale ?? 'y'))]
       const axisStroke = axisColour()
+      const grid = gridColour()
+      const bg = bgColour()
 
       const size = plotSize()
       chart = new uPlot({
@@ -168,33 +168,29 @@
         ],
         axes: [
           // Labels from the data's span, not uPlot's tick spacing — timeaxis.js.
-          // stroke/ticks/grid are explicit rather than left to uPlot's default
-          // black: the time axis has no line colour of its own to borrow, so
-          // without this it painted black-on-#161616 in dark theme, a 1.16:1
-          // contrast — see axisColour() above.
+          // Explicit colours: uPlot's default axis stroke is black, unreadable
+          // on dark surfaces.
           {
             values: tickValues(data[0], document.documentElement.lang || undefined),
             label: timeLabel || undefined,
             stroke: axisStroke,
             ticks: { stroke: axisStroke },
-            grid: { stroke: axisStroke },
+            grid: { stroke: grid },
           },
           ...scales.map((scale, i) => {
             // Colour and unit of the line measured against it — two unlabelled
-            // columns of numbers cannot be attributed to either line. Falls
-            // back to the token when the line names none, same as the time axis.
+            // columns of numbers cannot be attributed to either line.
             const line = lines.find((s) => (s.scale ?? 'y') === scale)
-            const colour = line?.colour ?? axisStroke
             return {
               scale,
               side: i === 0 ? 3 : 1,
-              stroke: colour,
+              // Keeps the metric's colour identity, lifted just enough to
+              // clear 4.5:1 on the current --bg (legibleStroke).
+              stroke: line?.colour ? legibleStroke(line.colour, bg) : axisStroke,
               label: line?.unit || undefined,
-              ticks: { stroke: colour },
+              ticks: { stroke: axisStroke },
               // One grid only: two is a lattice nobody can read a value off.
-              // Its colour still comes from the token, not the line, so it
-              // stays a faint reference grid rather than a second bright line.
-              grid: { show: i === 0, stroke: axisStroke },
+              grid: { show: i === 0, stroke: grid },
             }
           }),
         ],
@@ -228,12 +224,9 @@
       })
       observer.observe(resizable ? frame : host)
 
-      // The picker in theme.js writes the choice straight onto
-      // documentElement.dataset.theme with no page reload, and "auto" tracks
-      // the OS scheme instead. uPlot already painted the canvas once from
-      // whatever --fg-2 resolved to at construction, so either kind of switch
-      // needs a repaint here or a chart opened before a toggle keeps the
-      // other theme's axis colours until the reader reloads.
+      // theme.js toggles data-theme with no reload; "auto" follows the OS
+      // scheme instead. Either needs a repaint or the chart keeps the old
+      // theme's axis colours until the reader reloads.
       if (typeof MutationObserver !== 'undefined') {
         themeObserver = new MutationObserver(() => restyleAxes(chart, scales, lines))
         themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
