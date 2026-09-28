@@ -199,7 +199,7 @@ func TestEveryAreaReadoutIsLabelledAndTiered(t *testing.T) {
 
 // When per-network rows are removed, all cells should have empty Group fields
 // and the count should be exactly N+1 (N metrics + sensor count, no breakdown).
-func TestAreaReadoutsAllCellsHaveEmptyGroupAfterNetworkRowRemoval(t *testing.T) {
+func TestAreaReadoutsHaveNoPerNetworkRows(t *testing.T) {
 	// Area with two networks reporting P2 and temperature.
 	a := area("oblast", 4, map[string]float64{"P2": 25, "temperature": 20})
 	a.BySource = map[string]snapshot.SourceEntry{
@@ -211,12 +211,5 @@ func TestAreaReadoutsAllCellsHaveEmptyGroupAfterNetworkRowRemoval(t *testing.T) 
 	// 2 metrics + 1 sensor count = 3 cells total; no per-network rows.
 	if len(got) != 3 {
 		t.Fatalf("got %d readouts, want 3 (2 metrics + 1 sensor count)", len(got))
-	}
-
-	// Every cell must have an empty Group field.
-	for i, r := range got {
-		if r.Group != "" {
-			t.Errorf("cell %d (label %q) has Group=%q, want empty", i, r.Label, r.Group)
-		}
 	}
 }

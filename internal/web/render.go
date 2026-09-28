@@ -331,9 +331,6 @@ type Readout struct {
 	Gauge   bool
 	Percent int
 	Colour  string
-	// The network this cell belongs to, empty on the main row. An ungrouped
-	// cell renders exactly as before.
-	Group string
 }
 
 // readoutMetricSep joins a metric name to the rest of a Readout's Label (see

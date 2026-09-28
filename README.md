@@ -179,30 +179,38 @@ Endpoints:
 | GET | `/`, `/en/`, `/areas`, `/en/areas` | public |
 | GET | `/area/{slug}`, `/en/area/{slug}` | public |
 | GET | `/api/v1/overview` | public |
+| GET | `/api/v1/hexes` | public |
+| GET | `/api/v1/timelapse` | public |
+| GET | `/api/v1/wind` | public |
+| GET | `/api/v1/boundaries` | public |
 | GET | `/api/v1/areas` | public |
 | GET | `/api/v1/meta` | public |
 | GET | `/api/v1/scales` | public |
 | GET | `/api/v1/area/{slug}/sensors` | public |
 | GET | `/api/v1/area/{slug}/series` | public |
 | GET | `/api/v1/sensor/{id}/series` | public |
+| GET | `/api/v1/sensor/{id}/locate` | public |
 | GET | `/api/v1/locate` | public |
 | GET | `/metrics` | private only |
 | GET | `/healthz` | private only |
 
-### Why there is no bounding-box endpoint
+### Where a bounding box is and is not accepted
 
-No endpoint accepts a bounding box or a coordinate window. The API is tiered
-instead: a country-level overview, a city-level overview, and per-area detail
-that must be requested one named area at a time. This is the anti-extraction
-design — a bbox parameter would let one request return the whole country at
-full resolution, and no rate limit can distinguish that request from a
+`/api/v1/overview` takes no bounding box. The API is tiered instead: a
+country-level overview, a city-level overview, and per-area detail requested
+one named area at a time. A bbox there would let one request return the whole
+country at full resolution, and no rate limit can tell that request from a
 legitimate one. Bulk extraction therefore requires enumerating areas, which is
 what the breadth counters detect: they count *distinct* areas and sensors per
-client, not request volume, so a reader refreshing one city forever is never
-throttled while a crawler walking every area trips within a dozen requests.
+client, not request volume. `TestOverviewTakesNoBoundingBox` fails if the
+overview ever starts honouring a bbox.
 
-If a future change adds a bbox parameter, this entire defence is gone. The test
-`TestOverviewTakesNoBoundingBox` exists to make that change fail loudly.
+`/api/v1/hexes` does take `bbox=w,s,e,n`, snapped outward to a
+`snapshot.BBoxQuantumDegrees` (0.25°) grid so viewports share cache entries.
+At the hex tiers the answer is an aggregate, so the box only trims the payload.
+At the point tier (`resolution_km=0`) the bbox is required and may span at most
+`snapshot.MaxPointBBoxDegrees` (2°) per axis; without that guard one GET would
+return every sensor with its id.
 
 ### Why per-entity responses are not edge-cacheable
 
