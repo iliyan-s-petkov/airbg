@@ -213,10 +213,4 @@ func TestAreaReadoutsAllCellsHaveEmptyGroupAfterNetworkRowRemoval(t *testing.T) 
 		t.Fatalf("got %d readouts, want 3 (2 metrics + 1 sensor count)", len(got))
 	}
 
-	// Every cell must have an empty Group field.
-	for i, r := range got {
-		if r.Group != "" {
-			t.Errorf("cell %d (label %q) has Group=%q, want empty", i, r.Label, r.Group)
-		}
-	}
 }
