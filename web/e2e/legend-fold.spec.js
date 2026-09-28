@@ -141,6 +141,7 @@ for (const vp of VIEWPORTS) {
 
       const legend = page.locator('.scale--onmap')
       await expect(legend).toHaveAttribute('open', '')
+      await expect(page.locator('.map__layers .colmenu__btn')).toBeVisible()
 
       // The band label, well clear of the info button and the triangle. No
       // force: renderLegend() briefly detaches and rebuilds the key after
@@ -179,6 +180,8 @@ for (const vp of VIEWPORTS) {
 
       const legend = page.locator('.scale--onmap')
       await expect(legend).toHaveAttribute('open', '')
+      // The Escape handler is wired with the layers button; islands mount after first paint.
+      await expect(page.locator('.map__layers .colmenu__btn')).toBeVisible()
 
       // renderLegend() detaches and reappends the toggle on its post-load
       // refresh, which drops a focus set before that runs; phone keeps
