@@ -61,7 +61,7 @@ more of them join.
   [European Environment Agency](https://www.eea.europa.eu/)'s air quality programme
 - Boundaries and basemap: © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors, ODbL 1.0
 - National outline: [Natural Earth](https://www.naturalearthdata.com/), public domain
-- Wind forecast: [Open-Meteo](https://open-meteo.com/), ECMWF IFS model
+- Wind forecast: [Open-Meteo](https://open-meteo.com/), ECMWF IFS model, CC BY 4.0
 - Hosting kindly donated by [Hostellation](https://hostellation.com/)
 
 Before comparing two places, read
