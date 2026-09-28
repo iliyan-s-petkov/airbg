@@ -140,6 +140,9 @@ strong, b { font-weight: var(--weight-emphasis); }
    over the left third of the map the moment it appeared.
    TestAppCSSDoesNotCoAnchorAKitSelector is the guard. */
 .map-hint[hidden] { display: none; }
+/* .map__layers is its own z-index:3 stacking context and ties with .map-freshness;
+   lift it above every map overlay while the panel is open. */
+.map__layers:has(.colmenu__panel:not([hidden])) { z-index: 7; }
 /* The note is site-only, so it keeps the top-left corner and is offset past the
    layers menu rather than sharing it. The kit gives the frame's top-left to
    .map__layers — a 32px button inset 12px, so it owns 12px..44px on both
