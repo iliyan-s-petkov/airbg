@@ -83,7 +83,7 @@ func TestThirdLanguageIsRoutedAndRendered(t *testing.T) {
 			t.Errorf("GET %s did not render as German", path)
 		}
 		// Serving its own text, not falling through to Bulgarian.
-		if !strings.Contains(body, "de:site.title") {
+		if !strings.Contains(body, "de:seo.title_brand") {
 			t.Errorf("GET %s rendered no German copy", path)
 		}
 	}
