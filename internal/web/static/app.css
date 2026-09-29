@@ -293,6 +293,8 @@ strong, b { font-weight: var(--weight-emphasis); }
   border: 1px solid var(--glass-border);
 }
 .map__layers .colmenu__opt { white-space: nowrap; }
+/* On a phone the panel is capped at the viewport, and a nowrap label past the cap overflows it. */
+@media (max-width: 480px) { .map__layers .colmenu__opt { white-space: normal; } }
 /* The shape each network is drawn in, beside its name in the layers menu. The
    map distinguishes the two by shape alone, so without this the reader has two
    shapes and no key. Filled in the foreground colour rather than a scale band:
@@ -610,6 +612,14 @@ html:has(> body.embed) { block-size: 100%; }
 .embed .map-shell { block-size: 100%; max-inline-size: none; }
 .embed .map {
   aspect-ratio: auto; min-block-size: 0; block-size: 100%; inline-size: 100%;
+}
+/* The phone and landscape .map--hero rules size the map for a page; a frame has no page. */
+.embed .map-shell:has(.map--hero) { block-size: 100%; max-block-size: none; }
+.embed .map.map--hero { block-size: 100%; min-block-size: 0; max-block-size: none; }
+/* Phone: the folded key owns the bottom-left corner, so the footline rides above it. */
+@media (max-width: 480px) {
+  .embed .embed__footline { inset-block-end: calc(44px + var(--space-2) + var(--space-2)); }
+  .embed .scale--onmap[open] { z-index: 5; }
 }
 /* The metric switcher moves onto the map. On the site it sits in a toolbar
    above; a frame has no toolbar, and a control below the map would take height
