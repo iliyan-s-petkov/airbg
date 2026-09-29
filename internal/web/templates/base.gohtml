@@ -38,7 +38,7 @@
   <nav class="masthead__nav" aria-label="{{.T "nav.map"}}">
     <a class="masthead__link" href="{{.Path "/"}}"{{if .OnPath "/"}} aria-current="page"{{end}}>{{.T "nav.map"}}</a>
     <a class="masthead__link" href="{{.Path "/areas"}}"{{if .OnPath "/areas"}} aria-current="page"{{end}}>{{.T "nav.areas"}}</a>
-    <a class="masthead__link" href="{{.Path "/about"}}"{{if .OnPath "/about"}} aria-current="page"{{end}}>{{.T "nav.about"}}</a>
+    <a class="masthead__link masthead__link--about" href="{{.Path "/about"}}"{{if .OnPath "/about"}} aria-current="page"{{end}}>{{.T "nav.about"}}</a>
     {{/* Off-site, so it is the one link here that opens in its own tab, with the
          opener severed. The mark is inline rather than a static file: it is the
          only icon on the page and a request would cost more than the bytes. */}}
@@ -90,6 +90,7 @@
        the caveats apply to every number the site shows — a reader who has
        just misread a city average is looking at this footer, not at a menu. */}}
   <p class="disclaimer">{{.T "disclaimer"}} <a href="{{.Path "/about-the-data"}}">{{.T "about.title"}}</a></p>
+  <p class="footer__about"><a href="{{.Path "/about"}}">{{.T "nav.about"}}</a></p>
   <p>{{.T "footer.data"}} <a href="{{.AttributionURL "sensor.community"}}" rel="noopener">{{.T "footer.data.map"}}</a></p>
   <p>{{.T "footer.official"}} <a href="{{.AttributionURL "eea"}}" rel="noopener">{{.T "footer.official.map"}}</a></p>
   <p>{{.T "footer.wind"}} <a href="{{.AttributionURL "open-meteo"}}" rel="noopener">Open-Meteo.com</a> (<a href="https://creativecommons.org/licenses/by/4.0/" rel="noopener">CC BY 4.0</a>)</p>

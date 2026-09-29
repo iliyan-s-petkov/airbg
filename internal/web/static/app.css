@@ -780,7 +780,7 @@ html:has(> body.embed) { block-size: 100%; }
   .masthead__nav { gap: 0; flex-wrap: nowrap; }
   .masthead__link { padding-inline: var(--space-1); min-block-size: 44px; }
   @media (max-width: 480px) {
-    .masthead__link--source { display: none; }
+    .masthead__link--source, .masthead__link--about { display: none; }
     .masthead__brand .tld { display: none; }
   }
   .langpick__list { max-inline-size: calc(100vw - var(--space-4)); }
