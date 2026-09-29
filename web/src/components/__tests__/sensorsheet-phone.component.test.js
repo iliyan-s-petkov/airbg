@@ -98,6 +98,15 @@ describe('SensorPanel phone header and gauges', () => {
     expect(sub.textContent).toMatch(/4 min/)
   })
 
+  it('formats gauge values and aria-labels with the page locale', () => {
+    const fr = [{ metric: 'P2', label: 'PM2.5', value: 8.85, unit: 'µg/m³', missing: false, model }]
+    const bg = renderPanel({ rows: fr, locale: 'bg' }).target.querySelector('button.gauge')
+    expect(bg.querySelector('.gauge__value').textContent).toBe('8,9 µg/m³')
+    expect(bg.getAttribute('aria-label')).toBe('PM2.5: 8,9 µg/m³')
+    const en = renderPanel({ rows: fr, locale: 'en' }).target.querySelector('button.gauge')
+    expect(en.querySelector('.gauge__value').textContent).toBe('8.9 µg/m³')
+  })
+
   it('renders gauges as buttons, pressed for the chart metric', () => {
     const link = createPanelLink()
     link.metrics = ['P1']

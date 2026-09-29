@@ -48,6 +48,26 @@ test.describe('phone sensor sheet', () => {
     await expect(panel.getByRole('button', { name: 'Close' })).toBeVisible()
   })
 
+  test('sticky header edges align with the card', async ({ phone }) => {
+    const page = await open(phone)
+    const r = await page.evaluate(() => {
+      const box = (s) => document.querySelector(s).getBoundingClientRect()
+      const c = box('.sensor-panel'), h = box('.sensor-panel > header')
+      return { dl: h.left - c.left, dr: h.right - c.right }
+    })
+    expect(Math.abs(r.dl)).toBeLessThanOrEqual(1)
+    expect(Math.abs(r.dr)).toBeLessThanOrEqual(1)
+  })
+
+  test('BG gauge labels use a decimal comma', async ({ phone }) => {
+    const page = await phone.newPage()
+    await page.goto('/area/sofia#sensor=101')
+    await expect(page.locator('.sensor-panel')).toBeVisible({ timeout: 15000 })
+    const labels = await page.locator('.sensor-panel .gauge').evaluateAll((els) => els.map((e) => e.getAttribute('aria-label')))
+    expect(labels.some((l) => /: \d+,\d/.test(l))).toBe(true)
+    expect(labels.some((l) => /: \d+\.\d/.test(l))).toBe(false)
+  })
+
   test('tapping a gauge selects the chart metric', async ({ phone }) => {
     const page = await open(phone)
     const gauges = page.locator('.sensor-panel button.gauge')
