@@ -630,9 +630,9 @@ func (p PageData) InitialTier() string {
 }
 
 // titleBrandSep joins a title core to the brand name — see composeTitle.
-const titleBrandSep = " — "
+const titleBrandSep = " | "
 
-// composeTitle appends " — <brand>" to core, but only when the result stays
+// composeTitle appends " | <brand>" to core, but only when the result stays
 // within Google's ~60-character display budget; past it the suffix is
 // dropped rather than truncating the core, which would cut off the place
 // name a search result is trying to match (OpenProject #605 / seo-copy.md §2).
@@ -658,7 +658,7 @@ func (p PageData) MetaDescription() string {
 // §5: og:site_name already carries the brand, so og:title repeating it would
 // be redundant on every share card.
 func (p PageData) OGTitle() string {
-	return strings.TrimSuffix(p.Title, titleBrandSep+p.T("site.title"))
+	return strings.TrimSuffix(p.Title, titleBrandSep+p.T("seo.title_brand"))
 }
 
 // OGImageURL is the absolute URL of the static share-card image, built from

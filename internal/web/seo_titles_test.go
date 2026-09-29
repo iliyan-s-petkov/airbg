@@ -1,6 +1,7 @@
 package web_test
 
 import (
+	"html"
 	"net/http"
 	"strings"
 	"testing"
@@ -146,68 +147,75 @@ func TestRenderedTitlesAndDescriptionsMatchApprovedCopy(t *testing.T) {
 	cases := []want{
 		{
 			path:          "/",
-			bgTitle:       "Качество на въздуха в България сега — Моят въздух",
-			bgDescription: "Карта на замърсяването на въздуха в България: фини прахови частици ФПЧ2.5 и ФПЧ10 от граждански сензори и станциите на ИАОС, в реално време.",
-			enTitle:       "Bulgaria air quality map: PM2.5 and PM10 now — My Air",
-			enDescription: "Live map of air pollution in Bulgaria: PM2.5 and PM10 from sensor.community citizen sensors and official ExEA/EEA stations, in real time.",
+			bgTitle:       "Качество на въздуха в България: карта на живо | airbg.org",
+			bgDescription: "Карта на живо на замърсяването на въздуха в България: фини прахови частици ФПЧ2.5 и ФПЧ10 от граждански сензори, обновявана на всеки 5 минути.",
+			enTitle:       "Bulgaria air quality map: PM2.5 and PM10 now | airbg.org",
+			enDescription: "Live map of air pollution in Bulgaria: PM2.5 and PM10 from sensor.community citizen sensors, updated every 5 minutes.",
 		},
 		{
 			path:          "/areas",
-			bgTitle:       "Замърсяване на въздуха по области — Моят въздух",
-			bgDescription: "Фини прахови частици ФПЧ2.5 по области в България, подредени по текущата стойност. Същите данни като на картата, в таблица.",
-			enTitle:       "Air pollution in Bulgaria by province — My Air",
-			enDescription: "PM2.5 by province across Bulgaria, ranked by the current reading. The same figures as the map, as a table you can read without it.",
+			bgTitle:       "Замърсяване на въздуха по области и градове | airbg.org",
+			bgDescription: "Областите в България, подредени по ФПЧ2.5 сега, от най-замърсената. С връзки към 27-те областни града и 24-те района на София.",
+			enTitle:       "Air pollution in Bulgaria by province and city | airbg.org",
+			enDescription: "Bulgaria's provinces ranked by current PM2.5, most polluted first, with links to all 27 provincial capitals and 24 Sofia districts.",
 		},
 		{
 			path:          "/about-the-data",
-			bgTitle:       "За данните: сензори, граници и точност — Моят въздух",
-			bgDescription: "Какво картата не показва: нискобюджетни сензори срещу референтни станции, различни граници на градовете и неравномерно покритие.",
-			enTitle:       "About the data: sensors, boundaries, accuracy — My Air",
-			enDescription: "What the map does not show: low-cost sensors versus reference stations, city boundaries of different kinds, and uneven coverage.",
+			bgTitle:       "За данните: сензори, граници и точност | airbg.org",
+			bgDescription: "Колко точни са данните: нискобюджетни сензори срещу референтни станции, различни граници на градовете и неравномерно покритие.",
+			enTitle:       "About the data: sensors, boundaries, accuracy | airbg.org",
+			enDescription: "How accurate the data is: low-cost sensors versus reference stations, city boundaries of different kinds, and uneven coverage.",
 		},
 		{
 			path:          "/area/plovdiv",
-			bgTitle:       "Пловдив: качество на въздуха и ФПЧ сега — Моят въздух",
-			bgDescription: "Пловдив: замърсяване на въздуха с фини прахови частици ФПЧ2.5 и ФПЧ10. Карта на гражданските сензори и станциите на ИАОС, история за 24 часа.",
-			enTitle:       "Plovdiv air quality now: PM2.5 and PM10 — My Air",
-			enDescription: "Plovdiv air pollution: PM2.5 and PM10 from citizen sensors and official stations on a live map, with the city median and 24-hour history.",
+			bgTitle:       "Пловдив: качество на въздуха и ФПЧ сега | airbg.org",
+			bgDescription: "Пловдив: замърсяване на въздуха с фини прахови частици ФПЧ2.5 и ФПЧ10 сега. Медиана от граждански сензори и графика за 24 часа.",
+			enTitle:       "Plovdiv air quality now: PM2.5 and PM10 | airbg.org",
+			enDescription: "Plovdiv air pollution now: PM2.5 and PM10 from citizen sensors on a live map, with the city median and 24-hour history.",
+		},
+		{
+			path:          "/area/smolyan",
+			bgTitle:       "Смолян: качество на въздуха и ФПЧ сега | airbg.org",
+			bgDescription: "Смолян: замърсяване на въздуха с фини прахови частици ФПЧ2.5 и ФПЧ10 сега. Медиана от граждански сензори и графика за 24 часа.",
+			enTitle:       "Smolyan air quality now: PM2.5 and PM10 | airbg.org",
+			enDescription: "Smolyan air pollution now: PM2.5 and PM10 from citizen sensors on a live map, with the city median and 24-hour history.",
 		},
 		{
 			path:          "/area/mladost",
-			bgTitle:       "Младост, София: качество на въздуха сега — Моят въздух",
-			bgDescription: "Район Младост, София: замърсяване на въздуха с фини прахови частици ФПЧ2.5 и ФПЧ10 по данни от граждански сензори, история за 24 часа.",
-			enTitle:       "Mladost, Sofia: air quality now — My Air",
+			bgTitle:       "Младост, София: качество на въздуха сега | airbg.org",
+			bgDescription: "Район Младост, София: замърсяване на въздуха с фини прахови частици ФПЧ2.5 и ФПЧ10 по данни от граждански сензори, графика за 24 часа.",
+			enTitle:       "Mladost, Sofia: air quality now | airbg.org",
 			enDescription: "Mladost, Sofia: air pollution by district. PM2.5 and PM10 from citizen sensors on a live map, with the district median and 24-hour history.",
 		},
 		{
 			path:          "/area/smolyan-oblast",
-			bgTitle:       "Област Смолян: качество на въздуха и ФПЧ — Моят въздух",
-			bgDescription: "Качество на въздуха в област Смолян: фини прахови частици ФПЧ2.5 и ФПЧ10 от граждански сензори и станциите на ИАОС, медиана за областта.",
-			enTitle:       "Smolyan Province: air quality, PM2.5 and PM10 — My Air",
-			enDescription: "Air quality in Smolyan Province, Bulgaria: PM2.5 and PM10 from citizen sensors and official stations, with the province median and 24-hour history.",
+			bgTitle:       "Област Смолян: качество на въздуха и ФПЧ | airbg.org",
+			bgDescription: "Качество на въздуха в област Смолян: фини прахови частици ФПЧ2.5 и ФПЧ10 от граждански сензори, медиана за областта и графика за 24 часа.",
+			enTitle:       "Smolyan Province: air quality, PM2.5 and PM10 | airbg.org",
+			enDescription: "Air quality in Smolyan Province, Bulgaria: PM2.5 and PM10 from citizen sensors, with the province median and 24-hour history.",
 		},
 		{
 			path:          "/area/sofiyska-oblast",
-			bgTitle:       "Софийска област: качество на въздуха и ФПЧ — Моят въздух",
-			bgDescription: "Качество на въздуха в Софийска област: фини прахови частици ФПЧ2.5 и ФПЧ10 от граждански сензори и станциите на ИАОС, медиана за областта.",
-			enTitle:       "Sofia Province: air quality, PM2.5 and PM10 — My Air",
-			enDescription: "Air quality in Sofia Province, Bulgaria: PM2.5 and PM10 from citizen sensors and official stations, with the province median and 24-hour history.",
+			bgTitle:       "Софийска област: качество на въздуха и ФПЧ | airbg.org",
+			bgDescription: "Качество на въздуха в Софийска област: фини прахови частици ФПЧ2.5 и ФПЧ10 от граждански сензори, медиана за областта и графика за 24 часа.",
+			enTitle:       "Sofia Province: air quality, PM2.5 and PM10 | airbg.org",
+			enDescription: "Air quality in Sofia Province, Bulgaria: PM2.5 and PM10 from citizen sensors, with the province median and 24-hour history.",
 		},
 		{
 			path:          "/area/sofiya-grad-oblast",
-			bgTitle:       "Област София-град: качество на въздуха и ФПЧ — Моят въздух",
-			bgDescription: "Качество на въздуха в област София-град: фини прахови частици ФПЧ2.5 и ФПЧ10 от граждански сензори и станциите на ИАОС, медиана за областта.",
-			enTitle:       "Sofia City Province: air quality, PM2.5 and PM10 — My Air",
-			enDescription: "Air quality in Sofia City Province, Bulgaria: PM2.5 and PM10 from citizen sensors and official stations, with the province median and 24-hour history.",
+			bgTitle:       "Област София-град: качество на въздуха и ФПЧ | airbg.org",
+			bgDescription: "Качество на въздуха в област София-град: фини прахови частици ФПЧ2.5 и ФПЧ10 от граждански сензори, медиана за областта и графика за 24 часа.",
+			enTitle:       "Sofia City Province: air quality, PM2.5 and PM10 | airbg.org",
+			enDescription: "Air quality in Sofia City Province, Bulgaria: PM2.5 and PM10 from citizen sensors, with the province median and 24-hour history.",
 		},
-		// Worst-case names, where the brand suffix no longer fits and MUST be
-		// dropped rather than truncating the core — see composeTitle.
+		// Longest names: bg still fits with the suffix (60 runes); the en
+		// province title would reach 64, so the suffix is dropped.
 		{
 			path:          "/area/veliko-tarnovo-oblast",
-			bgTitle:       "Област Велико Търново: качество на въздуха и ФПЧ",
-			bgDescription: "Качество на въздуха в област Велико Търново: фини прахови частици ФПЧ2.5 и ФПЧ10 от граждански сензори и станциите на ИАОС, медиана за областта.",
+			bgTitle:       "Област Велико Търново: качество на въздуха и ФПЧ | airbg.org",
+			bgDescription: "Качество на въздуха в област Велико Търново: фини прахови частици ФПЧ2.5 и ФПЧ10 от граждански сензори, медиана за областта и графика за 24 часа.",
 			enTitle:       "Veliko Tarnovo Province: air quality, PM2.5 and PM10",
-			enDescription: "Air quality in Veliko Tarnovo Province, Bulgaria: PM2.5 and PM10 from citizen sensors and official stations, with the province median and 24-hour history.",
+			enDescription: "Air quality in Veliko Tarnovo Province, Bulgaria: PM2.5 and PM10 from citizen sensors, with the province median and 24-hour history.",
 		},
 	}
 
@@ -224,7 +232,7 @@ func TestRenderedTitlesAndDescriptionsMatchApprovedCopy(t *testing.T) {
 		if got := pageTitle(t, en); got != c.enTitle {
 			t.Errorf("%s en title = %q, want %q", c.path, got, c.enTitle)
 		}
-		if got := pageDescription(t, en); got != c.enDescription {
+		if got := html.UnescapeString(pageDescription(t, en)); got != c.enDescription {
 			t.Errorf("%s en description = %q, want %q", c.path, got, c.enDescription)
 		}
 	}
@@ -263,20 +271,16 @@ func TestTitlesAndDescriptionsFitTheirBudget(t *testing.T) {
 // would push the title over 60.
 func TestBrandSuffixDroppedOnlyWhenOverBudget(t *testing.T) {
 	rr := renderer(t, seoFixture(t))
-	brandBG, brandEN := "Моят въздух", "My Air"
+	const brand = "airbg.org"
 
 	for _, lang := range []string{"", "/en"} {
-		brand := brandBG
-		if lang == "/en" {
-			brand = brandEN
-		}
 		for _, path := range []string{"/", "/areas", "/about-the-data", "/area/plovdiv", "/area/veliko-tarnovo-oblast"} {
 			title := pageTitle(t, fetch(t, rr, lang+path).Body.String())
-			hasSuffix := strings.HasSuffix(title, " — "+brand)
+			hasSuffix := strings.HasSuffix(title, " | "+brand)
 			fits := utf8.RuneCountInString(title) <= 60
 			// The budget gates core+suffix, not the bare core: a title that
 			// dropped the suffix must prove it would NOT have fit had it kept it.
-			wouldFitWithSuffix := utf8.RuneCountInString(title+" — "+brand) <= 60
+			wouldFitWithSuffix := utf8.RuneCountInString(title+" | "+brand) <= 60
 			if !hasSuffix && wouldFitWithSuffix {
 				t.Errorf("lang=%q %s: title %q dropped the brand suffix but core+suffix fits in 60 runes", lang, path, title)
 			}

@@ -131,13 +131,13 @@ func (rr *Renderer) handleIndex(w http.ResponseWriter, r *http.Request) {
 	// two are different search results and must not share a title (OpenProject
 	// #605, #602 audit finding a).
 	if path == "/areas" {
-		data.Title = composeTitle(rr.cat.T(lang, "seo.areas.title"), rr.cat.T(lang, "site.title"))
+		data.Title = composeTitle(rr.cat.T(lang, "seo.areas.title"), rr.cat.T(lang, "seo.title_brand"))
 		data.Description = rr.cat.T(lang, "seo.areas.description")
 		// Only on /areas, per §3 of the SEO6 plan: it keeps / — the worst LCP
 		// on the site — from paying for 79 extra links it does not render.
 		data.Directory = rr.buildDirectory(snap, lang)
 	} else {
-		data.Title = composeTitle(rr.cat.T(lang, "seo.home.title"), rr.cat.T(lang, "site.title"))
+		data.Title = composeTitle(rr.cat.T(lang, "seo.home.title"), rr.cat.T(lang, "seo.title_brand"))
 		data.Description = rr.cat.T(lang, "seo.home.description")
 		data.JSONLD = rr.mustJSONLD(data.homeJSONLD())
 	}
@@ -176,23 +176,41 @@ func (rr *Renderer) handleArea(w http.ResponseWriter, r *http.Request) {
 // numbers): OpenProject #605 ships the always-true variant, the live one
 // behind a flag later.
 func (rr *Renderer) areaSEO(row AreaRow, lang string) (title, description string) {
-	brand := rr.cat.T(lang, "site.title")
+	brand := rr.cat.T(lang, "seo.title_brand")
 	switch row.Kind {
 	case "oblast":
 		label := rr.oblastForm(row.Slug, lang, row.Name, "seo.oblast.label")
 		inline := rr.oblastForm(row.Slug, lang, row.Name, "seo.oblast.inline")
 		core := strings.ReplaceAll(rr.cat.T(lang, "seo.oblast.title"), "{label}", label)
-		desc := strings.ReplaceAll(rr.cat.T(lang, "seo.oblast.description"), "{inline}", inline)
+		desc := strings.ReplaceAll(rr.cat.T(lang, row.descKey("seo.oblast.description")), "{inline}", inline)
 		return composeTitle(core, brand), desc
 	case "city":
 		core := strings.ReplaceAll(rr.cat.T(lang, "seo.city.title"), "{name}", row.Name)
-		desc := strings.ReplaceAll(rr.cat.T(lang, "seo.city.description"), "{name}", row.Name)
+		desc := strings.ReplaceAll(rr.cat.T(lang, row.descKey("seo.city.description")), "{name}", row.Name)
 		return composeTitle(core, brand), desc
 	default: // "neighbourhood" — the 24 Sofia districts; no other kind exists.
 		core := strings.ReplaceAll(rr.cat.T(lang, "seo.district.title"), "{name}", row.Name)
 		desc := strings.ReplaceAll(rr.cat.T(lang, "seo.district.description"), "{name}", row.Name)
 		return composeTitle(core, brand), desc
 	}
+}
+
+// hasEEA reports whether official (eea) data reaches this area, so its copy
+// may name the official stations; citizen-only areas never do.
+func (r AreaRow) hasEEA() bool {
+	if r.Source == "eea" {
+		return true
+	}
+	_, ok := r.BySource["eea"]
+	return ok
+}
+
+// descKey picks the "_eea" description variant for areas with official data.
+func (r AreaRow) descKey(base string) string {
+	if r.hasEEA() {
+		return base + "_eea"
+	}
+	return base
 }
 
 // oblastForm resolves an oblast's label or inline form: the per-slug override
@@ -227,7 +245,7 @@ func (rr *Renderer) handleAbout(w http.ResponseWriter, r *http.Request) {
 
 	lang, path := rr.cat.LangFromPath(r.URL.Path)
 	data := rr.newPageData(lang, path, generatedAt)
-	data.Title = composeTitle(rr.cat.T(lang, "seo.about_data.title"), rr.cat.T(lang, "site.title"))
+	data.Title = composeTitle(rr.cat.T(lang, "seo.about_data.title"), rr.cat.T(lang, "seo.title_brand"))
 	data.Description = rr.cat.T(lang, "seo.about_data.description")
 	data.JSONLD = rr.mustJSONLD(data.datasetJSONLD())
 	// The privacy section (OpenProject #585): every key comes from the
