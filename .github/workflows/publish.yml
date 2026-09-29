@@ -26,7 +26,7 @@ jobs:
           provenance: false
           sbom: false
           tags: ghcr.io/iliyan-s-petkov/airbg:pr-check
-          labels: org.opencontainers.image.source=https://github.com/iliyan-s-petkov/airtube-web
+          labels: org.opencontainers.image.source=https://github.com/iliyan-s-petkov/airbg
           cache-from: type=gha
           cache-to: type=gha,mode=max
       - uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25  # v0.36.0
@@ -63,7 +63,7 @@ jobs:
           provenance: true
           sbom: true
           tags: ghcr.io/iliyan-s-petkov/airbg:${{ steps.tag.outputs.short }}
-          labels: org.opencontainers.image.source=https://github.com/iliyan-s-petkov/airtube-web
+          labels: org.opencontainers.image.source=https://github.com/iliyan-s-petkov/airbg
           cache-from: type=gha
           cache-to: type=gha,mode=max
       - uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25  # v0.36.0

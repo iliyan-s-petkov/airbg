@@ -10,7 +10,7 @@ import (
 
 const (
 	schemaContext = "https://schema.org"
-	sourceRepoURL = "https://github.com/iliyan-s-petkov/airtube-web"
+	sourceRepoURL = "https://github.com/iliyan-s-petkov/airbg"
 	// sensor.community's licence, as stated in api.Attributions and the about page.
 	odblURL = "https://opendatacommons.org/licenses/odbl/1-0/"
 	// Bulgaria's extent from data/boundaries/bulgaria.geojson, "south west north east".

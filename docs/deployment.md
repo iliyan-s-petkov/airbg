@@ -293,7 +293,7 @@ Done by hand, the same sequence is:
 TAG=$(git rev-parse --short=7 HEAD)
 ssh airbg "DIGEST=\$(cosign verify \
     --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
-    --certificate-identity-regexp='^https://github\.com/iliyan-s-petkov/airtube-web/\.github/workflows/publish\.yml@refs/(heads/master|tags/v.*)$' \
+    --certificate-identity-regexp='^https://github\.com/iliyan-s-petkov/airbg/\.github/workflows/publish\.yml@refs/(heads/master|tags/v.*)$' \
     --output=json ghcr.io/iliyan-s-petkov/airbg:$TAG \
     | jq -r '.[0].critical.image[\"docker-manifest-digest\"]') \
   && docker pull ghcr.io/iliyan-s-petkov/airbg@\$DIGEST \
