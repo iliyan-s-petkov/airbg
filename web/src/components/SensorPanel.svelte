@@ -30,6 +30,7 @@
   import AboutSheet from './AboutSheet.svelte'
   import { createPanelLink } from '../lib/panellink.svelte.js'
   import { relativeAge } from '../lib/relativeage.js'
+  import { number } from '../lib/areacards.js'
 
   // `source` and `updated` (ms) feed the phone header's "network · N min ago";
   // `link` is shared with the chart so a gauge tap picks its metric and the
@@ -111,7 +112,7 @@
     {#each rows as row (row.metric)}
       <Gauge
         label={row.label}
-        value={row.missing ? noValue : row.value}
+        value={row.missing ? noValue : number(row.value, locale)}
         unit={row.unit}
         model={row.model}
         missing={row.missing}

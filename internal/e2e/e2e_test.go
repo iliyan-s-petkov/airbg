@@ -199,7 +199,7 @@ func seedFixtures(t *testing.T, st *store.Store) {
 
 	// Two ordinary sensors: both metrics present, both readings ok.
 	seedSensor(t, st, 101, 23.30, 42.68)
-	seedReading(t, st, 101, "P1", 15, "ok", now)
+	seedReading(t, st, 101, "P1", 15.5, "ok", now)
 	seedReading(t, st, 101, "P2", 10, "ok", now)
 
 	seedSensor(t, st, 102, 23.34, 42.70)

@@ -39,7 +39,8 @@ function fill(text, values) {
   )
 }
 
-function number(value, lang) {
+// Page number format: locale separators, at most one decimal.
+export function number(value, lang) {
   return value.toLocaleString(lang === 'bg' ? 'bg-BG' : 'en-GB', { maximumFractionDigits: 1 })
 }
 
