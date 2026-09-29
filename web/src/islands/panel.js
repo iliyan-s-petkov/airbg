@@ -15,7 +15,8 @@
 import { mount as mountComponent, unmount, createRawSnippet } from 'svelte'
 import SensorPanel from '../components/SensorPanel.svelte'
 import SensorChart from '../components/SensorChart.svelte'
-import { panelRows, detailRows, stationMeta, networkText } from '../lib/sensorview.js'
+import { panelRows, detailRows, stationMeta, networkText, lastUpdated } from '../lib/sensorview.js'
+import { createPanelLink } from '../lib/panellink.svelte.js'
 import { parseMetricList, zipLabels } from '../lib/metrics.js'
 import { getViewState } from '../lib/viewstate.svelte.js'
 import { findSensor, getScales, normaliseSensor } from '../lib/sensors.svelte.js'
@@ -74,11 +75,14 @@ export function mount(el) {
   // should.
   let chartId = null
   let chartSnippet = null
+  // One link per open station: it carries the chart's metric to the gauges.
+  let link = createPanelLink()
   function chartFor(sensor) {
     const id = sensor?.id ?? null
     if (id === chartId) return chartSnippet
     chartId = id
-    chartSnippet = id === null ? null : buildChartSnippet(sensor, options, d)
+    link = createPanelLink()
+    chartSnippet = id === null ? null : buildChartSnippet(sensor, options, d, link)
     return chartSnippet
   }
 
@@ -140,6 +144,20 @@ export function mount(el) {
         const sensor = findSensor(vs.sensorId)
         return sensor ? networkText(sensor, d.tNetwork || '') : ''
       },
+      get source() {
+        const sensor = findSensor(vs.sensorId)
+        return sensor ? sensor.source || 'sensor.community' : ''
+      },
+      get updated() {
+        const sensor = findSensor(vs.sensorId)
+        return sensor ? lastUpdated(sensor) : null
+      },
+      locale,
+      // Read after `chart`, which is what swaps the link on a new station.
+      get link() {
+        chartFor(findSensor(vs.sensorId))
+        return link
+      },
       onclose: () => vs.closeSensor(),
       // Keyed by STATION now, not by the device charted: the chart component
       // owns which metric it is drawing (and therefore which device it asks),
@@ -181,7 +199,7 @@ export function mount(el) {
 //
 // The metric list offered is this station's, not the map's whole set: the switcher
 // must not offer a metric whose only possible answer is an empty plot.
-function buildChartSnippet(sensor, options, d) {
+function buildChartSnippet(sensor, options, d, link) {
   const measured = options.filter(({ metric }) => Object.hasOwn(sensor.values, metric))
   return createRawSnippet(() => ({
     render: () => '<div></div>',
@@ -194,6 +212,15 @@ function buildChartSnippet(sensor, options, d) {
           options: measured,
           periods: parseMetricList(d.periods),
           periodLabels: parseMetricList(d.periodLabels),
+          periodShortLabels: parseMetricList(d.periodShortLabels),
+          link,
+          moreLabel: d.tMore || '',
+          aboutLabel: d.tDetails || '',
+          shareLabel: d.tShare || '',
+          embedLabel: d.tEmbed || '',
+          shareDone: d.tShareDone || '',
+          embedDone: d.tEmbedDone || '',
+          copyFailed: d.tCopyFailed || '',
           initialPeriod: d.period,
           initialMetric: d.metric,
           metricLegend: d.tChartMetricLegend || '',

@@ -27,12 +27,32 @@
   // `flagText`. Both default empty so every sensor without them (every
   // citizen device today) renders neither block.
   import Gauge from './Gauge.svelte'
+  import AboutSheet from './AboutSheet.svelte'
+  import { createPanelLink } from '../lib/panellink.svelte.js'
+  import { relativeAge } from '../lib/relativeage.js'
 
+  // `source` and `updated` (ms) feed the phone header's "network · N min ago";
+  // `link` is shared with the chart so a gauge tap picks its metric and the
+  // chart menu can open the about sheet. `now` pins the clock for tests.
   let {
     rows, title, flagText, closeLabel, noValue, onclose,
     details = [], detailsLabel = '', chart = null, open = true,
     meta = [], network = '',
+    source = '', updated = null, now = null, locale = undefined,
+    link = createPanelLink(),
   } = $props()
+
+  let clock = $state(Date.now())
+  $effect(() => {
+    if (now !== null) return
+    const id = setInterval(() => { clock = Date.now() }, 30000)
+    return () => clearInterval(id)
+  })
+
+  const subline = $derived(
+    [source, updated === null ? '' : relativeAge(updated, now ?? clock, locale)]
+      .filter(Boolean).join(' · '))
+  const aboutRows = $derived([...meta, ...details])
 </script>
 
 {#if open}
@@ -54,14 +74,24 @@
        out of this card. The glyph is inline SVG (the site ships no icon font),
        aria-hidden because the label beside it already names the action. -->
   <header>
-    <h2 id="sensor-panel-title">{title}</h2>
-    <button type="button" class="panel-close" data-close onclick={onclose}>
-      <svg class="panel-close__ico" width="16" height="16" viewBox="0 0 16 16"
-           fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-        <path d="M3.5 3.5l9 9M12.5 3.5l-9 9" />
-      </svg>
-      {closeLabel}
-    </button>
+    <div class="panel-heading">
+      <h2 id="sensor-panel-title">{title}</h2>
+      {#if subline}<p class="panel-sub">{subline}</p>{/if}
+    </div>
+    <div class="panel-actions">
+      <button type="button" class="panel-info" aria-label={detailsLabel} onclick={() => { link.aboutOpen = true }}>
+        <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true">
+          <circle cx="8" cy="8" r="6.3" /><path d="M8 7.2v4M8 4.8v.1" stroke-linecap="round" />
+        </svg>
+      </button>
+      <button type="button" class="panel-close" data-close onclick={onclose}>
+        <svg class="panel-close__ico" width="16" height="16" viewBox="0 0 16 16"
+             fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+          <path d="M3.5 3.5l9 9M12.5 3.5l-9 9" />
+        </svg>
+        <span class="panel-close__label">{closeLabel}</span>
+      </button>
+    </div>
   </header>
 
   {#if flagText}<p class="panel-flag">{flagText}</p>{/if}
@@ -85,6 +115,8 @@
         unit={row.unit}
         model={row.model}
         missing={row.missing}
+        pressed={link.metrics.includes(row.metric)}
+        onselect={() => { link.metrics = [row.metric] }}
       />
     {/each}
   </div>
@@ -107,5 +139,15 @@
   {/if}
 
   {#if chart}{@render chart()}{/if}
+
+  {#if link.aboutOpen}
+    <AboutSheet
+      title={detailsLabel}
+      {closeLabel}
+      rows={aboutRows}
+      {network}
+      onclose={() => { link.aboutOpen = false }}
+    />
+  {/if}
 </section>
 {/if}

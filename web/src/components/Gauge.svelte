@@ -2,12 +2,21 @@
   // Draws the model from lib/gauge.js; no arithmetic here.
   import { arcPath, needlePoint } from '../lib/gauge.js'
 
-  let { label, value, unit, model = { fraction: null, colour: null, stops: [] }, missing = false } = $props()
+  let { label, value, unit, model = { fraction: null, colour: null, stops: [] }, missing = false, onselect = null, pressed = false } = $props()
 
   const ariaLabel = $derived(missing ? `${label}: ${value}` : `${label}: ${value} ${unit}`)
 </script>
 
-<div class="gauge" role="group" aria-label={ariaLabel}>
+<svelte:element
+  this={onselect ? 'button' : 'div'}
+  class="gauge"
+  class:gauge--pick={!!onselect}
+  role={onselect ? undefined : 'group'}
+  type={onselect ? 'button' : undefined}
+  aria-pressed={onselect ? pressed : undefined}
+  aria-label={ariaLabel}
+  onclick={onselect ?? undefined}
+>
   <svg class="gauge__svg" viewBox="0 0 100 60" aria-hidden="true" focusable="false">
     {#if model.stops.length}
       <!-- Band track under the fill, at reduced opacity. -->
@@ -28,6 +37,6 @@
       <circle class="gauge__pivot" cx="50" cy="50" r="3" />
     {/if}
   </svg>
-  <div class="gauge__value">{missing ? value : `${value} ${unit}`}</div>
-  <div class="gauge__label">{label}</div>
-</div>
+  <span class="gauge__value">{missing ? value : `${value} ${unit}`}</span>
+  <span class="gauge__label">{label}</span>
+</svelte:element>

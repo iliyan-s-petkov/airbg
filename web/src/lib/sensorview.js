@@ -74,6 +74,13 @@ export function detailRows(sensor, labels, locale) {
   return rows
 }
 
+// lastUpdated is the newest reading time across the station's boxes, in ms, or
+// null when none is known.
+export function lastUpdated(sensor) {
+  const last = latest((sensor?.devices ?? []).map((d) => d.lastSeen))
+  return last ? last.getTime() : null
+}
+
 // stationMeta lists an official station's EEA classification: EoI code,
 // station type (background/traffic/industrial) and area type (urban/
 // suburban/rural). Empty for a citizen device — 'eea' is the only source
