@@ -145,6 +145,15 @@ func seedFixtures(t *testing.T, st *store.Store) {
 		t.Fatalf("seed oblast area: %v", err)
 	}
 
+	// 30 days of visitor totals for the /about chart (harness only).
+	_, err = st.Pool().Exec(ctx,
+		`INSERT INTO visitor_daily (day, uniques, requests, page_views, fetched_at)
+		 SELECT d::date, 40 + (extract(day FROM d)::int * 7) % 25, 900, 300, now()
+		 FROM generate_series(current_date - 29, current_date, interval '1 day') AS d`)
+	if err != nil {
+		t.Fatalf("seed visitor_daily: %v", err)
+	}
+
 	// 27 more oblasts, spaced 2° apart so their boxes never touch "sofia"'s
 	// sensors or each other: /areas' ranked table (areaRows, kind "oblast")
 	// needs 28 rows — Bulgaria's real count — to reproduce the per-page

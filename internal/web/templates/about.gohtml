@@ -30,17 +30,7 @@
 <p>{{.T "about.sources.body"}}</p>
 
 <h2>{{.T "about.privacy.heading"}}</h2>
-<p>{{.T "about.privacy.cookies"}}</p>
-<p>{{.T "about.privacy.storage_intro"}}</p>
-<ul>
-{{range .StorageKeys}}
-  <li><code>{{.Key}}</code> — {{.Purpose}}</li>
-{{end}}
-</ul>
-<div class="privacy-clear" data-island="clearsettings" data-keys="{{.StorageKeysCSV}}" data-confirm="{{.T "about.privacy.clear_done"}}">
-  <button type="button">{{.T "about.privacy.clear_button"}}</button>
-  <p data-role="status" role="status" aria-live="polite"></p>
-</div>
+{{template "privacyStorage" .}}
 
 <p><a href="{{.Path "/"}}">{{.T "area.back_to_map"}}</a></p>
 </div>

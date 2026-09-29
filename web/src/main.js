@@ -25,6 +25,7 @@ const ISLANDS = {
   sensorbar: () => import('./islands/sensorbar.js'),
   theme: () => import('./islands/theme.js'),
   clearsettings: () => import('./islands/clearsettings.js'),
+  visitors: () => import('./islands/visitors.js'),
 }
 
 // resolveLoader is the pure lookup at the heart of "leave the server-rendered

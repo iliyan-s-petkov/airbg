@@ -75,7 +75,7 @@ func (rr *Renderer) sitemapBytes(generatedAt time.Time) ([]byte, error) {
 	}
 
 	paths := make([]string, 0, len(slugs)+3)
-	paths = append(paths, "/", "/areas", "/about-the-data")
+	paths = append(paths, "/", "/areas", "/about", "/about-the-data")
 	for _, slug := range slugs {
 		paths = append(paths, "/area/"+slug)
 	}

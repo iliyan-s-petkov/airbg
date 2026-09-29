@@ -1,0 +1,113 @@
+{{/* /about: what the project is. Static prose plus two islands (the privacy
+     clear button and the visitors chart), and it renders with no snapshot, so
+     it may not read .Areas or .Area. */}}
+{{define "main"}}
+<div class="measure">
+<div class="page-head">
+  <h1 class="t-title">{{.T "about.page.title"}}</h1>
+  <p class="t-body">{{.T "about.page.intro"}}</p>
+  <nav class="about-toc" aria-label="{{.T "about.toc.label"}}">
+    <a href="#goals">{{.T "about.toc.goals"}}</a>
+    <a href="#start">{{.T "about.start.heading"}}</a>
+    <a href="#privacy">{{.T "about.privacy.heading"}}</a>
+    <a href="#visitors">{{.T "about.visitors.heading"}}</a>
+    <a href="#more">{{.T "about.toc.more"}}</a>
+  </nav>
+</div>
+
+<section class="about-section about-section--first" aria-labelledby="values-h">
+  <h2 id="values-h" class="sr-only">{{.T "about.values.heading"}}</h2>
+  <div class="about-values">
+    <div class="about-value">
+      <svg class="about-value__ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12h8M12 8v8"/></svg>
+      <h3 class="about-value__title">{{.T "about.values.free.title"}}</h3>
+      <p>{{.T "about.values.free.body"}}</p>
+    </div>
+    <div class="about-value">
+      <svg class="about-value__ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M8 7l-5 5 5 5M16 7l5 5-5 5M14 4l-4 16"/></svg>
+      <h3 class="about-value__title">{{.T "about.values.open.title"}}</h3>
+      <p>{{.T "about.values.open.body"}}</p>
+    </div>
+    <div class="about-value">
+      <svg class="about-value__ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="8" cy="9" r="3"/><circle cx="16" cy="9" r="3"/><path d="M2 20c0-3 3-5 6-5s6 2 6 5M12 20c0-3 3-5 6-5s4 1 4 3"/></svg>
+      <h3 class="about-value__title">{{.T "about.values.community.title"}}</h3>
+      <p>{{.T "about.values.community.body"}}</p>
+    </div>
+    <div class="about-value">
+      <svg class="about-value__ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg>
+      <h3 class="about-value__title">{{.T "about.values.private.title"}}</h3>
+      <p>{{.T "about.values.private.body"}}</p>
+    </div>
+  </div>
+</section>
+
+<section class="about-section" id="goals" aria-labelledby="goals-h">
+  <h2 id="goals-h">{{.T "about.goals.heading"}}</h2>
+  <ol class="about-goals">
+    <li><div><strong>{{.T "about.goals.local.title"}}</strong><span>{{.T "about.goals.local.body"}}</span></div></li>
+    <li><div><strong>{{.T "about.goals.honest.title"}}</strong><span>{{.T "about.goals.honest.body"}}</span></div></li>
+    <li><div><strong>{{.T "about.goals.reuse.title"}}</strong><span>{{.T "about.goals.reuse.body"}}</span></div></li>
+  </ol>
+</section>
+
+<section class="about-section" id="start" aria-labelledby="start-h">
+  <h2 id="start-h">{{.T "about.start.heading"}}</h2>
+  <p>{{.T "about.start.intro"}}</p>
+  <ol class="about-steps">
+    <li>
+      <h3>{{.T "about.start.layers.title"}}</h3>
+      <p>{{.T "about.start.layers.body"}}</p>
+    </li>
+    <li>
+      <h3>{{.T "about.start.window.title"}}</h3>
+      <p>{{.T "about.start.window.body"}}</p>
+    </li>
+    <li>
+      <h3>{{.T "about.start.areas.title"}}</h3>
+      <p>{{.T "about.start.areas.body"}}</p>
+    </li>
+    <li>
+      <h3>{{.T "about.start.embed.title"}}</h3>
+      <p>{{.T "about.start.embed.body"}}</p>
+      {{/* The real form: /embed takes a province slug only (docs/embedding.md). */}}
+      <pre class="about-code" dir="ltr"><code>&lt;iframe src="https://airbg.org/embed?area=plovdiv-oblast"
+        title="airbg.org" width="100%" height="480"
+        loading="lazy" style="border:0"&gt;&lt;/iframe&gt;</code></pre>
+      <p><a href="{{.SourceRepoURL}}/blob/master/docs/embedding.md" rel="noopener">{{.T "about.start.embed.docs"}}</a></p>
+    </li>
+  </ol>
+</section>
+
+<section class="about-section" id="privacy" aria-labelledby="privacy-h">
+  <h2 id="privacy-h">{{.T "about.privacy.heading"}}</h2>
+  <div class="about-promise">
+    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg>
+    <p>{{.T "about.privacy.intro"}}</p>
+  </div>
+  {{template "privacyStorage" .}}
+</section>
+
+<section class="about-section" id="visitors" aria-labelledby="visitors-h">
+  <h2 id="visitors-h">{{.T "about.visitors.heading"}}</h2>
+  <p>{{.T "about.visitors.intro"}}</p>
+  <div class="about-stats">
+    <h3 class="about-stats__title">{{.T "about.visitors.chart_title"}}</h3>
+    <div class="about-stats__chart" data-island="visitors" role="img" aria-label="{{.T "about.visitors.label"}}"
+         data-t-title="{{.T "about.visitors.chart_title"}}" data-t-date="{{.T "about.visitors.date"}}"
+         data-t-empty="{{.T "about.visitors.empty"}}" data-t-unavailable="{{.T "about.visitors.unavailable"}}"></div>
+    <p class="about-stats__note">{{.T "about.visitors.note"}}</p>
+  </div>
+</section>
+
+<section class="about-section" id="more" aria-labelledby="more-h">
+  <h2 id="more-h">{{.T "about.more.heading"}}</h2>
+  <div class="about-links">
+    <a href="{{.Path "/about-the-data"}}"><strong>{{.T "about.more.data.title"}}</strong><span>{{.T "about.more.data.body"}}</span></a>
+    <a href="{{.SourceRepoURL}}" rel="noopener"><strong>{{.T "about.more.code.title"}}</strong><span>{{.T "about.more.code.body"}}</span></a>
+    <a href="{{.SourceRepoURL}}/blob/master/CONTRIBUTING.md" rel="noopener"><strong>{{.T "about.more.contribute.title"}}</strong><span>{{.T "about.more.contribute.body"}}</span></a>
+  </div>
+</section>
+
+<p class="about-back"><a href="{{.Path "/"}}">{{.T "area.back_to_map"}}</a></p>
+</div>
+{{end}}

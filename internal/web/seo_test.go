@@ -71,7 +71,7 @@ func TestSitemapIsWellFormedXML(t *testing.T) {
 }
 
 // TestSitemapContainsEveryArea: both fixture areas (sofia, vidin) must appear,
-// plus the three static pages. A dropped area is invisible in the rendered
+// plus the four static pages. A dropped area is invisible in the rendered
 // site and only shows up here.
 func TestSitemapContainsEveryArea(t *testing.T) {
 	doc := fetchSitemap(t)
@@ -84,6 +84,7 @@ func TestSitemapContainsEveryArea(t *testing.T) {
 	for _, want := range []string{
 		"https://airbg.org/",
 		"https://airbg.org/areas",
+		"https://airbg.org/about",
 		"https://airbg.org/about-the-data",
 		"https://airbg.org/area/sofia",
 		"https://airbg.org/area/vidin",
@@ -92,8 +93,8 @@ func TestSitemapContainsEveryArea(t *testing.T) {
 			t.Errorf("sitemap is missing %q", want)
 		}
 	}
-	if len(doc.URLs) != 5 {
-		t.Errorf("sitemap has %d <url> entries, want 5: %+v", len(doc.URLs), doc.URLs)
+	if len(doc.URLs) != 6 {
+		t.Errorf("sitemap has %d <url> entries, want 6: %+v", len(doc.URLs), doc.URLs)
 	}
 }
 
