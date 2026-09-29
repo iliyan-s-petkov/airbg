@@ -88,6 +88,7 @@ func (rr *Renderer) handlers() map[string]http.Handler {
 		h["GET "+root] = http.HandlerFunc(rr.handleIndex)
 		h["GET "+prefix+"/areas"] = http.HandlerFunc(rr.handleIndex)
 		h["GET "+prefix+"/area/{slug}"] = http.HandlerFunc(rr.handleArea)
+		h["GET "+prefix+"/about"] = http.HandlerFunc(rr.handleAboutProject)
 		h["GET "+prefix+"/about-the-data"] = http.HandlerFunc(rr.handleAbout)
 		h["GET "+prefix+"/embed"] = http.HandlerFunc(rr.handleEmbed)
 	}
@@ -253,6 +254,24 @@ func (rr *Renderer) handleAbout(w http.ResponseWriter, r *http.Request) {
 	data.StorageKeys = storageKeyInfos(rr.cat, lang)
 	data.StorageKeysCSV = storageKeysCSV()
 	rr.render(w, r, http.StatusOK, "about", data)
+}
+
+// handleAboutProject serves /about: what the project is, how to start, privacy
+// and the visitors chart. Like /about-the-data it needs no snapshot, so it
+// renders when the data is not loading.
+func (rr *Renderer) handleAboutProject(w http.ResponseWriter, r *http.Request) {
+	var generatedAt time.Time
+	if snap := rr.holder.Load(); snap != nil {
+		generatedAt = snap.GeneratedAt
+	}
+
+	lang, path := rr.cat.LangFromPath(r.URL.Path)
+	data := rr.newPageData(lang, path, generatedAt)
+	data.Title = composeTitle(rr.cat.T(lang, "seo.about.title"), rr.cat.T(lang, "seo.title_brand"))
+	data.Description = rr.cat.T(lang, "seo.about.description")
+	data.StorageKeys = storageKeyInfos(rr.cat, lang)
+	data.StorageKeysCSV = storageKeysCSV()
+	rr.render(w, r, http.StatusOK, "about_project", data)
 }
 
 // handleEmbed serves the map on its own, for an <iframe> on someone else's

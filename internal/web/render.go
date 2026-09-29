@@ -129,7 +129,7 @@ func NewRenderer(cat *i18n.Catalogue, holder *snapshot.Holder, cfg config.Config
 
 	// "embed" is parsed with base.gohtml like the rest, and then redefines
 	// "base" itself: it needs base's map partials but none of its chrome.
-	for _, page := range []string{"index", "area", "about", "error", "embed"} {
+	for _, page := range []string{"index", "area", "about", "about_project", "error", "embed"} {
 		t, err := template.New("base.gohtml").Funcs(templateFuncs).ParseFS(templateFS,
 			"templates/base.gohtml", "templates/"+page+".gohtml")
 		if err != nil {
@@ -869,6 +869,10 @@ func (p PageData) GeneratedAtHuman() string {
 // Static is the URL for a hand-written static file, carrying the hash of what
 // is currently embedded, so an edit cannot be served from a stale cache.
 func (p PageData) Static(name string) string { return p.static.URL(name) }
+
+// SourceRepoURL is the public repository; templates take it from here so the
+// address is written once (jsonld.go).
+func (p PageData) SourceRepoURL() string { return sourceRepoURL }
 
 // newPageData builds the common fields for one request.
 func (rr *Renderer) newPageData(lang, path string, generatedAt time.Time) PageData {
