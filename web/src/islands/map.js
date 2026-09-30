@@ -105,7 +105,7 @@ export function mount(el) {
   // out (see refresh) — this one drives what is PAINTED, and painting stale
   // sensors over area dots is the failure that distinction prevents.
   const state = {
-    slug: cfg.slug, tier: null, scales: null, areas: null,
+    slug: cfg.slug, ready: false, tier: null, scales: null, areas: null,
     hexUrl: null, hexBody: null, hexAbort: null, sensorBody: null,
     // Read from storage rather than defaulting to live: a reader who picked a
     // week's average is asking a question about this map, not about this visit,
@@ -140,6 +140,8 @@ export function mount(el) {
   // Markers and grid answer at different latencies; painting each on arrival is
   // the map visibly redrawing itself twice per zoom. Load both, paint both.
   const onMoveEnd = debounce(async () => {
+    // Before the layers exist a paint is dropped but refresh still records the tier as loaded.
+    if (!state.ready) return
     const paints = await Promise.all([
       refresh(map, state, cfg, chrome, false, { defer: true }),
       refreshHexes(map, state, cfg, getJSON, { defer: true }),
