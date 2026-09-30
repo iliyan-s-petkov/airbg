@@ -3,15 +3,73 @@ import { arrowBearing } from '../islands/wind.js'
 import contract from './contract.json'
 
 const GRID_PX = 20
-const REACH_KM = 18
+// The served vectors sit on sparse hex cells (15-65 km apart). Within FULL_KM of one the streaks are full strength; they fade out by REACH_KM.
+const FULL_KM = 30
+const REACH_KM = 80
+const NEAREST = 4
+// Per-frame chance a faded particle is culled, so the fringe thins without flickering.
+const FRINGE_CULL = 0.06
 const KM_PER_DEG = (Math.PI * contract.hex.earth_radius_km) / 180
-// Screen px per millisecond per m/s of wind: 5 m/s moves about 2.7 px per 60 fps frame.
-const SPEED_PX_PER_MS = 0.032
-const FADE = 0.1
-const LINE_ALPHA = 0.5
-const AREA_PER_PARTICLE = 1800
-const MAX_PARTICLES = 1400
+// Tuning. Speed: screen px per ms per m/s of wind, 5 m/s is about 0.75 px per 60 fps frame (was 0.032, 3.5x faster).
+const SPEED_PX_PER_MS = 0.009
+// Trail fade per frame; lower than the old 0.1 (2.5x) so the slower streaks keep a visible tail without smearing.
+const FADE = 0.04
+const LINE_ALPHA = 0.65
+const LINE_WIDTH = 1.4
+// One particle per this many px2 of viewport (was 1800), so phones get fewer than desktops.
+const AREA_PER_PARTICLE = 4500
+const MAX_PARTICLES = 500
 const MAX_AGE = 90
+// Blue ramp by wind speed (m/s, colour), light to deep. Hue stays 213-226: clear of the teal clean-air end and the purple end of the PM scale.
+const SPEED_MAX_MS = 12
+const RAMP = [
+  [0, 'rgb(110,170,240)'],
+  [4, 'rgb(60,128,222)'],
+  [8, 'rgb(32,90,200)'],
+  [12, 'rgb(24,58,170)'],
+]
+const BUCKETS = 6
+
+export const WIND_RAMP = RAMP
+export const WIND_FULL_KM = FULL_KM
+export const WIND_REACH_KM = REACH_KM
+export const WIND_SPEED_MAX_MS = SPEED_MAX_MS
+export const WIND_LINE_ALPHA = LINE_ALPHA
+export const WIND_BUCKETS = BUCKETS
+export const WIND_AREA_PER_PARTICLE = AREA_PER_PARTICLE
+export const WIND_MAX_PARTICLES = MAX_PARTICLES
+
+// windColour interpolates the ramp at a speed; speeds outside 0..SPEED_MAX_MS clamp to the ends.
+export function windColour(speedMs) {
+  const s = Math.min(Math.max(speedMs, 0), SPEED_MAX_MS)
+  let i = 1
+  while (i < RAMP.length - 1 && s > RAMP[i][0]) i++
+  const [s0, c0] = RAMP[i - 1]
+  const [s1, c1] = RAMP[i]
+  const t = (s - s0) / (s1 - s0)
+  const a = c0.match(/\d+/g).map(Number)
+  const b = c1.match(/\d+/g).map(Number)
+  return `rgb(${a.map((v, k) => Math.round(v + (b[k] - v) * t)).join(',')})`
+}
+
+// speedBucket groups speeds so a frame draws one path per colour, not one per particle.
+export function speedBucket(speedMs) {
+  const t = Math.min(Math.max(speedMs, 0), SPEED_MAX_MS) / SPEED_MAX_MS
+  return Math.min(BUCKETS - 1, Math.floor(t * BUCKETS))
+}
+
+// bucketColour is the colour at the middle of a bucket's speed range.
+const bucketColour = (i) => windColour(((i + 0.5) / BUCKETS) * SPEED_MAX_MS)
+
+// particleCount scales with viewport area, so a phone is not denser than a desktop.
+export function particleCount(width, height) {
+  return Math.min(MAX_PARTICLES, Math.max(0, Math.round((width * height) / AREA_PER_PARTICLE)))
+}
+
+// stepPx is how far a particle moves in one frame of dtMs at the given wind speed.
+export function stepPx(speedMs, dtMs) {
+  return speedMs * SPEED_PX_PER_MS * dtMs
+}
 
 // windfxMode is the flag gate: streaks only when asked for and motion is allowed.
 export function windfxMode(search, reducedMotion) {
@@ -28,26 +86,30 @@ export function toUV(body) {
   })
 }
 
-// idw interpolates u/v at a point from vectors within 30 km; null when none is inside REACH_KM.
+// idw blends u/v from the NEAREST closest vectors within REACH_KM; the third value is a 0..1 fade that is 1 within FULL_KM of a vector and 0 at REACH_KM. Null past REACH_KM.
 export function idw(vectors, lon, lat) {
   const kmLon = KM_PER_DEG * Math.cos((lat * Math.PI) / 180)
-  let su = 0
-  let sv = 0
-  let sw = 0
-  let nearest = Infinity
+  const near = []
   for (const p of vectors) {
     const dx = (p.lon - lon) * kmLon
     const dy = (p.lat - lat) * KM_PER_DEG
     const d2 = dx * dx + dy * dy
-    if (d2 < nearest) nearest = d2
-    if (d2 > 900) continue
-    const w = 1 / (d2 + 1)
+    if (d2 < REACH_KM * REACH_KM) near.push([d2, p])
+  }
+  if (near.length === 0) return null
+  near.sort((a, b) => a[0] - b[0])
+  let su = 0
+  let sv = 0
+  let sw = 0
+  for (const [d2, p] of near.slice(0, NEAREST)) {
+    // The +25 keeps a point sitting on a vector from ignoring every other one.
+    const w = 1 / (d2 + 25)
     su += p.u * w
     sv += p.v * w
     sw += w
   }
-  if (nearest > REACH_KM * REACH_KM || sw === 0) return null
-  return [su / sw, sv / sw]
+  const fade = Math.min(1, (REACH_KM - Math.sqrt(near[0][0])) / (REACH_KM - FULL_KM))
+  return [su / sw, sv / sw, fade]
 }
 
 // buildGrid samples the field at screen nodes; vx/vy are screen-space (y down) m/s.
@@ -57,6 +119,7 @@ export function buildGrid(vectors, width, height, unproject, bearingDeg = 0) {
   const vx = new Float32Array(cols * rows)
   const vy = new Float32Array(cols * rows)
   const ok = new Uint8Array(cols * rows)
+  const fade = new Float32Array(cols * rows)
   const rot = (bearingDeg * Math.PI) / 180
   const cos = Math.cos(rot)
   const sin = Math.sin(rot)
@@ -69,13 +132,14 @@ export function buildGrid(vectors, width, height, unproject, bearingDeg = 0) {
       // Rotate east/north into screen axes for a rotated map.
       vx[i] = uv[0] * cos - uv[1] * sin
       vy[i] = -(uv[0] * sin + uv[1] * cos)
+      fade[i] = uv[2]
       ok[i] = 1
     }
   }
-  return { cols, rows, vx, vy, ok }
+  return { cols, rows, vx, vy, ok, fade }
 }
 
-// sample bilinear-blends the four surrounding nodes; null off the field.
+// sample bilinear-blends the four surrounding nodes into [vx, vy, fade]; null off the field.
 export function sample(g, x, y) {
   const fx = x / GRID_PX
   const fy = y / GRID_PX
@@ -87,20 +151,22 @@ export function sample(g, x, y) {
   let ax = 0
   let ay = 0
   let aw = 0
+  let af = 0
   for (let j = 0; j < 4; j++) {
     const i = (r + (j >> 1)) * g.cols + c + (j & 1)
     if (!g.ok[i]) continue
     const w = ((j & 1) ? tx : 1 - tx) * ((j >> 1) ? ty : 1 - ty)
     ax += g.vx[i] * w
     ay += g.vy[i] * w
+    af += g.fade[i] * w
     aw += w
   }
-  return aw > 0.35 ? [ax / aw, ay / aw] : null
+  return aw > 0.35 ? [ax / aw, ay / aw, af] : null
 }
 
 const running = new WeakMap()
 
-export function startStreaks(map, body, ink, { doc = document, win = window } = {}) {
+export function startStreaks(map, body, { doc = document, win = window } = {}) {
   // One overlay per map, whoever asks.
   running.get(map)?.stop()
   const vectors = toUV(body)
@@ -120,14 +186,16 @@ export function startStreaks(map, body, ink, { doc = document, win = window } = 
   let last = 0
   let moving = false
 
-  // Same ink the arrows use: the basemap stays light in both themes, so the theme's --fg would vanish on it in dark.
-  const colour = ink
+  // The basemap stays light in both themes, so one blue ramp serves both.
+  const bucketColours = Array.from({ length: BUCKETS }, (_, i) => bucketColour(i))
 
   const seed = (p) => {
-    for (let n = 0; n < 6; n++) {
+    // Accept a spot with probability equal to its fade, so streaks thin out away from the vectors.
+    for (let n = 0; n < 8; n++) {
       p.x = Math.random() * w
       p.y = Math.random() * h
-      if (sample(grid, p.x, p.y)) break
+      const v = sample(grid, p.x, p.y)
+      if (v && Math.random() < v[2]) break
     }
     p.age = Math.floor(Math.random() * MAX_AGE)
   }
@@ -146,7 +214,7 @@ export function startStreaks(map, body, ink, { doc = document, win = window } = 
       const ll = map.unproject([x, y])
       return [ll.lng, ll.lat]
     }, map.getBearing?.() ?? 0)
-    const want = Math.min(MAX_PARTICLES, Math.round((w * h) / AREA_PER_PARTICLE))
+    const want = particleCount(w, h)
     particles = Array.from({ length: want }, () => {
       const p = { x: 0, y: 0, age: 0 }
       seed(p)
@@ -165,27 +233,31 @@ export function startStreaks(map, body, ink, { doc = document, win = window } = 
     ctx.fillStyle = `rgba(0,0,0,${FADE})`
     ctx.fillRect(0, 0, w, h)
     ctx.globalCompositeOperation = 'source-over'
-    ctx.strokeStyle = colour
     ctx.globalAlpha = LINE_ALPHA
-    ctx.lineWidth = 1.3
+    ctx.lineWidth = LINE_WIDTH
     ctx.lineCap = 'round'
-    ctx.beginPath()
-    const k = SPEED_PX_PER_MS * dt
+    // One path per speed bucket, each stroked in its own blue.
+    const paths = bucketColours.map(() => new Path2D())
     for (const p of particles) {
       const v = sample(grid, p.x, p.y)
-      if (!v || ++p.age > MAX_AGE) {
+      if (!v || Math.random() < (1 - v[2]) * FRINGE_CULL || ++p.age > MAX_AGE) {
         seed(p)
         p.age = 0
         continue
       }
+      const k = stepPx(1, dt)
       const nx = p.x + v[0] * k
       const ny = p.y + v[1] * k
-      ctx.moveTo(p.x, p.y)
-      ctx.lineTo(nx, ny)
+      const path = paths[speedBucket(Math.hypot(v[0], v[1]))]
+      path.moveTo(p.x, p.y)
+      path.lineTo(nx, ny)
       p.x = nx
       p.y = ny
     }
-    ctx.stroke()
+    paths.forEach((path, i) => {
+      ctx.strokeStyle = bucketColours[i]
+      ctx.stroke(path)
+    })
     ctx.globalAlpha = 1
   }
 

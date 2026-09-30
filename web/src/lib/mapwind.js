@@ -65,7 +65,7 @@ async function startStreaksIfAsked(map, cfg, state) {
   const fx = await import('./windstreaks.js')
   if (fx.windfxMode(window.location.search, reduced) !== 'streaks') return false
   state.streaks?.stop()
-  state.streaks = fx.startStreaks(map, state.body, cfg.labelColour)
+  state.streaks = fx.startStreaks(map, state.body)
   return true
 }
 
