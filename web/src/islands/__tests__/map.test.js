@@ -18,6 +18,7 @@ import { DEEP_LINK_ZOOM } from '../../lib/placement.js'
 import { ARROW_IMAGE_ID, WIND_LAYER_ID, WIND_SOURCE_ID } from '../wind.js'
 import { GRID_MIN_ZOOM_FRACTIONAL, POINT_TIER_MIN_ZOOM_FRACTIONAL, POINT_TIER_MIN_ZOOM } from '../../lib/hexes.js'
 import { clearCache } from '../../lib/api.js'
+import { MOVE_DEBOUNCE_MS } from '../../lib/mapdata.js'
 import { resetViewStateForTests, getViewState } from '../../lib/viewstate.svelte.js'
 import { findSensor, setSensors } from '../../lib/sensors.svelte.js'
 import { setSensorStatus, resetSensorFilterForTests } from '../../lib/sensorfilter.svelte.js'
@@ -115,7 +116,7 @@ vi.mock('maplibre-gl', () => {
 // returns. No harness by this name or shape existed before this task; the
 // brief assumed one without it being written, so this is built fresh, kept to
 // exactly what the two tests below need.
-function mountTestMap({ metric, styleLayers = [], dataset = {} }) {
+function mountTestMap({ metric, styleLayers = [], dataset = {}, load = true }) {
   fakeStyle.layers = styleLayers
   resetViewStateForTests()
   history.replaceState(null, '', `/#metric=${metric}`)
@@ -152,7 +153,7 @@ function mountTestMap({ metric, styleLayers = [], dataset = {} }) {
   // MapLibreMap fires 'load' itself, asynchronously, once its style is
   // ready; this harness fires it eagerly instead, since the fake map here
   // has no style to wait for.
-  map.handlers.load()
+  if (load) map.handlers.load()
   return { map, chrome, el }
 }
 
@@ -241,6 +242,30 @@ describe('mount() drives the hex layer', () => {
       expect(calls).toHaveLength(2)
       expect(calls[1][0]).not.toBe(calls[0][0])
     }, { timeout: 2000 })
+  })
+})
+
+// A moveend before 'load' (fullscreen resizing the map mid-load) used to fetch
+// and mark the tier loaded while the source did not exist, so the markers were
+// never painted. The pre-load move must not fetch; the load pass owns the first paint.
+describe('mount() ignores a move before the layers exist', () => {
+  beforeEach(() => { resetViewStateForTests(); clearCache() })
+  afterEach(() => { resetViewStateForTests() })
+
+  it('fetches nothing for a moveend that lands before load, then paints on load', async () => {
+    const fetchSpy = vi.fn(async (url) => ({
+      ok: true, status: 200, headers: new Headers(),
+      json: async () => (String(url).startsWith('/api/v1/hexes') ? { resolution_km: 15, hexes: [] } : { areas: [] }),
+    }))
+    vi.stubGlobal('fetch', fetchSpy)
+    const { map } = mountTestMap({ metric: 'P2', load: false })
+
+    map.handlers.moveend()
+    await new Promise((r) => setTimeout(r, MOVE_DEBOUNCE_MS + 150))
+    expect(fetchSpy).not.toHaveBeenCalled()
+
+    map.handlers.load()
+    await vi.waitFor(() => expect(map.painted).toContain('airbg-data'))
   })
 })
 

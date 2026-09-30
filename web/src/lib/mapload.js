@@ -221,6 +221,9 @@ export function installMapLoad({ map, state, cfg, chrome, vs, windState, boundar
       paint: labelPaint(cfg),
     })
 
+    // Sources and layers exist from here; a moveend earlier is ignored (see onMoveEnd).
+    state.ready = true
+
     // The wind layer is added empty and hidden at load, not on first toggle:
     // adding a source and a layer to a live map is the part that can fail, and
     // failing it here — before any visitor has asked for wind — keeps the
