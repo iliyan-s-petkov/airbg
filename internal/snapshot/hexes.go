@@ -305,41 +305,6 @@ func coverageFrom(sensors []store.SensorReading) map[string]map[string]int {
 	return cov
 }
 
-// HexGridOf reduces sensor positions to the distinct hexes they fall in, with
-// each hex's centre. It is what the wind collector asks the met model about:
-// the grid exists where the sensors are, so there is no fixed tiling to walk.
-//
-// Deduplicated and ordered by coordinate, because the result becomes a request
-// URL — an unstable order would defeat any caching in front of it and make two
-// identical fetches look different.
-func HexGridOf(sensors []store.SensorReading) []HexCell {
-	seen := make(map[axial]bool, len(sensors))
-	coords := make([]axial, 0, len(sensors))
-	for _, sr := range sensors {
-		// The wind grid is asked about at the default resolution: the met model
-		// is coarser than any tier here, so a finer grid would multiply the
-		// upstream requests without giving the forecast anything new to say.
-		c := hexOf(sr.Lon, sr.Lat, HexResolutionKM)
-		if !seen[c] {
-			seen[c] = true
-			coords = append(coords, c)
-		}
-	}
-	sort.Slice(coords, func(i, j int) bool {
-		if coords[i].q != coords[j].q {
-			return coords[i].q < coords[j].q
-		}
-		return coords[i].r < coords[j].r
-	})
-
-	cells := make([]HexCell, 0, len(coords))
-	for _, c := range coords {
-		lon, lat := hexCentre(c, HexResolutionKM)
-		cells = append(cells, HexCell{Q: c.q, R: c.r, Lon: round4(lon), Lat: round4(lat)})
-	}
-	return cells
-}
-
 // bodyKey identifies one encoded answer: the snapped tier, the quantised box,
 // and which of the two builders produced it. Comparable, so it is the map key
 // itself rather than a string somebody has to keep in sync with it.
@@ -671,12 +636,6 @@ func (b BBox) contains(lon, lat float64) bool {
 // any box a caller can reach this with.
 func (b BBox) Extent() (lon, lat float64) {
 	return b.E - b.W, b.N - b.S
-}
-
-// HexCell is one grid cell's identity and centre.
-type HexCell struct {
-	Q, R     int
-	Lon, Lat float64
 }
 
 // axial is a hex grid coordinate. Two ints, so it is comparable and usable as a

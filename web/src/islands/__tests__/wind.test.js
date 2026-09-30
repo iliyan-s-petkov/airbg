@@ -160,7 +160,7 @@ describe('windFeatures', () => {
   })
 })
 
-// The served field is a fixed national lattice at HexResolutionKM. Zoom past a
+// The served field is a fixed national lattice at the model's 0.25 degree grid. Zoom past a
 // city and the viewport holds one vector, then none, and a layer the reader
 // switched on empties itself — which is indistinguishable from the forecast
 // having failed. The arrows are resampled onto a viewport-sized lattice so the
@@ -188,6 +188,13 @@ describe('windField', () => {
     })
     expect(served).toHaveLength(1)
     expect(windField(body, view).length).toBeGreaterThan(served.length * 5)
+  })
+
+  it('still draws at the far corner of a 0.25 degree lattice cell', () => {
+    // About 16.7 km north of the only vector: the diagonal gap of a 25 km lattice.
+    const one = { forecast: true, vectors: [{ lon: 23.0, lat: 42.75, speed_ms: 3, direction_deg: 0 }] }
+    const corner = { bounds: [22.99, 42.895, 23.01, 42.905], zoom: 13 }
+    expect(windField(one, corner).length).toBeGreaterThan(0)
   })
 
   it('repeats the nearest served vector rather than inventing a value', () => {

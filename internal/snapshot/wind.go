@@ -14,9 +14,8 @@ type windPayload struct {
 	// serves the 14:00 forecast.
 	ValidAt time.Time `json:"valid_at"`
 	// Model and ModelResolutionDeg are rendered in the overlay's label. The
-	// model's grid is coarser than ours, so neighbouring arrows repeat; naming
-	// the grid is what tells a reader that is upsampling and not real
-	// uniformity.
+	// vectors are the model's own grid cells, so naming the grid states the
+	// detail the layer can have.
 	Model              string       `json:"model"`
 	ModelResolutionDeg float64      `json:"model_resolution_deg"`
 	ResolutionKM       float64      `json:"resolution_km"`
@@ -51,17 +50,14 @@ func windPayloadFrom(now, validAt time.Time, model string, modelResDeg float64, 
 		ValidAt:            validAt,
 		Model:              model,
 		ModelResolutionDeg: modelResDeg,
-		ResolutionKM:       HexResolutionKM,
+		ResolutionKM:       WindGridKM,
 		// A constant true in the payload, so a client cannot render this layer
 		// without having been told what it is.
 		Forecast: true,
 		Vectors:  make([]windVector, 0, len(vs)),
 	}
 	for _, v := range vs {
-		// The default resolution, matching HexGridOf: these coordinates were
-		// asked of the met model on that grid, so reading them back on a finer
-		// one would move the arrows off the cells they describe.
-		lon, lat := hexCentre(axial{q: v.Q, r: v.R}, HexResolutionKM)
+		lon, lat := windCentre(v.Q, v.R)
 		p.Vectors = append(p.Vectors, windVector{
 			Lon:          round4(lon),
 			Lat:          round4(lat),

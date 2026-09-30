@@ -3,7 +3,7 @@ import { arrowBearing } from '../islands/wind.js'
 import contract from './contract.json'
 
 const GRID_PX = 20
-// The served vectors sit on sparse hex cells (15-65 km apart). Within FULL_KM of one the streaks are full strength; they fade out by REACH_KM.
+// The served vectors sit on the model's 0.25 degree lattice (about 20-28 km apart). Within FULL_KM of one the streaks are full strength; they fade out by REACH_KM.
 const FULL_KM = 30
 const REACH_KM = 80
 const NEAREST = 4

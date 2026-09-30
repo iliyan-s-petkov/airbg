@@ -10,8 +10,7 @@ import (
 	"airbg.org/internal/store"
 )
 
-// Collector fetches the forecast for the hexes that currently hold sensors and
-// stores it. See docs/wind-overlay.md.
+// Collector fetches the forecast for the fixed wind lattice and stores it. See docs/wind-overlay.md.
 type Collector struct {
 	cfg    config.Wind
 	client *Client
@@ -27,19 +26,9 @@ func (c *Collector) SetClockForTesting(clock func() time.Time) { c.clock = clock
 
 // RunOnce fetches and stores one model run. Returns the number of rows written.
 func (c *Collector) RunOnce(ctx context.Context) (int64, error) {
-	sensors, err := c.store.LatestSensors(ctx)
-	if err != nil {
-		return 0, err
-	}
-	cells := snapshot.HexGridOf(sensors)
-	if len(cells) == 0 {
-		// No sensors means no grid to ask about. Not an error: it is the
-		// state of a fresh database before the first ingest cycle.
-		return 0, nil
-	}
-
-	points := make([]Point, len(cells))
-	for i, cell := range cells {
+	lattice := snapshot.WindLattice()
+	points := make([]Point, len(lattice))
+	for i, cell := range lattice {
 		points[i] = Point{Q: cell.Q, R: cell.R, Lon: cell.Lon, Lat: cell.Lat}
 	}
 
@@ -52,7 +41,7 @@ func (c *Collector) RunOnce(ctx context.Context) (int64, error) {
 		rows[i] = store.WindForecast{Q: f.Q, R: f.R, ValidAt: f.ValidAt, SpeedMS: f.SpeedMS, Direction: f.Direction}
 	}
 	now := c.clock().UTC()
-	return c.store.WriteForecasts(ctx, rows, snapshot.HexResolutionKM, c.cfg.Model, now)
+	return c.store.WriteForecasts(ctx, rows, snapshot.WindGridKM, c.cfg.Model, now)
 }
 
 // Loop runs RunOnce on the configured interval until ctx is done.

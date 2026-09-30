@@ -185,7 +185,7 @@ func Build(ctx context.Context, s *store.Store, h *Holder, now time.Time) (*Snap
 	// the build — the PM map is the site, and an optional layer must not be
 	// able to take it down. See docs/wind-overlay.md.
 	if h.wind.Enabled {
-		vectors, validAt, model, err := s.CurrentWind(ctx, now, HexResolutionKM)
+		vectors, validAt, model, err := s.CurrentWind(ctx, now, WindGridKM)
 		switch {
 		case err != nil:
 			slog.Warn("snapshot: wind unavailable", "error", err)

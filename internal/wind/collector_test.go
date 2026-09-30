@@ -14,6 +14,7 @@ import (
 
 	"airbg.org/internal/config"
 	"airbg.org/internal/db"
+	"airbg.org/internal/snapshot"
 	"airbg.org/internal/store"
 	"airbg.org/internal/testsupport"
 	"airbg.org/internal/wind"
@@ -40,26 +41,6 @@ func migratedStore(t *testing.T) (context.Context, *pgxpool.Pool, *store.Store) 
 		t.Fatalf("migrate: %v", err)
 	}
 	return ctx, pool, store.New(pool, testStoreConfig(), collectorSeriesTimeout)
-}
-
-// seedFreshSensor inserts a sensor with a reading recent enough for
-// LatestSensors to return it, so HexGridOf has something to grid.
-func seedFreshSensor(t *testing.T, ctx context.Context, pool *pgxpool.Pool, id int64, lon, lat float64) {
-	t.Helper()
-	if _, err := pool.Exec(ctx,
-		`INSERT INTO sensor (sensor_id, sensor_type, location)
-		 VALUES ($1, 'TEST', ST_SetSRID(ST_MakePoint($2, $3), 4326)::geography)
-		 ON CONFLICT (sensor_id) DO NOTHING`,
-		id, lon, lat); err != nil {
-		t.Fatalf("seed sensor %d: %v", id, err)
-	}
-	if _, err := pool.Exec(ctx,
-		`INSERT INTO reading (time, sensor_id, metric, value, quality)
-		 VALUES ($1, $2, 'P2', 10, 'ok'::quality_flag)
-		 ON CONFLICT (sensor_id, metric, time) DO UPDATE SET value = EXCLUDED.value`,
-		time.Now().UTC().Truncate(time.Second), id); err != nil {
-		t.Fatalf("seed reading %d: %v", id, err)
-	}
 }
 
 func testWindConfig(url string, pointsPerReq int) config.Wind {
@@ -95,17 +76,12 @@ func locationsInRequest(r *http.Request) int {
 	return len(strings.Split(lat, ","))
 }
 
-// TestRunOnceStoresOneRowPerHexPerHour is the success path: every hex the
-// sensors fall into, at every forecast hour the upstream returns, must land
-// in wind_forecast — not merely "no error".
-func TestRunOnceStoresOneRowPerHexPerHour(t *testing.T) {
+// TestRunOnceStoresOneRowPerLatticePointPerHour is the success path: every
+// lattice point, at every forecast hour the upstream returns, must land in
+// wind_forecast. The database holds no sensors: the lattice does not need any.
+func TestRunOnceStoresOneRowPerLatticePointPerHour(t *testing.T) {
 	ctx, pool, s := migratedStore(t)
-
-	// Three sensors far enough apart (roughly 50-100 km) to fall into three
-	// distinct 15 km hexes.
-	seedFreshSensor(t, ctx, pool, 1, 23.0, 42.0)
-	seedFreshSensor(t, ctx, pool, 2, 24.0, 43.0)
-	seedFreshSensor(t, ctx, pool, 3, 25.0, 44.0)
+	points := len(snapshot.WindLattice())
 
 	var requests int
 	var mu sync.Mutex
@@ -133,23 +109,22 @@ func TestRunOnceStoresOneRowPerHexPerHour(t *testing.T) {
 	if err != nil {
 		t.Fatalf("RunOnce: %v", err)
 	}
-	// 3 hexes x 2 forecast hours each.
-	if n != 6 {
-		t.Fatalf("RunOnce returned %d rows written, want 6", n)
+	if want := int64(points * 2); n != want {
+		t.Fatalf("RunOnce returned %d rows written, want %d", n, want)
 	}
-	if got := countForecastRows(t, ctx, pool); got != 6 {
-		t.Fatalf("wind_forecast has %d rows, want 6", got)
+	if got := countForecastRows(t, ctx, pool); got != points*2 {
+		t.Fatalf("wind_forecast has %d rows, want %d", got, points*2)
 	}
-	if requests != 1 {
-		t.Fatalf("upstream got %d requests, want 1 (all 3 points fit in one batch of 100)", requests)
+	if want := (points + 99) / 100; requests != want {
+		t.Fatalf("upstream got %d requests, want %d (batches of 100)", requests, want)
 	}
 
-	vs, _, model, err := s.CurrentWind(ctx, time.Date(2026, 9, 5, 0, 30, 0, 0, time.UTC), 15)
+	vs, _, model, err := s.CurrentWind(ctx, time.Date(2026, 9, 5, 0, 30, 0, 0, time.UTC), snapshot.WindGridKM)
 	if err != nil {
 		t.Fatalf("CurrentWind: %v", err)
 	}
-	if len(vs) != 3 {
-		t.Fatalf("CurrentWind returned %d vectors for the first hour, want 3", len(vs))
+	if len(vs) != points {
+		t.Fatalf("CurrentWind returned %d vectors for the first hour, want %d", len(vs), points)
 	}
 	if model != "ecmwf_ifs025" {
 		t.Errorf("model = %q, want ecmwf_ifs025", model)
@@ -161,7 +136,6 @@ func TestRunOnceStoresOneRowPerHexPerHour(t *testing.T) {
 // succeed first.
 func TestRunOnceUpstream5xxStoresNothing(t *testing.T) {
 	ctx, pool, s := migratedStore(t)
-	seedFreshSensor(t, ctx, pool, 1, 23.0, 42.0)
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -182,17 +156,16 @@ func TestRunOnceUpstream5xxStoresNothing(t *testing.T) {
 }
 
 // TestRunOnceBatchesAtThePointsPerReqBoundary pins the batch split itself:
-// with 5 hexes and PointsPerReq=2, the fetch must issue 3 requests carrying
-// 2, 2 and 1 points, and still store all 5 hexes' rows — not merely as many
-// as the first batch held.
+// the lattice is cut into full batches and one short one, and every point's
+// row is stored, not merely the first batch's.
 func TestRunOnceBatchesAtThePointsPerReqBoundary(t *testing.T) {
 	ctx, pool, s := migratedStore(t)
-
-	seedFreshSensor(t, ctx, pool, 1, 22.0, 41.0)
-	seedFreshSensor(t, ctx, pool, 2, 23.0, 42.0)
-	seedFreshSensor(t, ctx, pool, 3, 24.0, 43.0)
-	seedFreshSensor(t, ctx, pool, 4, 25.0, 44.0)
-	seedFreshSensor(t, ctx, pool, 5, 26.0, 45.0)
+	points := len(snapshot.WindLattice())
+	perReq := 200
+	var want []int
+	for left := points; left > 0; left -= perReq {
+		want = append(want, min(perReq, left))
+	}
 
 	var mu sync.Mutex
 	var batchSizes []int
@@ -223,22 +196,21 @@ func TestRunOnceBatchesAtThePointsPerReqBoundary(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c := wind.NewCollector(testWindConfig(srv.URL, 2), s)
+	c := wind.NewCollector(testWindConfig(srv.URL, perReq), s)
 	n, err := c.RunOnce(ctx)
 	if err != nil {
 		t.Fatalf("RunOnce: %v", err)
 	}
-	if n != 5 {
-		t.Fatalf("RunOnce returned %d rows written, want 5", n)
+	if n != int64(points) {
+		t.Fatalf("RunOnce returned %d rows written, want %d", n, points)
 	}
-	if got := countForecastRows(t, ctx, pool); got != 5 {
-		t.Fatalf("wind_forecast has %d rows, want 5", got)
+	if got := countForecastRows(t, ctx, pool); got != points {
+		t.Fatalf("wind_forecast has %d rows, want %d", got, points)
 	}
 
 	mu.Lock()
 	got := append([]int(nil), batchSizes...)
 	mu.Unlock()
-	want := []int{2, 2, 1}
 	if len(got) != len(want) {
 		t.Fatalf("batch sizes = %v, want %v", got, want)
 	}
@@ -248,29 +220,14 @@ func TestRunOnceBatchesAtThePointsPerReqBoundary(t *testing.T) {
 		}
 	}
 
-	// Every point-index-derived speed (100..104) must have been stored
-	// exactly once: proof the last, undersized batch was not dropped.
-	rows, err := pool.Query(ctx, `SELECT speed_ms FROM wind_forecast ORDER BY speed_ms`)
-	if err != nil {
-		t.Fatalf("query speeds: %v", err)
+	// Every point-index-derived speed must be stored exactly once: proof the
+	// last, short batch was not dropped.
+	var distinct int
+	if err := pool.QueryRow(ctx, `SELECT count(DISTINCT speed_ms) FROM wind_forecast`).Scan(&distinct); err != nil {
+		t.Fatalf("count distinct speeds: %v", err)
 	}
-	var speeds []float64
-	for rows.Next() {
-		var v float64
-		if err := rows.Scan(&v); err != nil {
-			t.Fatalf("scan speed: %v", err)
-		}
-		speeds = append(speeds, v)
-	}
-	rows.Close()
-	wantSpeeds := []float64{100, 101, 102, 103, 104}
-	if len(speeds) != len(wantSpeeds) {
-		t.Fatalf("stored speeds = %v, want %v", speeds, wantSpeeds)
-	}
-	for i := range wantSpeeds {
-		if speeds[i] != wantSpeeds[i] {
-			t.Fatalf("stored speeds = %v, want %v", speeds, wantSpeeds)
-		}
+	if distinct != points {
+		t.Fatalf("stored %d distinct speeds, want %d", distinct, points)
 	}
 }
 
@@ -279,10 +236,6 @@ func TestRunOnceBatchesAtThePointsPerReqBoundary(t *testing.T) {
 // not be written just because it finished before the cycle was cancelled.
 func TestRunOnceContextCancelledMidBatchStoresNothing(t *testing.T) {
 	ctx, pool, s := migratedStore(t)
-
-	seedFreshSensor(t, ctx, pool, 1, 22.0, 41.0)
-	seedFreshSensor(t, ctx, pool, 2, 23.0, 42.0)
-	seedFreshSensor(t, ctx, pool, 3, 24.0, 43.0)
 
 	runCtx, cancel := context.WithCancel(ctx)
 

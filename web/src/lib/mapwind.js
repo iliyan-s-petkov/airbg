@@ -85,7 +85,7 @@ export async function refreshWind(map, cfg, chrome, state, now = new Date(), fet
 
 // paintWind redraws the arrows for the viewport the map is currently showing.
 //
-// The served field is one national lattice at the snapshot's hex resolution, so
+// The served field is one national lattice at the model's 0.25 degree grid, so
 // drawing it as-is means the arrows thin out as the reader zooms in and are
 // gone entirely over a single neighbourhood — a layer that empties itself looks
 // exactly like a forecast that failed. windField resamples the same vectors
