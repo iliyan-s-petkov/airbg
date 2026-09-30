@@ -5,16 +5,18 @@ import {
 } from '../windstreaks.js'
 
 describe('windfxMode', () => {
-  it('is arrows without the flag', () => expect(windfxMode('', false)).toBe('arrows'))
-  it('is streaks with the flag', () => expect(windfxMode('?windfx=streaks', false)).toBe('streaks'))
+  it('is streaks by default', () => expect(windfxMode('', false)).toBe('streaks'))
+  it('is streaks with the streaks param', () => expect(windfxMode('?windfx=streaks', false)).toBe('streaks'))
+  it('is arrows with the arrows param', () => expect(windfxMode('?windfx=arrows', false)).toBe('arrows'))
   it('falls back to arrows under reduced motion', () => expect(windfxMode('?windfx=streaks', true)).toBe('arrows'))
 })
 
 describe('reduced motion', () => {
   it('keeps the arrows whatever the flag says', () => {
     expect(windfxMode('?windfx=streaks&x=1', true)).toBe('arrows')
-    expect(windfxMode('?windfx=other', false)).toBe('arrows')
+    expect(windfxMode('?windfx=arrows', true)).toBe('arrows')
     expect(windfxMode('', true)).toBe('arrows')
+    expect(windfxMode('?windfx=other', false)).toBe('streaks')
   })
 })
 

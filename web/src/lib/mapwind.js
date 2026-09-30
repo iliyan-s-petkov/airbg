@@ -49,19 +49,19 @@ export async function setWind(map, cfg, chrome, state, on, fetchJSON = getJSON) 
     }
   }
   paintWind(map, state)
-  const streaks = await startStreaksIfAsked(map, cfg, state)
+  const streaks = await startStreaksUnlessOptedOut(map, cfg, state)
   map.setLayoutProperty(WIND_LAYER_ID, 'visibility', streaks ? 'none' : 'visible')
   state.on = true
   chrome.showWind(true, windLabel(state.body, cfg.t))
   return true
 }
 
-// SPIKE #576: ?windfx=streaks swaps the arrows for the canvas streaks. The module is a
-// dynamic import so a page without the flag never downloads it.
-async function startStreaksIfAsked(map, cfg, state) {
+// Streaks replace the arrows unless motion is reduced or ?windfx=arrows. The module is a
+// dynamic import so a page that keeps the arrows never downloads it.
+async function startStreaksUnlessOptedOut(map, cfg, state) {
   if (typeof window === 'undefined' || !map.getCanvasContainer) return false
-  if (new URLSearchParams(window.location.search).get('windfx') !== 'streaks') return false
   const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
+  if (reduced || new URLSearchParams(window.location.search).get('windfx') === 'arrows') return false
   const fx = await import('./windstreaks.js')
   if (fx.windfxMode(window.location.search, reduced) !== 'streaks') return false
   state.streaks?.stop()
