@@ -34,6 +34,24 @@ const mockWind = (page) => page.route('**/api/v1/wind', (route) => route.fulfill
   }),
 }))
 
+// Resolves once the map has a style and its opening camera has stopped. Chrome
+// (wind note, legend) mounts with the map and repaints on the first moveend, so
+// measuring before this races the layout. waitForFunction has no 5s expect cap.
+const mapSettled = (page) => page.waitForFunction(() => {
+  const map = document.querySelector('[data-island="map"]')?.__map
+  return !!map?.isStyleLoaded?.() && !map.isMoving()
+})
+
+// Unhides the wind note and measures it in ONE page-side call: /api/v1/wind's
+// 503 hides it again, so a separate boundingBox() round trip can see it hidden.
+const windNoteBox = (page) => page.evaluate(() => {
+  const el = document.querySelector('.map-wind-label')
+  if (!el) return null
+  el.hidden = false
+  const r = el.getBoundingClientRect()
+  return r.width > 0 && r.height > 0 ? { x: r.x, y: r.y, width: r.width, height: r.height } : null
+})
+
 test.describe('phone layout does not widen the viewport', () => {
   for (const path of ['/en', '/en/area/sofia#sensor=101']) {
     test(`${path} stays at 390px wide`, async ({ mobileCtx }) => {
@@ -185,6 +203,7 @@ test.describe('phone layout does not widen the viewport', () => {
     const page = await mobileCtx.newPage()
     await page.setViewportSize({ width: 390, height: 844 })
     await page.goto('/en')
+    await mapSettled(page)
     // No seeded forecast in this fixture (/api/v1/wind 503s), so force the
     // note visible and closed the same way the attribution test does. Waited
     // for first: chrome.js mounts it once the map island loads, and evaluate
@@ -193,13 +212,7 @@ test.describe('phone layout does not widen the viewport', () => {
     // replace the note between two round trips (see the legend spec above),
     // reverting `hidden` — so this re-sets it on every poll instead of once.
     const note = page.locator('.map-wind-label')
-    await expect.poll(async () => {
-      await page.evaluate(() => {
-        const el = document.querySelector('.map-wind-label')
-        if (el) el.hidden = false
-      })
-      return (await note.boundingBox())?.width ?? 999
-    }).toBeLessThanOrEqual(48)
+    await expect.poll(async () => (await windNoteBox(page))?.width ?? 999).toBeLessThanOrEqual(48)
     await expect(note).not.toHaveAttribute('open', '')
     await page.close()
   })
@@ -211,14 +224,11 @@ test.describe('phone layout does not widen the viewport', () => {
     const page = await mobileCtx.newPage()
     await page.setViewportSize({ width: 390, height: 844 })
     await page.goto('/en')
+    await mapSettled(page)
     const note = page.locator('.map-wind-label')
     const map = page.locator('#map')
     await expect.poll(async () => {
-      await page.evaluate(() => {
-        const el = document.querySelector('.map-wind-label')
-        if (el) el.hidden = false
-      })
-      const box = await note.boundingBox()
+      const box = await windNoteBox(page)
       return box ? Math.max(box.width, box.height) : 999
     }).toBeLessThanOrEqual(44)
     const bg = await note.evaluate((el) => getComputedStyle(el).backgroundColor)
@@ -683,13 +693,10 @@ test.describe('landscape phone keeps the map', () => {
     await new Promise((r) => setTimeout(r, 2000))
     await page.setViewportSize({ width: 844, height: 390 })
     await page.goto('/en')
+    await mapSettled(page)
     const note = page.locator('.map-wind-label')
     await expect.poll(async () => {
-      await page.evaluate(() => {
-        const el = document.querySelector('.map-wind-label')
-        if (el) el.hidden = false
-      })
-      const box = await note.boundingBox()
+      const box = await windNoteBox(page)
       return box ? Math.max(box.width, box.height) : 999
     }).toBeLessThanOrEqual(44)
     await expect(note).not.toHaveAttribute('open', '')
@@ -737,10 +744,13 @@ test.describe('landscape phone keeps the map', () => {
         await page.addInitScript(() => localStorage.removeItem('airbg:legend-open'))
         await page.setViewportSize(vp)
         await page.goto(path)
+        await mapSettled(page)
         const legend = page.locator('.scale--onmap')
         const toggle = legend.locator('.scale__toggle')
         await expect(toggle).toBeVisible()
-        await toggle.click({ force: true })
+        // No force: the click waits for a stable, unobstructed toggle, and a
+        // control left covering it fails here instead of being clicked through.
+        await toggle.click()
         await expect(legend).toHaveAttribute('open', '')
         await expect.poll(async () => (await legend.boundingBox())?.height ?? 0).toBeGreaterThan(0)
         const a = await legend.boundingBox()
