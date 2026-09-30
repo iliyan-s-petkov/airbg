@@ -1324,7 +1324,22 @@ html:has(> body.embed) { block-size: 100%; }
 .about-steps h3 { margin: 0; font-size: var(--text-card); font-weight: var(--weight-body); }
 .about-steps p { margin: 0; color: var(--fg-2); max-inline-size: 60ch; }
 .about-code { margin: 0; padding: var(--space-3) var(--space-4); background: var(--surface-2); border-radius: var(--radius-sm); overflow-x: auto; font: var(--text-caption)/1.5 ui-monospace, monospace; color: var(--fg); }
-@media (min-width: 672px) { .about-steps { grid-template-columns: 1fr 1fr; } }
+.about-shot { margin: 0; }
+.about-shot__img { display: block; inline-size: 100%; block-size: auto; border: 1px solid var(--border-faint); border-radius: var(--radius); }
+.about-shot__img--dark { display: none; }
+/* Same two triggers as the palette: an explicit data-theme, else the OS setting. */
+:root[data-theme="dark"] .about-shot__img--light { display: none; }
+:root[data-theme="dark"] .about-shot__img--dark { display: block; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .about-shot__img--light { display: none; }
+  :root:not([data-theme="light"]) .about-shot__img--dark { display: block; }
+}
+/* Wide: text left, screenshot right, spanning the step's rows. */
+@media (min-width: 672px) {
+  .about-steps li { grid-template-columns: minmax(0, 1fr) minmax(0, 20rem); column-gap: var(--space-6); }
+  .about-steps li > :not(.about-shot) { grid-column: 1; }
+  .about-steps .about-shot { grid-column: 2; grid-row: 1 / span 5; }
+}
 
 .about-promise { display: flex; gap: var(--space-3); align-items: flex-start; background: var(--surface-sel); border-radius: var(--radius); padding: var(--space-4); margin-block-end: var(--space-4); }
 .about-promise svg { flex: none; color: var(--accent); }

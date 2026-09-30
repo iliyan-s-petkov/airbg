@@ -57,18 +57,34 @@
     <li>
       <h3>{{.T "about.start.layers.title"}}</h3>
       <p>{{.T "about.start.layers.body"}}</p>
+      <figure class="about-shot">
+        <img class="about-shot__img about-shot__img--light" src="{{.Static (printf "about/start-layers-%s-light.webp" .Lang)}}" alt="{{.T "about.start.layers.alt"}}" width="560" height="460" loading="lazy" decoding="async">
+        <img class="about-shot__img about-shot__img--dark" src="{{.Static (printf "about/start-layers-%s-dark.webp" .Lang)}}" alt="{{.T "about.start.layers.alt"}}" width="560" height="460" loading="lazy" decoding="async">
+      </figure>
     </li>
     <li>
       <h3>{{.T "about.start.window.title"}}</h3>
       <p>{{.T "about.start.window.body"}}</p>
+      <figure class="about-shot">
+        <img class="about-shot__img about-shot__img--light" src="{{.Static (printf "about/start-window-%s-light.webp" .Lang)}}" alt="{{.T "about.start.window.alt"}}" width="560" height="460" loading="lazy" decoding="async">
+        <img class="about-shot__img about-shot__img--dark" src="{{.Static (printf "about/start-window-%s-dark.webp" .Lang)}}" alt="{{.T "about.start.window.alt"}}" width="560" height="460" loading="lazy" decoding="async">
+      </figure>
     </li>
     <li>
       <h3>{{.T "about.start.areas.title"}}</h3>
       <p>{{.T "about.start.areas.body"}}</p>
+      <figure class="about-shot">
+        <img class="about-shot__img about-shot__img--light" src="{{.Static (printf "about/start-areas-%s-light.webp" .Lang)}}" alt="{{.T "about.start.areas.alt"}}" width="560" height="460" loading="lazy" decoding="async">
+        <img class="about-shot__img about-shot__img--dark" src="{{.Static (printf "about/start-areas-%s-dark.webp" .Lang)}}" alt="{{.T "about.start.areas.alt"}}" width="560" height="460" loading="lazy" decoding="async">
+      </figure>
     </li>
     <li>
       <h3>{{.T "about.start.embed.title"}}</h3>
       <p>{{.T "about.start.embed.body"}}</p>
+      <figure class="about-shot">
+        <img class="about-shot__img about-shot__img--light" src="{{.Static (printf "about/start-embed-%s-light.webp" .Lang)}}" alt="{{.T "about.start.embed.alt"}}" width="560" height="460" loading="lazy" decoding="async">
+        <img class="about-shot__img about-shot__img--dark" src="{{.Static (printf "about/start-embed-%s-dark.webp" .Lang)}}" alt="{{.T "about.start.embed.alt"}}" width="560" height="460" loading="lazy" decoding="async">
+      </figure>
       {{/* The real form: /embed takes a province slug only (docs/embedding.md). */}}
       <pre class="about-code" dir="ltr"><code>&lt;iframe src="https://airbg.org/embed?area=plovdiv-oblast"
         title="airbg.org" width="100%" height="480"
