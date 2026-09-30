@@ -394,6 +394,6 @@
   "wind.about": "About the wind layer",
   "wind.attribution": "Wind forecast · {model} model, {resolution}° grid · valid {time}",
   "wind.credit": "Data: Open-Meteo.com (CC BY 4.0)",
-  "wind.note": "The arrows point where the wind blows and how hard; wind disperses the pollution, still air holds it in place.",
+  "wind.note": "The wind layer shows where the wind blows and how hard; wind disperses the pollution, still air holds it in place.",
   "wind.toggle": "Wind"
 }

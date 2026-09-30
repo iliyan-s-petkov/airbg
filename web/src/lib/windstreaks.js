@@ -1,4 +1,4 @@
-// SPIKE #576: animated wind streaks as a 2D canvas over the map. Opt-in via ?windfx=streaks.
+// Animated wind streaks as a 2D canvas over the map; the default wind rendering (#576). ?windfx=arrows opts out.
 import { arrowBearing } from '../islands/wind.js'
 import contract from './contract.json'
 
@@ -71,10 +71,10 @@ export function stepPx(speedMs, dtMs) {
   return speedMs * SPEED_PX_PER_MS * dtMs
 }
 
-// windfxMode is the flag gate: streaks only when asked for and motion is allowed.
+// windfxMode picks the wind rendering: streaks unless motion is reduced or ?windfx=arrows.
 export function windfxMode(search, reducedMotion) {
-  const asked = new URLSearchParams(search).get('windfx') === 'streaks'
-  return asked && !reducedMotion ? 'streaks' : 'arrows'
+  const optedOut = new URLSearchParams(search).get('windfx') === 'arrows'
+  return optedOut || reducedMotion ? 'arrows' : 'streaks'
 }
 
 // toUV turns served vectors into east/north components of where the air goes.

@@ -83,12 +83,12 @@ Points are batched per request rather than sent as one enormous URL.
 
 ## Rendering
 
-One arrow per hex, rotated to the wind direction, scaled by speed. Not an
-animated particle field: that is a canvas render loop over the whole map with a
-real cost on mobile battery, it needs a static fallback for
-`prefers-reduced-motion` anyway — so the arrows get built either way — and the
-animation's persuasiveness is itself a problem for a layer whose whole risk is
-looking more authoritative than it is.
+By default the layer renders as animated streaks on a canvas over the map
+(`web/src/lib/windstreaks.js`). Under `prefers-reduced-motion: reduce`, or with
+`?windfx=arrows`, it falls back to the static arrows below, so the arrows get
+built either way.
+
+Arrows: one per hex, rotated to the wind direction, scaled by speed.
 
 Direction follows the meteorological convention Open-Meteo uses: the direction
 the wind is coming **from**. The arrow is drawn pointing the way the air is
