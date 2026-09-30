@@ -38,6 +38,34 @@ for (const lang of ['/en', '']) {
   })
 }
 
+// The images are lazy; scrolling each into view is what makes them load.
+for (const [w, h] of [[390, 844], [1280, 800]]) {
+  test(`getting started screenshots load and nothing scrolls sideways at ${w}`, async ({ ctx }) => {
+    const page = await ctx.newPage()
+    await page.setViewportSize({ width: w, height: h })
+    await page.goto('/en/about')
+    const shots = page.locator('#start .about-shot__img--light')
+    await expect(shots).toHaveCount(4)
+    for (let i = 0; i < 4; i++) {
+      await shots.nth(i).scrollIntoViewIfNeeded()
+      await expect.poll(() => shots.nth(i).evaluate((img) => img.naturalWidth)).toBeGreaterThan(0)
+    }
+    const over = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)
+    expect(over).toBeLessThanOrEqual(0)
+    await page.close()
+  })
+}
+
+test('the dark screenshot replaces the light one under an explicit dark theme', async ({ ctx }) => {
+  const page = await ctx.newPage()
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto('/en/about')
+  await page.evaluate(() => { document.documentElement.dataset.theme = 'dark' })
+  await expect(page.locator('#start .about-shot__img--dark').first()).toBeVisible()
+  await expect(page.locator('#start .about-shot__img--light').first()).toBeHidden()
+  await page.close()
+})
+
 test('the visitors chart draws from the seeded days', async ({ ctx }) => {
   const page = await ctx.newPage()
   await page.setViewportSize({ width: 390, height: 844 })

@@ -1,6 +1,7 @@
 package web_test
 
 import (
+	"html"
 	"net/http"
 	"regexp"
 	"strings"
@@ -164,4 +165,54 @@ func TestSitemapListsTheAboutPage(t *testing.T) {
 		}
 	}
 	t.Errorf("sitemap has no /about entry")
+}
+
+var (
+	imgTagRe = regexp.MustCompile(`<img\b[^>]*>`)
+	attrRe   = regexp.MustCompile(`([a-z-]+)="([^"]*)"`)
+)
+
+// Each Getting started step carries a light and a dark screenshot, with
+// alt text, fixed dimensions and a file the embedded static FS really serves.
+func TestAboutStartScreenshots(t *testing.T) {
+	rr := renderer(t, nil)
+	alts := map[string]string{}
+	for _, p := range aboutPaths() {
+		body := fetch(t, rr, p).Body.String()
+		start := body[strings.Index(body, `id="start"`):]
+		start = start[:strings.Index(start, `id="privacy"`)]
+		imgs := imgTagRe.FindAllString(start, -1)
+		if len(imgs) != 8 {
+			t.Fatalf("%s: %d screenshots in #start, want 8 (4 steps x light and dark)", p, len(imgs))
+		}
+		for _, tag := range imgs {
+			a := map[string]string{}
+			for _, m := range attrRe.FindAllStringSubmatch(tag, -1) {
+				a[m[1]] = m[2]
+			}
+			if strings.TrimSpace(a["alt"]) == "" || strings.Contains(a["alt"], "!about.") {
+				t.Errorf("%s: %s has no usable alt", p, tag)
+			}
+			if a["width"] == "" || a["height"] == "" {
+				t.Errorf("%s: %s lacks width or height", p, tag)
+			}
+			if a["loading"] != "lazy" || a["decoding"] != "async" {
+				t.Errorf("%s: %s must be lazy and async-decoded", p, tag)
+			}
+			img := fetch(t, rr, html.UnescapeString(a["src"]))
+			if img.Code != http.StatusOK || img.Body.Len() == 0 || !strings.HasPrefix(img.Header().Get("Content-Type"), "image/webp") {
+				t.Errorf("%s: %s serves %d %q, %d bytes", p, a["src"], img.Code, img.Header().Get("Content-Type"), img.Body.Len())
+			}
+			if img.Body.Len() > 100*1024 {
+				t.Errorf("%s is %d bytes, want under 100 KB", a["src"], img.Body.Len())
+			}
+			if strings.Contains(a["src"], "-bg-") != (p == "/about") {
+				t.Errorf("%s points at the wrong language: %s", p, a["src"])
+			}
+			alts[p] = a["alt"]
+		}
+	}
+	if alts["/about"] == alts["/en/about"] {
+		t.Errorf("bg and en alt text are identical")
+	}
 }
