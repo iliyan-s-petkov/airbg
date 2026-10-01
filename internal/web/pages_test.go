@@ -1,7 +1,9 @@
 package web_test
 
 import (
+	"io/fs"
 	"net/http"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -200,23 +202,32 @@ func TestFaviconIsServedAndDeclared(t *testing.T) {
 	}
 }
 
-// TestMapLibreWorkerFilesAreNotImmutablyCached. These two files are unhashed
-// by necessity (MapLibre resolves them itself at runtime, so their URL must
-// stay fixed across a version bump), which means the usual immutable header
-// would let a stale pair survive for up to a year after a bump — silently,
-// since a mismatched worker produces no console error, just a map that never
-// finishes loading. A short, revalidating TTL bounds that instead.
-func TestMapLibreWorkerFilesAreNotImmutablyCached(t *testing.T) {
+// TestMapLibreWorkerFilesAreHashedAndImmutable. MapLibre names its worker and the
+// worker's shared chunk itself, so the build copies them under content-hashed
+// names; the unhashed names must be gone, or a version bump could leave a stale pair cached.
+func TestMapLibreWorkerFilesAreHashedAndImmutable(t *testing.T) {
 	rr := renderer(t, nil)
 
-	for _, name := range []string{"maplibre-gl-worker.mjs", "maplibre-gl-shared.mjs"} {
-		t.Run(name, func(t *testing.T) {
-			rec := fetch(t, rr, "/static/build/assets/"+name)
-			if rec.Code != http.StatusOK {
-				t.Fatalf("status = %d, want 200 (has `npm run build` been run in web/?)", rec.Code)
+	for _, prefix := range []string{"maplibre-gl-worker", "maplibre-gl-shared"} {
+		t.Run(prefix, func(t *testing.T) {
+			matches, err := fs.Glob(os.DirFS("dist"), "assets/"+prefix+"-*.mjs")
+			if err != nil || len(matches) == 0 {
+				t.Fatalf("no hashed %s in dist (has `npm run build` been run in web/?): %v", prefix, err)
 			}
-			if got, want := rec.Header().Get("Cache-Control"), "public, max-age=300, must-revalidate"; got != want {
-				t.Errorf("Cache-Control = %q, want %q", got, want)
+			for _, m := range matches {
+				if strings.HasSuffix(m, "-dev.mjs") {
+					continue
+				}
+				rec := fetch(t, rr, "/static/build/"+m)
+				if rec.Code != http.StatusOK {
+					t.Fatalf("%s: status = %d, want 200", m, rec.Code)
+				}
+				if got := rec.Header().Get("Cache-Control"); got != "public, max-age=31536000, immutable" {
+					t.Errorf("%s: Cache-Control = %q, want %q", m, got, "public, max-age=31536000, immutable")
+				}
+			}
+			if rec := fetch(t, rr, "/static/build/assets/"+prefix+".mjs"); rec.Code != http.StatusNotFound {
+				t.Errorf("unhashed %s.mjs still served: status = %d", prefix, rec.Code)
 			}
 		})
 	}

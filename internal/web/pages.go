@@ -3,7 +3,6 @@ package web
 import (
 	"io/fs"
 	"net/http"
-	"path"
 	"slices"
 	"sort"
 	"strconv"
@@ -17,30 +16,10 @@ import (
 const (
 	immutableCacheControl = "public, max-age=31536000, immutable"
 
-	// shortRevalidateCacheControl is what anything unhashed gets: the two
-	// mapLibreUnhashedAssets below, and any /static/ URL that arrives without
+	// shortRevalidateCacheControl is what a /static/ URL gets when it arrives without
 	// the current content stamp (see staticAssetCacheControl).
 	shortRevalidateCacheControl = "public, max-age=300, must-revalidate"
 )
-
-// mapLibreUnhashedAssets names the two files web/vite.config.js's
-// copyMapLibreWorker plugin copies into dist/assets/ under fixed, unhashed
-// names (kept in sync by hand with that plugin's own list — there is no
-// build-time link between the two, so a rename on either side needs both
-// updated). They are unhashed by necessity, not oversight: MapLibre resolves
-// each of them itself at runtime via `new URL('./name.mjs', import.meta.url)`,
-// so the request URL has to stay fixed across a maplibre-gl version bump.
-//
-// That is exactly why they cannot be served with the immutable, one-year
-// Cache-Control the rest of /static/build/ gets. A version bump changes their
-// content without changing their URL; a returning visitor with the old pair
-// cached would get a mismatched worker for up to a year, and the failure is
-// silent — no console error, the map's style/source simply never finishes
-// loading. A short, revalidating TTL bounds that window instead.
-var mapLibreUnhashedAssets = []string{
-	"maplibre-gl-worker.mjs",
-	"maplibre-gl-shared.mjs",
-}
 
 // Routes returns the page routes plus the embedded static assets.
 //
@@ -99,9 +78,8 @@ func (rr *Renderer) handlers() map[string]http.Handler {
 
 	// Content-hashed bundles: cacheable forever, because the name changes when
 	// the content does. This is the payoff for `manifest: true` in the Vite
-	// config; without it the hashing buys nothing. The two MapLibre worker
-	// files under the same tree are the deliberate exception — see
-	// buildAssetCacheControl and mapLibreUnhashedAssets.
+	// config; without it the hashing buys nothing. The MapLibre worker files are
+	// hashed by the copy-maplibre-gl-worker plugin, so they fall under it too.
 	h["GET /static/build/"] = http.StripPrefix("/static/build/",
 		noDirList(buildAssetCacheControl(http.FileServer(http.FS(distSubFS())))))
 
@@ -420,26 +398,11 @@ func distSubFS() fs.FS {
 	return sub
 }
 
-// buildAssetCacheControl gives /static/build/ its header: every
-// asset gets immutableCacheControl except the exact basenames listed in
-// mapLibreUnhashedAssets, which get shortRevalidateCacheControl instead.
-//
-// Matched on the exact basename, not a prefix or a ".mjs" extension glob.
-// Vite hashes some of its own emitted chunks with a ".mjs" extension too — an
-// extension or prefix match would silently strip immutable caching from those
-// as well, which is a correctness regression this function exists to avoid,
-// not just an unrelated cleanliness concern.
+// buildAssetCacheControl gives /static/build/ its header: every file there is
+// content-hashed, so all of it is immutable.
 func buildAssetCacheControl(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		value := immutableCacheControl
-		base := path.Base(r.URL.Path)
-		for _, name := range mapLibreUnhashedAssets {
-			if base == name {
-				value = shortRevalidateCacheControl
-				break
-			}
-		}
-		w.Header().Set("Cache-Control", value)
+		w.Header().Set("Cache-Control", immutableCacheControl)
 		next.ServeHTTP(w, r)
 	})
 }

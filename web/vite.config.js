@@ -1,43 +1,36 @@
 import { svelte } from '@sveltejs/vite-plugin-svelte'
-import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
+import { createHash } from 'node:crypto'
 import path from 'node:path'
 import { gzipSync } from 'node:zlib'
 
-// MapLibre GL JS ships its tiling/parsing work in a SEPARATE worker script
-// (maplibre-gl-worker.mjs) that it loads itself at runtime via
-// `new URL('./maplibre-gl-worker.mjs', import.meta.url)` — a pattern baked
-// into MapLibre's own pre-built bundle, invisible to Rollup's static import
-// analysis, so `vite build` never picks it up as an asset to emit. Caught by
-// hand verification: no console error (Worker() failures are silent unless
-// you attach an 'error' listener, which MapLibre does not for this), no
-// visible symptom beyond an empty map — the network tab was the only place
-// the 404 for GET /static/build/assets/maplibre-gl-worker.mjs showed up.
-// The worker script itself then imports a second file the same way
-// (maplibre-gl-shared.mjs, code shared between the main thread and the
-// worker) — that 404 only appeared once the first one was fixed and the
-// worker script actually started running.
-//
-// Fixed by copying both files into dist/assets/ ourselves, under the exact
-// unhashed names MapLibre computes relative to its own chunk's/worker's URL —
-// neither is content-addressed like every other asset here, so a maplibre-gl
-// version bump needs these files' content to change without the request URL
-// changing; the immutable Cache-Control this project applies to the whole
-// /static/build/ tree (see internal/web/pages.go) will hide that change
-// behind a stale cache until the max-age expires. A real gap, accepted here
-// because MapLibre pins an exact version and upgrades are a deliberate,
-// infrequent event — not something this task should solve by making two files
-// under an otherwise-uniform tree behave differently.
+// MapLibre loads its worker and the worker's shared chunk by fixed names baked into its own bundle, so Rollup never emits them.
+// Copied here under content-hashed names with the references rewritten, so they cache as immutable like every other asset.
+function hashed(name, bytes) {
+  const sum = createHash('sha256').update(bytes).digest('base64url').slice(0, 8)
+  return name.replace(/\.mjs$/, `-${sum}.mjs`)
+}
+
 function copyMapLibreWorker() {
   return {
     name: 'copy-maplibre-gl-worker',
     closeBundle() {
       const destDir = path.resolve('../internal/web/dist/assets')
       mkdirSync(destDir, { recursive: true })
-      for (const name of ['maplibre-gl-worker.mjs', 'maplibre-gl-shared.mjs']) {
-        copyFileSync(
-          path.resolve('node_modules/maplibre-gl/dist', name),
-          path.join(destDir, name),
-        )
+      const src = (name) => path.resolve('node_modules/maplibre-gl/dist', name)
+      // Shared first: the worker names it, so the worker's hash covers the shared hash.
+      const shared = readFileSync(src('maplibre-gl-shared.mjs'))
+      const sharedName = hashed('maplibre-gl-shared.mjs', shared)
+      writeFileSync(path.join(destDir, sharedName), shared)
+      const worker = readFileSync(src('maplibre-gl-worker.mjs'), 'utf8').replaceAll('maplibre-gl-shared.mjs', sharedName)
+      const workerName = hashed('maplibre-gl-worker.mjs', worker)
+      writeFileSync(path.join(destDir, workerName), worker)
+      for (const f of readdirSync(destDir)) {
+        if (!/^map-.*\.js$/.test(f)) continue
+        const chunk = readFileSync(path.join(destDir, f), 'utf8')
+        const out = chunk.replaceAll('`maplibre-gl-worker.mjs`', '`' + workerName + '`')
+        if (out === chunk) throw new Error(`${f}: no maplibre-gl-worker.mjs reference to rewrite, the worker would 404`)
+        writeFileSync(path.join(destDir, f), out)
       }
     },
   }

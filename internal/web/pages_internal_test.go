@@ -39,7 +39,7 @@ func TestNoDirListRefusesDotPrefixedSegments(t *testing.T) {
 		{"/static/.env", http.StatusNotFound},
 		{"assets/main-BFfKsolS.js", http.StatusOK},
 		{"assets/map-CKRTiAqP.css", http.StatusOK},
-		{"assets/maplibre-gl-worker.mjs", http.StatusOK},
+		{"assets/maplibre-gl-worker-Xc3kc7aI.mjs", http.StatusOK},
 		{"/static/app.css", http.StatusOK},
 	} {
 		t.Run(tc.path, func(t *testing.T) {
@@ -50,26 +50,6 @@ func TestNoDirListRefusesDotPrefixedSegments(t *testing.T) {
 
 			if rec.Code != tc.want {
 				t.Errorf("%q: status = %d, want %d", tc.path, rec.Code, tc.want)
-			}
-		})
-	}
-}
-
-// TestBuildAssetCacheControlPicksTheUnhashedMapLibreFiles is mutation target 1
-// from the fix-round review: delete the special case in buildAssetCacheControl
-// (or empty out mapLibreUnhashedAssets) and this fails, because every request
-// falls through to immutableCacheControl.
-func TestBuildAssetCacheControlPicksTheUnhashedMapLibreFiles(t *testing.T) {
-	h := buildAssetCacheControl(noopHandler)
-
-	for _, name := range mapLibreUnhashedAssets {
-		t.Run(name, func(t *testing.T) {
-			req := httptest.NewRequest(http.MethodGet, "/assets/"+name, nil)
-			rec := httptest.NewRecorder()
-			h.ServeHTTP(rec, req)
-
-			if got, want := rec.Header().Get("Cache-Control"), shortRevalidateCacheControl; got != want {
-				t.Errorf("Cache-Control = %q, want %q", got, want)
 			}
 		})
 	}
