@@ -930,19 +930,20 @@ html:has(> body.embed) { block-size: 100%; }
     /* The (i) is a 24px background-image; grown to 44px it tiled 2x2. */
     background-repeat: no-repeat; background-position: center;
   }
-  /* Collapsed: the container is just the 44px button, no second box. Open: one
-     card holding the button and the text. The (i) is a glyph in --fg because
-     the stock icon is black-only. */
+  /* The container is always just the 44px button. The text opens as its own
+     card above the bottom control row, so it covers neither the legend nor the
+     locate and wind buttons. Its width stops short of the playback card at the
+     start edge, and the text wraps inside it. The (i) is a glyph in --fg
+     because the stock icon is black-only. */
   .maplibregl-ctrl-bottom-right { margin-inline-end: calc(var(--space-2) + 44px + var(--space-2)); margin-block-end: var(--space-2); }
   .maplibregl-ctrl-bottom-right .maplibregl-ctrl-attrib.maplibregl-compact {
-    margin: 0; padding: 0; min-block-size: 44px; background: none; box-sizing: border-box;
+    position: relative; margin: 0; padding: 0; inline-size: 44px; block-size: 44px;
+    min-block-size: 44px; background: none; box-sizing: border-box;
   }
-  .maplibregl-ctrl-bottom-right .maplibregl-ctrl-attrib.maplibregl-compact:not(.maplibregl-compact-show) {
-    inline-size: 44px; block-size: 44px;
-  }
-  .maplibregl-ctrl-bottom-right .maplibregl-ctrl-attrib.maplibregl-compact-show {
-    display: flex; align-items: center; padding-block: 0; padding-inline: var(--space-3) 44px;
-    max-inline-size: calc(100vw - 7rem);
+  .maplibregl-ctrl-bottom-right .maplibregl-ctrl-attrib.maplibregl-compact-show .maplibregl-ctrl-attrib-inner {
+    position: absolute; inset-inline-end: 0; inset-block-end: calc(100% + var(--space-2));
+    inline-size: max-content; max-inline-size: max(9rem, calc(100vw - 7.5rem - 120px));
+    padding: var(--space-2) var(--space-3); line-height: 1.3; text-align: start;
     background: var(--bg); color: var(--fg); border-radius: var(--radius); box-shadow: var(--elev-raised);
   }
   .maplibregl-ctrl-bottom-right .maplibregl-ctrl-attrib a { color: var(--fg-2); }
@@ -950,7 +951,6 @@ html:has(> body.embed) { block-size: 100%; }
     background-image: none; background-color: var(--bg); box-shadow: var(--elev-raised);
     border-radius: var(--radius); color: var(--fg); padding: 0; text-align: center; line-height: 44px;
   }
-  .maplibregl-ctrl-bottom-right .maplibregl-compact-show .maplibregl-ctrl-attrib-button { box-shadow: none; flex: none; }
   .maplibregl-ctrl-bottom-right .maplibregl-ctrl-attrib-button::before { content: 'ⓘ'; font-size: 1.25rem; }
   /* Task 7c: closed card was fit-content sizing plus tap-target padding
      stacking (see task-7c-report.md); icon-only now, above .map-locate. */

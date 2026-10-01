@@ -139,6 +139,43 @@ test.describe('U01: the phone bottom-right corner', () => {
   })
 })
 
+// The open attribution card must stay clear of every other control in the
+// corner and along the bottom edge, in both themes and both languages (the
+// Bulgarian text is the longer one).
+test.describe('U01: the open attribution card overlaps nothing', () => {
+  for (const theme of ['light', 'dark']) {
+    for (const lang of ['/en', '/']) {
+      test(`${theme} ${lang}`, async ({ phoneCtx }) => {
+        const page = await phoneCtx.newPage()
+        await mockWind(page)
+        await withTheme(page, theme)
+        await page.setViewportSize({ width: 390, height: 844 })
+        await page.goto(lang)
+        await page.waitForSelector('.maplibregl-ctrl-attrib')
+        await page.locator('.maplibregl-ctrl-attrib-button').click()
+        await expect(page.locator('.maplibregl-ctrl-attrib')).toHaveClass(/maplibregl-compact-show/)
+        const rects = await page.evaluate(() => {
+          const r = (el) => { const b = el.getBoundingClientRect(); return { l: b.left, t: b.top, r: b.right, b: b.bottom, w: b.width, h: b.height } }
+          const card = document.querySelector('.maplibregl-ctrl-attrib-inner')
+          const others = ['.scale--onmap', '.map-freshness', '.map-play', '.map-locate', '.map-wind-label__toggle', '.maplibregl-ctrl-attrib-button']
+          const found = {}
+          for (const s of others) {
+            const el = document.querySelector(s)
+            if (el && el.getBoundingClientRect().width > 0) found[s] = r(el)
+          }
+          return { card: r(card), found }
+        })
+        expect(rects.card.w).toBeGreaterThan(0)
+        expect(Object.keys(rects.found)).toEqual(expect.arrayContaining(['.scale--onmap', '.map-locate', '.maplibregl-ctrl-attrib-button']))
+        for (const [sel, o] of Object.entries(rects.found)) {
+          const hit = rects.card.l < o.r && rects.card.r > o.l && rects.card.t < o.b && rects.card.b > o.t
+          expect(hit, `${sel} overlaps the open attribution`).toBe(false)
+        }
+      })
+    }
+  }
+})
+
 test.describe('U02: the open wind note on a phone', () => {
   test('is opaque and sits above the playback bar', async ({ phoneCtx }) => {
     const page = await phoneCtx.newPage()
