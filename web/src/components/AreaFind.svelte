@@ -121,7 +121,9 @@
        open list, a screen-reader user does not, and a visible line of
        instructions under a search field is clutter for both. -->
   <span class="sr-only" id="{id}-hint">{hint}</span>
-  <ul class="combobox__list" id={listId} role="listbox" hidden={!open}>
+  <!-- tabindex -1: the list scrolls, so it would otherwise be a Tab stop that
+       hides itself while focused. A press on it must not take focus either. -->
+  <ul class="combobox__list" id={listId} role="listbox" tabindex="-1" hidden={!open} onmousedown={(e) => e.preventDefault()}>
     {#if matches.length === 0}
       <!-- An absence stated plainly, not an error: typing a name this network
            has no area for is an ordinary thing to do. -->
@@ -137,7 +139,7 @@
           role="option"
           aria-selected={i === active}
           onmousedown={(e) => { e.preventDefault(); pick(match) }}
-        >{parts.before}<mark>{parts.hit}</mark>{parts.after}</li>
+        ><span class="combobox__text">{parts.before}<mark>{parts.hit}</mark>{parts.after}</span></li>
       {/each}
     {/if}
   </ul>

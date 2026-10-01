@@ -197,6 +197,22 @@ describe('mount() gives the camera a reachable floor', () => {
   })
 })
 
+describe('mount() passes MapLibre its UI strings from the catalogue', () => {
+  beforeEach(() => { resetViewStateForTests() })
+  afterEach(() => { resetViewStateForTests() })
+
+  it('sets the canvas name and the attribution toggle from the server-rendered strings', () => {
+    const { map } = mountTestMap({
+      metric: 'P2',
+      dataset: { tMapTitle: 'Карта на качеството на въздуха', tAttributionToggle: 'Показване на източниците' },
+    })
+    expect(map.options.locale).toMatchObject({
+      'Map.Title': 'Карта на качеството на въздуха',
+      'AttributionControl.ToggleAttribution': 'Показване на източниците',
+    })
+  })
+})
+
 // The hex layer's wiring, as opposed to its logic: refreshHexes is tested
 // directly further down, but nothing there proves mount() ever calls it. These
 // two assert the layer is actually driven — once on load, again when the

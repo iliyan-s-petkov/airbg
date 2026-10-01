@@ -188,4 +188,27 @@ describe('AreaFind.svelte', () => {
     const e = await key(t, 'Escape')
     expect(e.defaultPrevented).toBe(false)
   })
+  // The listbox scrolls, so a browser would make it a Tab stop; it then hides
+  // while focused and focus falls to <body>. Out of the tab order, and a press
+  // on it (its scrollbar) must not pull focus off the input.
+  it('keeps the listbox out of the tab order and off the focus path', async () => {
+    const t = render()
+    await type(t, 'в')
+    const list = t.querySelector('ul.combobox__list')
+    expect(list.getAttribute('tabindex')).toBe('-1')
+    const down = new MouseEvent('mousedown', { bubbles: true, cancelable: true })
+    list.dispatchEvent(down)
+    expect(down.defaultPrevented).toBe(true)
+  })
+
+  // The option is a flex row in the kit (name + trailing value); bare text and
+  // <mark> would be separate flex items with a gap, splitting the word.
+  it('wraps the highlighted name in one element so the match does not split', async () => {
+    const t = render()
+    await type(t, 'вар')
+    const li = opts(t)[0]
+    expect(li.children.length).toBe(1)
+    expect(li.children[0].querySelector('mark')).not.toBeNull()
+    expect(li.textContent).toBe('Варна')
+  })
 })
