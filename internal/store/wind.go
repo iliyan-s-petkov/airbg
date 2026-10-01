@@ -7,7 +7,10 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-// WindForecast is one hex's forecast at one hour, as written.
+// WindForecast is one wind lattice point's forecast at one hour, as written.
+//
+// Q and R are the lattice index (lon, lat in 0.25 degree units) and live in
+// the hex_q and hex_r columns.
 //
 // Declared here rather than taking internal/wind's type: that package fetches,
 // and it needs the store to write what it fetched. One of the two directions
@@ -20,7 +23,7 @@ type WindForecast struct {
 	Direction float64
 }
 
-// WindVector is one hex's forecast as the API serves it.
+// WindVector is one wind lattice point's forecast as the API serves it.
 type WindVector struct {
 	Q, R      int
 	SpeedMS   float64

@@ -15,14 +15,15 @@ import (
 	"airbg.org/internal/config"
 )
 
-// Point is a place to ask about, carrying the hex it belongs to so the answer
-// can be stored without matching on coordinates. See docs/wind-overlay.md.
+// Point is a place to ask about, carrying its lattice index (Q lon, R lat, in
+// 0.25 degree units) so the answer can be stored without matching on
+// coordinates. See docs/wind-overlay.md.
 type Point struct {
 	Q, R     int
 	Lon, Lat float64
 }
 
-// Forecast is one hex's wind at one hour.
+// Forecast is one lattice point's wind at one hour.
 type Forecast struct {
 	Q, R      int
 	ValidAt   time.Time
@@ -112,7 +113,7 @@ func (c *Client) requestURL(points []Point) string {
 // normaliseDirection folds the API's 0-360 into the half-open 0-360 the stored
 // row requires: the model reports a due northerly as 360, and wind_forecast's
 // own CHECK is direction_deg < 360, so an unfolded 360 aborted the entire write
-// batch — one hex an hour out of a few hundred took the whole cycle down.
+// batch — one point an hour out of a few hundred took the whole cycle down.
 //
 // A bearing is modular, so this loses nothing: 360 and 0 name the same
 // direction. Folded here, where the provider's convention already lives, rather
@@ -129,9 +130,8 @@ func normaliseDirection(deg float64) float64 {
 // Parse maps a response onto the points that produced it, by position.
 //
 // Position is the only correct join. The coordinates in the response are the
-// model's grid cell, not the ones asked for, and at 0.25° several hexes share
-// one cell — so matching on coordinates would attach one hex's answer to
-// another's, or find no match at all. A length mismatch is an error rather than
+// model's grid cell, not the ones asked for, and the coordinates returned are the model's snapped cell, not the ones
+// asked for — so matching on coordinates could find no match at all. A length mismatch is an error rather than
 // a truncation, because a shifted array silently misplaces every vector.
 func Parse(payload []byte, points []Point) ([]Forecast, error) {
 	var series []apiSeries

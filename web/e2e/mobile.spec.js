@@ -28,7 +28,7 @@ const mockWind = (page) => page.route('**/api/v1/wind', (route) => route.fulfill
     valid_at: new Date().toISOString(),
     model: 'Test Model',
     model_resolution_deg: 0.25,
-    resolution_km: 15,
+    resolution_km: 25,
     forecast: true,
     vectors: [{ lon: 23.3, lat: 42.68, speed_ms: 3.2, direction_deg: 180 }],
   }),

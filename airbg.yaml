@@ -183,8 +183,8 @@ wind:
   enabled: true
   url: "https://api.open-meteo.com/v1/forecast"
   model: "ecmwf_ifs025"
-  # The model's grid, shown on the overlay: coarser than our 15 km hexes, so
-  # neighbouring arrows repeat. Naming it is how the map admits the upsampling.
+  # The model's grid, shown on the overlay. The served lattice is this grid
+  # (internal/snapshot/windgrid.go), so it must match the model.
   resolution_deg: 0.25
   request_timeout: "30s"
   poll_interval: "1h"

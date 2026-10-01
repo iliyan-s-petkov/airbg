@@ -28,8 +28,8 @@ export function windFeatures(body) {
   }))
 }
 
-// The served field is a fixed national lattice at the snapshot's own hex
-// resolution. Zoom past a city and the viewport holds one vector, then none,
+// The served field is a fixed national lattice at the model's 0.25 degree grid
+// (WindGridKM on the server). Zoom past a city and the viewport holds one vector, then none,
 // and a layer the reader switched on empties itself — which from the outside
 // looks exactly like the forecast having failed.
 //
@@ -38,7 +38,7 @@ export function windFeatures(body) {
 // speeds and directions no forecast reported, and the arrows would stop being
 // the model's answer. Repetition is the honest artefact, and the disclosure
 // already names the model's own grid as the thing to judge the detail by.
-export const WIND_SERVED_SPACING_KM = 15
+export const WIND_SERVED_SPACING_KM = 25
 const WIND_ARROW_PX = 64
 export const WIND_FIELD_MAX = 600
 

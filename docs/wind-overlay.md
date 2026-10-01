@@ -1,7 +1,7 @@
 # The wind overlay
 
-An optional map layer showing forecast wind on the same hex grid the PM
-aggregate uses. It is the only layer in this application that is **not a
+An optional map layer showing forecast wind on the model's own 0.25 degree
+grid over Bulgaria. It is the only layer in this application that is **not a
 measurement**, and most of the decisions below exist to keep that distinction
 visible rather than convenient.
 
@@ -41,17 +41,16 @@ dependency.
 The response is a JSON array, one object per requested point, in the order
 requested. Each object's `latitude`/`longitude` are the *model grid cell* the
 point fell into, not what was asked for: request 42.7/23.3 and the answer says
-42.75/23.25. Matching responses to hexes by coordinate therefore does not work
-— several hexes legitimately share one cell, and none of them matches exactly.
+42.75/23.25. Matching responses to points by coordinate therefore does not work
+— the answer names the snapped cell, which need not equal the request.
 The client keys results by **request index** and asserts the array length
 matches the request. `TestResponseIsKeyedByIndexNotCoordinate` pins this.
 
-**The model is coarser than our grid.** `ecmwf_ifs025` is a 0.25° grid, roughly
-25 km at this latitude, against our 15 km hexes. Neighbouring hexes will often
-carry identical vectors because they are reading the same cell. This is
-upsampling and the overlay says so: the on-map label names the model and its
-resolution, so a user who sees a block of identical arrows can tell that is the
-model's grid rather than a suspiciously uniform wind.
+**The lattice is the model's grid.** `ecmwf_ifs025` is a 0.25° grid, about
+20 km east-west and 28 km north-south at this latitude. The queried points are
+multiples of 0.25°, so each one is a distinct native cell and nothing is
+upsampled on the server. The on-map label names the model and its resolution.
+The payload's `resolution_km` is the nominal lattice spacing (25).
 
 ## Storage
 
@@ -62,11 +61,12 @@ own database, and a fetch failure degrades to stale data with an honest
 timestamp rather than to nothing.
 
 Migration `00010` adds a `wind_forecast` hypertable keyed by `(hex_q, hex_r,
-valid_at)`. It is keyed by **axial hex coordinate, not by centre lon/lat**: the
-centre is a computed float that moves if `HexResolutionKM` or `hexRefLat` ever
-changes, whereas the axial pair is the grid's own identity. When the resolution
-does change the stored rows become meaningless, which is why the migration
-records the resolution they were written at.
+valid_at)`. The columns keep their original names but now hold the **lattice
+index**: `hex_q` is longitude and `hex_r` is latitude in units of 0.25°
+(`21.75E 42.75N` is `87, 171`). An integer index is the grid's identity where a
+float centre is not. The table records the resolution rows were written at, and
+reads filter on it: rows from the former 15 km hex grid (`resolution_km = 15`)
+are ignored and age out with the retention policy.
 
 Retention is short. A forecast that has been superseded is not history worth
 keeping — we keep enough to serve the current overlay and to see what the model
@@ -74,12 +74,14 @@ said versus what the PM did, and no more.
 
 ## Which points get queried
 
-The hexes in the current snapshot, and only those. The grid is not a fixed
-tiling of the region: hexes exist where sensors exist, so the query set is
-around 300 points and changes slowly. Querying a fixed national grid would mean
-fetching wind for empty countryside that no overlay will ever draw.
+A fixed lattice over Bulgaria's bounding box plus a 0.5° margin, independent of
+which sensors exist (`snapshot.WindLattice`): longitude 21.75-29.25, latitude
+40.75-44.75, 31 x 17 = 527 points. The margin is there so the borders and the
+Black Sea coast have wind. A sensor-driven set left the Danube plain and the
+north-east thin or empty.
 
-Points are batched per request rather than sent as one enormous URL.
+Points are batched per request (`points_per_request`, 100), so a collection is
+6 requests, once an hour.
 
 ## Rendering
 
@@ -88,7 +90,7 @@ By default the layer renders as animated streaks on a canvas over the map
 `?windfx=arrows`, it falls back to the static arrows below, so the arrows get
 built either way.
 
-Arrows: one per hex, rotated to the wind direction, scaled by speed.
+Arrows: one per lattice point, rotated to the wind direction, scaled by speed.
 
 Direction follows the meteorological convention Open-Meteo uses: the direction
 the wind is coming **from**. The arrow is drawn pointing the way the air is
