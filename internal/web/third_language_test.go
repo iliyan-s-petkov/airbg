@@ -148,8 +148,8 @@ func TestSwitcherFlagsTheLanguagesThatShipOne(t *testing.T) {
 	body := fetch(t, rr, "/area/sofia").Body.String()
 
 	for _, want := range []string{
-		`<img src="/static/flags/bg.svg"`,
-		`<img src="/static/flags/en.svg"`,
+		`<img src="/static/flags/bg.svg?v=`,
+		`<img src="/static/flags/en.svg?v=`,
 	} {
 		if !strings.Contains(body, want) {
 			t.Errorf("the switcher is missing %s", want)

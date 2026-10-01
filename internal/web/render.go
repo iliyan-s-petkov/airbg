@@ -585,14 +585,14 @@ type langLink struct {
 	Current bool
 }
 
-// langFlag returns the served path of a language's flag, or "" when the
-// checkout ships none for it.
-func langFlag(lang string) string {
-	name := "static/flags/" + lang + ".svg"
-	if _, err := staticFS.Open(name); err != nil {
+// flagURL returns the content-stamped URL of a language's flag, or "" when the
+// checkout ships none for it. Stamped so it is served immutable like app.css.
+func (p PageData) flagURL(lang string) string {
+	name := "flags/" + lang + ".svg"
+	if _, err := staticFS.Open("static/" + name); err != nil {
 		return ""
 	}
-	return "/" + name
+	return p.static.URL(name)
 }
 
 // SilentAreas counts the rows the table prints with no reading. Derived from
@@ -843,7 +843,7 @@ func (p PageData) LangLinks() []langLink {
 			URL:     other.BaseURL + other.Path(p.RequestPath),
 			Name:    p.cat.T(lang, "lang.name"),
 			Code:    p.cat.T(lang, "lang.code"),
-			Flag:    langFlag(lang),
+			Flag:    p.flagURL(lang),
 			Current: lang == p.Lang,
 		})
 	}

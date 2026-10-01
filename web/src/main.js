@@ -58,10 +58,46 @@ export async function runIsland(el, load, log = console.error) {
   }
 }
 
-// Two rAFs: a single rAF callback runs before its frame paints.
+// Upper bound on waiting for the FCP entry; a hidden tab never paints, and must still mount.
+export const FCP_WAIT_MAX_MS = 2000
+
+// Runs callback on a fresh task once first-contentful-paint is recorded, so the map chunk request starts after FCP rather than racing it.
+export function whenFirstPaintReported(
+  callback,
+  perf = globalThis.performance,
+  Observer = globalThis.PerformanceObserver,
+  timer = globalThis.setTimeout,
+  clear = globalThis.clearTimeout,
+) {
+  if (perf?.getEntriesByName?.('first-contentful-paint').length) {
+    timer(callback, 0)
+    return
+  }
+  if (!Observer?.supportedEntryTypes?.includes('paint')) {
+    callback()
+    return
+  }
+  let done = false
+  let obs
+  let fallback
+  const run = () => {
+    if (done) return
+    done = true
+    obs?.disconnect()
+    clear(fallback)
+    timer(callback, 0)
+  }
+  obs = new Observer((list) => {
+    if (list.getEntriesByName('first-contentful-paint').length) run()
+  })
+  obs.observe({ type: 'paint', buffered: true })
+  fallback = timer(run, FCP_WAIT_MAX_MS)
+}
+
+// Two rAFs: a single rAF callback runs before its frame paints; then the FCP entry is awaited.
 export function scheduleAfterFirstPaint(callback, raf = globalThis.requestAnimationFrame) {
   if (typeof raf === 'function') {
-    raf(() => raf(callback))
+    raf(() => raf(() => whenFirstPaintReported(callback)))
   } else {
     setTimeout(callback, 0)
   }

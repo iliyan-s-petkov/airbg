@@ -69,8 +69,15 @@ for (const vp of VIEWPORTS) {
 
         const cue = page.locator('a.scroll-cue')
         await expect(cue).toBeVisible()
+        // The map island mounts after FCP and can still shift the cue; measure once it straddles the map edge.
+        const mapEl = page.locator('#map, #area-map').first()
+        await expect.poll(async () => {
+          const b = await cue.boundingBox()
+          const m = await mapEl.boundingBox()
+          return Math.abs(b.y - (m.y + m.height))
+        }).toBeLessThanOrEqual(2)
         const box = await cue.boundingBox()
-        const map = await page.locator('#map, #area-map').first().boundingBox()
+        const map = await mapEl.boundingBox()
 
         // Fully inside the first viewport.
         expect(box.y).toBeGreaterThanOrEqual(0)
