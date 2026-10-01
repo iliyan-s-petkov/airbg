@@ -104,7 +104,7 @@
        read — the rest of the footer is 12px caption. */}}
   <p class="footer__sponsor">{{.T "footer.hosting"}}
     <a class="link" href="https://hostellation.com/" rel="noopener noreferrer">Hostellation</a></p>
-  {{if not .GeneratedAt.IsZero}}<p>{{.T "area.updated"}}: <time datetime="{{.GeneratedAtISO}}">{{.GeneratedAtHuman}}</time></p>{{end}}
+  {{if not .GeneratedAt.IsZero}}<p>{{.T "area.updated"}}: <time datetime="{{.GeneratedAtISO}}" data-local-time>{{.GeneratedAtHuman}}</time></p>{{end}}
   </div>
 </footer>
 {{with .Assets.Script "main"}}<script type="module" src="{{.}}"></script>

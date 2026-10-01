@@ -86,3 +86,17 @@ test.describe('attribution toggle glyph', () => {
     expect((await btn.getAttribute('aria-label')) || '').not.toBe('')
   })
 })
+
+test.describe('footer snapshot time in local time', () => {
+  test('is rewritten from UTC to the browser zone', async ({ browser }) => {
+    const context = await browser.newContext({ timezoneId: 'Asia/Tokyo', locale: 'en-GB' })
+    const page = await context.newPage()
+    await page.goto('/en')
+    const el = page.locator('footer time[data-local-time]')
+    const iso = await el.getAttribute('datetime')
+    await expect(el).not.toContainText('UTC')
+    const fmt = new Intl.DateTimeFormat('en', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone: 'Asia/Tokyo' })
+    await expect(el).toContainText(fmt.format(new Date(iso)))
+    await context.close()
+  })
+})

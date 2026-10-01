@@ -140,3 +140,12 @@ func TestLanguageMenuCarriesAboutAndSourceLinks(t *testing.T) {
 		}
 	}
 }
+
+// The footer's snapshot time keeps a UTC fallback for no-JS and marks itself for the local-time rewrite.
+func TestFooterTimeCarriesUTCFallbackAndLocalMarker(t *testing.T) {
+	body := fetch(t, renderer(t, fixture(t)), "/en/").Body.String()
+	want := `<time datetime="2026-08-09T12:00:00Z" data-local-time>2026-08-09 12:00 UTC</time>`
+	if !strings.Contains(body, want) {
+		t.Errorf("footer time: want %s", want)
+	}
+}
