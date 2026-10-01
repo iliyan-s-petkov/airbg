@@ -165,6 +165,10 @@ test.describe('U01: the open attribution card overlaps nothing', () => {
           }
           return { card: r(card), found }
         })
+        // MapLibre dims the open toggle to a 5% wash; it has to stay a card.
+        const toggleBg = await page.locator('.maplibregl-ctrl-attrib-button').evaluate((el) => getComputedStyle(el).backgroundColor)
+        const alpha = toggleBg.match(/[\d.]+/g).length > 3 ? Number(toggleBg.match(/[\d.]+/g)[3]) : 1
+        expect(alpha, toggleBg).toBeGreaterThanOrEqual(0.9)
         expect(rects.card.w).toBeGreaterThan(0)
         expect(Object.keys(rects.found)).toEqual(expect.arrayContaining(['.scale--onmap', '.map-locate', '.maplibregl-ctrl-attrib-button']))
         for (const [sel, o] of Object.entries(rects.found)) {

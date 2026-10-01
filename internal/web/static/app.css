@@ -947,7 +947,8 @@ html:has(> body.embed) { block-size: 100%; }
     background: var(--bg); color: var(--fg); border-radius: var(--radius); box-shadow: var(--elev-raised);
   }
   .maplibregl-ctrl-bottom-right .maplibregl-ctrl-attrib a { color: var(--fg-2); }
-  .maplibregl-ctrl-bottom-right .maplibregl-ctrl-attrib-button {
+  .maplibregl-ctrl-bottom-right .maplibregl-ctrl-attrib-button,
+  .maplibregl-ctrl-bottom-right .maplibregl-ctrl-attrib.maplibregl-compact-show .maplibregl-ctrl-attrib-button {
     background-image: none; background-color: var(--bg); box-shadow: var(--elev-raised);
     border-radius: var(--radius); color: var(--fg); padding: 0; text-align: center; line-height: 44px;
   }
@@ -963,6 +964,7 @@ html:has(> body.embed) { block-size: 100%; }
     background: none; box-shadow: none; border: 0; padding: 0;
   }
   /* The toggle is a 44px box; centre the glyph instead of the kit's top-left. */
+  .map-wind-label__toggle::before { font-size: 1.25rem; }
   .map-wind-label:not([open]) .map-wind-label__toggle {
     display: flex; align-items: center; justify-content: center;
     background: var(--bg); box-shadow: var(--elev-raised); border-radius: var(--radius);
@@ -1155,6 +1157,7 @@ html:has(> body.embed) { block-size: 100%; }
     inline-size: fit-content; max-inline-size: none;
     background: none; box-shadow: none; border: 0; padding: 0;
   }
+  .map-wind-label__toggle::before { font-size: 1.25rem; }
   .map-wind-label:not([open]) .map-wind-label__toggle {
     display: flex; align-items: center; justify-content: center;
     inline-size: 44px; block-size: 44px;
