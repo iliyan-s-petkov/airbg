@@ -1,9 +1,15 @@
 import { describe, it, expect } from 'vitest'
 import {
-  arrowBearing, arrowImage, arrowLayout, arrowPaint, windFeatures, windField, windLabel, windIsStale,
+  arrowBearing, arrowImage, arrowLayout, arrowPaint, windFeatures, windField, windLabel, windModelName, windIsStale,
   ARROW_IMAGE_ID, ARROW_PX, WIND_LAYER_ID, WIND_FIELD_MAX,
 } from '../wind.js'
 import { setWind, refreshWind } from '../../lib/mapwind.js'
+
+// HH:MM of an instant in the runtime's own zone, the form the label renders.
+const localHM = (iso) => {
+  const d = new Date(iso)
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+}
 
 describe('arrowBearing', () => {
   // The API reports where the wind comes FROM. A northerly (0°) blows
@@ -254,7 +260,7 @@ describe('windField', () => {
 })
 
 describe('windLabel', () => {
-  const t = { windAttribution: 'Forecast · {model} ({resolution}°) · valid {time}' }
+  const t = { windAttribution: '{model} forecast · {time}' }
   const body = {
     forecast: true,
     model: 'ecmwf_ifs025',
@@ -263,11 +269,24 @@ describe('windLabel', () => {
     vectors: [],
   }
 
-  // The model's grid is coarser than our hexes, so neighbouring arrows repeat.
-  // Naming the resolution is what tells a reader that is the model's grid and
-  // not a suspiciously uniform wind.
-  it('names the model, its grid, and the forecast hour', () => {
-    expect(windLabel(body, t)).toBe('Forecast · ecmwf_ifs025 (0.25°) · valid 2026-09-05 14:00 UTC')
+  // U09: a friendly model name and the forecast hour in the reader's own zone.
+  it('names the model and the forecast hour, localised and 24-hour', () => {
+    const at = new Date(body.valid_at)
+    const local = `${String(at.getHours()).padStart(2, '0')}:${String(at.getMinutes()).padStart(2, '0')}`
+    expect(windLabel(body, t, undefined, 'en')).toBe(`ECMWF forecast · ${local}`)
+    expect(windLabel(body, { windAttribution: 'Прогноза {model} · {time} ч.' }, undefined, 'bg')).toBe(`Прогноза ECMWF · ${local} ч.`)
+  })
+
+  it('never shows the raw model id or UTC', () => {
+    const label = windLabel(body, t, undefined, 'en')
+    expect(label).not.toContain('ecmwf_ifs025')
+    expect(label).not.toContain('UTC')
+  })
+
+  it('maps known model ids to a display name and leaves unknown ones alone', () => {
+    expect(windModelName('ecmwf_ifs025')).toBe('ECMWF')
+    expect(windModelName('gfs_seamless')).toBe('GFS')
+    expect(windModelName('some_new_model')).toBe('some_new_model')
   })
 
   it('is empty with no body, so nothing claims a forecast that is not there', () => {
@@ -280,11 +299,11 @@ describe('windLabel', () => {
     const withNote = { ...t, windNote: 'Arrows show where the wind blows.' }
     const label = windLabel(body, withNote)
     expect(label.startsWith('Arrows show where the wind blows. ')).toBe(true)
-    expect(label).toContain('ecmwf_ifs025')
+    expect(label).toContain('ECMWF')
   })
 
   it('still names the model when no note is translated', () => {
-    expect(windLabel(body, { ...t, windNote: '' })).toContain('ecmwf_ifs025')
+    expect(windLabel(body, { ...t, windNote: '' })).toContain('ECMWF')
   })
 
   // This text is plain textContent, so it cannot carry a real link; the
@@ -308,7 +327,7 @@ describe('setWind', () => {
     valid_at: '2026-09-05T14:00:00Z',
     vectors: [{ lon: 23.3, lat: 42.7, speed_ms: 3.5, direction_deg: 270 }],
   }
-  const cfg = { t: { windAttribution: '{model} {resolution} {time}' } }
+  const cfg = { t: { windAttribution: '{model} {time}' } }
 
   function fakes() {
     const source = { data: null, setData(d) { this.data = d } }
@@ -347,7 +366,7 @@ describe('setWind', () => {
     // The disclosure is not optional chrome: it is the condition on which this
     // layer is allowed over a map of measurements at all.
     expect(chrome.on).toBe(true)
-    expect(chrome.text).toBe('ecmwf_ifs025 0.25 2026-09-05 14:00 UTC')
+    expect(chrome.text).toBe(`ECMWF ${localHM('2026-09-05T14:00:00Z')}`)
   })
 
   // /api/v1/wind answers 503 whenever no forecast covers the current hour. The
@@ -469,7 +488,7 @@ describe('refreshWind', () => {
     valid_at: validAt,
     vectors: [{ lon: 23.3, lat: 42.7, speed_ms: 3.5, direction_deg: 270 }],
   })
-  const cfg = { t: { windAttribution: '{model} {resolution} {time}' } }
+  const cfg = { t: { windAttribution: '{model} {time}' } }
 
   function fakes() {
     const source = { data: null, setData(d) { this.data = d } }
@@ -515,7 +534,7 @@ describe('refreshWind', () => {
     expect(state.body.valid_at).toBe('2026-09-05T15:00:00Z')
     expect(map.layout.visibility).toBe('visible')
     // The disclosure names the hour on the map, so it has to move with it.
-    expect(chrome.text).toContain('2026-09-05 15:00 UTC')
+    expect(chrome.text).toContain(localHM('2026-09-05T15:00:00Z'))
   })
 
   // Layer off: the stale body still goes, but nothing is fetched for a layer

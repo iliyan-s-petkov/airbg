@@ -64,6 +64,9 @@
              showing rather than leaving the reader to work it out. */}}
         {{range .LangLinks}}<li>{{if .Current}}<span class="langpick__opt" lang="{{.Lang}}" aria-current="true">{{if .Flag}}<span class="langpick__mark"><img src="{{.Flag}}" width="20" height="12" alt=""></span>{{else}}<span class="langpick__mark langpick__mark--code">{{.Code}}</span>{{end}}{{.Name}}</span>{{else}}<a class="langpick__opt" href="{{.URL}}" hreflang="{{.Lang}}" lang="{{.Lang}}">{{if .Flag}}<span class="langpick__mark"><img src="{{.Flag}}" width="20" height="12" alt=""></span>{{else}}<span class="langpick__mark langpick__mark--code">{{.Code}}</span>{{end}}{{.Name}}</a>{{end}}</li>
         {{end}}
+        {{/* Phone only (app.css): the header drops both links at that width. */}}
+        <li class="langpick__extra langpick__extra--first"><a class="langpick__opt" href="{{.Path "/about"}}"{{if .OnPath "/about"}} aria-current="page"{{end}}>{{.T "nav.about"}}</a></li>
+        <li class="langpick__extra"><a class="langpick__opt" href="{{.SourceRepoURL}}" target="_blank" rel="noopener noreferrer">{{.T "nav.source"}}</a></li>
       </ul>
     </details>
     {{/* Hidden until the island unhides it. Without JavaScript there is nothing

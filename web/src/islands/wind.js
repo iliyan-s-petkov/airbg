@@ -1,5 +1,6 @@
 // The forecast wind overlay. Not measured data — see docs/wind-overlay.md.
 import contract from '../lib/contract.json'
+import { formatLocalTime } from '../lib/localtime.js'
 
 export const WIND_SOURCE_ID = 'airbg-wind'
 export const WIND_LAYER_ID = 'airbg-wind-arrows'
@@ -114,12 +115,11 @@ function nearest(features, lon, lat, kmPerDegLon) {
 // Never behind a control: the point of sourcing wind from a met model rather
 // than deriving it from our own sensors was to avoid presenting inference as
 // measurement, and a disclosure a user has to open does not do that.
-export function windLabel(body, t, formatTime = defaultFormatTime) {
+export function windLabel(body, t, formatTime = defaultFormatTime, lang = 'bg') {
   if (!body) return ''
   const attribution = t.windAttribution
-    .replace('{model}', body.model)
-    .replace('{resolution}', String(body.model_resolution_deg))
-    .replace('{time}', formatTime(body.valid_at))
+    .replace('{model}', windModelName(body.model))
+    .replace('{time}', formatTime(body.valid_at, lang))
   // The note leads: a visitor who has just turned the layer on needs to know
   // what the arrows mean before they need to know which model drew them.
   const labelled = t.windNote ? `${t.windNote} ${attribution}` : attribution
@@ -144,10 +144,15 @@ export function windIsStale(body, now = new Date()) {
   return hour(validAt) !== hour(now.getTime())
 }
 
-function defaultFormatTime(iso) {
-  const d = new Date(iso)
-  return Number.isNaN(d.getTime()) ? iso : d.toISOString().slice(0, 16).replace('T', ' ') + ' UTC'
+// Display names for the model ids the API reports; an id not listed shows as-is.
+const MODEL_NAMES = [[/^ecmwf/, 'ECMWF'], [/^gfs/, 'GFS'], [/^icon/, 'ICON']]
+
+export function windModelName(id) {
+  const hit = MODEL_NAMES.find(([re]) => re.test(String(id)))
+  return hit ? hit[1] : String(id)
 }
+
+const defaultFormatTime = formatLocalTime
 
 export const ARROW_IMAGE_ID = 'airbg-wind-arrow'
 

@@ -103,3 +103,40 @@ func TestAboutEmbedCodeIsKeyboardScrollable(t *testing.T) {
 		}
 	}
 }
+
+// S03: the home page keeps the product H1 and adds a visible keyword H2 under it.
+func TestHomeHeadingPairsProductH1WithKeywordH2(t *testing.T) {
+	rr := renderer(t, fixture(t))
+	cases := map[string][2]string{
+		"/":    {"Моят въздух", "Качество на въздуха в България"},
+		"/en/": {"My Air", "Air quality in Bulgaria"},
+	}
+	for path, want := range cases {
+		body := fetch(t, rr, path).Body.String()
+		h1 := `<h1 class="t-title">` + want[0] + `</h1>`
+		h2 := `<h2 class="t-sub">` + want[1] + `</h2>`
+		i, j := strings.Index(body, h1), strings.Index(body, h2)
+		if i < 0 || j < 0 || j < i {
+			t.Errorf("%s: want %s followed by %s (h1 at %d, h2 at %d)", path, h1, h2, i, j)
+		}
+	}
+}
+
+// U08: About and GitHub are hidden from the phone header, so the language menu carries them.
+func TestLanguageMenuCarriesAboutAndSourceLinks(t *testing.T) {
+	rr := renderer(t, fixture(t))
+	cases := map[string]string{"/": `href="/about"`, "/en/": `href="/en/about"`}
+	for path, about := range cases {
+		body := fetch(t, rr, path).Body.String()
+		start := strings.Index(body, `<ul class="langpick__list">`)
+		if start < 0 {
+			t.Fatalf("%s: no language list", path)
+		}
+		list := body[start : start+strings.Index(body[start:], "</ul>")]
+		for _, want := range []string{about, `href="https://github.com/iliyan-s-petkov/airbg"`, `rel="noopener noreferrer"`} {
+			if !strings.Contains(list, want) {
+				t.Errorf("%s: language menu is missing %s", path, want)
+			}
+		}
+	}
+}
