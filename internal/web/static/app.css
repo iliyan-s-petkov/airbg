@@ -800,9 +800,9 @@ html:has(> body.embed) { block-size: 100%; }
      .map--hero instead. The shell no longer fixes its own height too — a
      fixed-height shell clipped the static, in-flow scale below the map. */
   .map-shell:has(.map--hero) { block-size: auto; max-block-size: none; }
-  /* Capped so the tier caption (1.5rem) and the 20px pull tab stay in the first viewport. */
+  /* Capped so the tier caption (1.5rem), the 1.25rem subtitle and the 20px pull tab stay in the first viewport. */
   .map--hero {
-    aspect-ratio: auto; block-size: calc(100svh - var(--phone-chrome) - 1.5rem - 20px);
+    aspect-ratio: auto; block-size: calc(100svh - var(--phone-chrome) - 1.5rem - 1.25rem - 20px);
     min-block-size: 20rem; max-block-size: 44rem;
   }
   .map--wide { block-size: calc(100svh - 15rem); min-block-size: 18rem; }
@@ -1010,7 +1010,7 @@ html:has(> body.embed) { block-size: 100%; }
   /* Hero: title stays (h1), tagline restates the masthead and goes. */
   .page-head--compact { padding-block: var(--space-2); }
   .page-head--compact h1 { font-size: var(--text-sub); margin: 0; }
-  .page-head .t-sub { font-size: var(--text-compact); }
+  .page-head .t-sub { font-size: var(--text-compact); line-height: 1.25rem; }
   .page-head:not(.page-head--compact) { padding-block: var(--space-2) var(--space-1); }
   .page-head:not(.page-head--compact) h1 { font-size: var(--text-sub); margin: 0; }
   h1 { font-size: var(--text-sub); }
@@ -1062,8 +1062,8 @@ html:has(> body.embed) { block-size: 100%; }
    of height and the shell collapses to 0. Height-led instead, chrome on top. */
 @media (orientation: landscape) and (max-height: 520px) and (hover: none) {
   .map-shell:has(.map--hero) { max-inline-size: none; block-size: auto; max-block-size: none; }
-  /* 5.75rem is the measured 92px of chrome above the map; 20px is the pull tab. */
-  .map--hero { aspect-ratio: auto; block-size: calc(100svh - 5.75rem - 20px); min-block-size: 12rem; }
+  /* 7rem: the measured 92px of chrome above the map plus the 20px subtitle line; 20px is the pull tab. */
+  .map--hero { aspect-ratio: auto; block-size: calc(100svh - 7rem - 20px); min-block-size: 12rem; }
   /* 7rem: measured 6rem of chrome above the map left the pull tab on the fold; 20px is the pull tab. */
   .map--wide { block-size: calc(100svh - 7rem - 20px); min-block-size: 12rem; }
 

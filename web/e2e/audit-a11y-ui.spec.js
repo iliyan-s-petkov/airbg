@@ -59,7 +59,8 @@ test.describe('A01: the header pickers are legible in the light theme', () => {
     await withTheme(page, 'light')
     await page.goto('/en/areas')
     const buttons = page.locator('.langpick__btn')
-    expect(await buttons.count()).toBeGreaterThanOrEqual(2)
+    // The theme picker mounts after first paint, so wait for it.
+    await expect.poll(() => buttons.count()).toBeGreaterThanOrEqual(2)
     for (let i = 0; i < await buttons.count(); i++) {
       await buttons.nth(i).evaluate((el, n) => el.setAttribute('data-probe', n), i)
       expect(await contrastOf(page, `.langpick__btn[data-probe="${i}"]`)).toBeGreaterThanOrEqual(4.5)
