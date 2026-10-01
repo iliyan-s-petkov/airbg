@@ -251,7 +251,7 @@ test.describe('phone layout does not widen the viewport', () => {
   // Review round 1 (Task 7c): the open note's z-index (1) lost to the
   // freshness card (3) and the open legend key (2) in the same corner —
   // a click on the note's own text hit whichever card was drawn on top.
-  test('/en open wind note draws above the freshness card, clear of the map edge', async ({ mobileCtx }) => {
+  test('/en open wind note rides above the freshness card, clear of the map edge', async ({ mobileCtx }) => {
     const page = await mobileCtx.newPage()
     // Wind defaults on for a phone; mocked so the note opens on real text.
     await mockWind(page)
@@ -274,22 +274,11 @@ test.describe('phone layout does not widen the viewport', () => {
       return box ? box.x + box.width : 999
     }).toBeLessThanOrEqual(map.x + map.width)
 
-    // The overlap point the review flagged: the freshness card's own centre,
-    // which the open note's wide card now covers. elementFromPoint there
-    // must resolve inside the note, not the card underneath it.
-    const hit = await page.evaluate(() => {
-      const note = document.querySelector('.map-wind-label')
-      const fresh = document.querySelector('.map-freshness')
-      const nr = note.getBoundingClientRect()
-      const fr = fresh.getBoundingClientRect()
-      const x = Math.max(nr.left, fr.left) + Math.min(nr.right, fr.right - Math.max(nr.left, fr.left)) / 2
-      const y = Math.max(nr.top, fr.top) + Math.min(nr.bottom, fr.bottom - Math.max(nr.top, fr.top)) / 2
-      const overlaps = nr.left < fr.right && nr.right > fr.left && nr.top < fr.bottom && nr.bottom > fr.top
-      const top = document.elementFromPoint(x, y)
-      return { overlaps, insideNote: note.contains(top) || note === top }
-    })
-    expect(hit.overlaps).toBe(true)
-    expect(hit.insideNote).toBe(true)
+    // It rides above the playback bar (audit U02), so the freshness card's
+    // text stays reachable and nothing of it is covered.
+    const noteBox = await note.boundingBox()
+    const bar = await page.locator('.map-freshness').boundingBox()
+    expect(noteBox.y + noteBox.height).toBeLessThanOrEqual(bar.y)
     await page.close()
   })
 
@@ -310,13 +299,14 @@ test.describe('phone layout does not widen the viewport', () => {
     await page.close()
   })
 
-  // Owner feedback (Task 7c): a white circle read as furniture; bare now.
-  test('/en locate button has no background fill', async ({ mobileCtx }) => {
+  // Audit U01: a bare glyph was invisible on the map in the dark theme, so the
+  // locate button carries the same card as the other map buttons.
+  test('/en locate button has a card background', async ({ mobileCtx }) => {
     const page = await mobileCtx.newPage()
     await page.setViewportSize({ width: 390, height: 844 })
     await page.goto('/en')
     const bg = await page.locator('.map-locate').evaluate((el) => getComputedStyle(el).backgroundColor)
-    expect(bg).toBe('rgba(0, 0, 0, 0)')
+    expect(bg).not.toBe('rgba(0, 0, 0, 0)')
     await page.close()
   })
 

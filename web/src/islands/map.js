@@ -38,6 +38,15 @@ function ringCentroid(ring) {
   return [sum[0] / pts.length, sum[1] / pts.length]
 }
 
+// Empty strings are dropped so MapLibre keeps its English default for them.
+function mapLibreLocale(t) {
+  const strings = {
+    'Map.Title': t.mapTitle,
+    'AttributionControl.ToggleAttribution': t.attributionToggle,
+  }
+  return Object.fromEntries(Object.entries(strings).filter(([, v]) => v))
+}
+
 export function mount(el) {
   const cfg = readConfig(el)
   registerProtocols()
@@ -58,6 +67,8 @@ export function mount(el) {
     zoom: cfg.zoom,
     minZoom: MIN_ZOOM,
     attributionControl: { compact: true },
+    // MapLibre's built-in strings are English; only keys we have a string for.
+    locale: mapLibreLocale(cfg.t),
   })
 
   installErrorHandler(map)

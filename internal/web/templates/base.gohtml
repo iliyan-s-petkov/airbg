@@ -8,6 +8,7 @@
 {{if .NoIndex}}<meta name="robots" content="noindex">
 {{else}}<link rel="canonical" href="{{.CanonicalURL}}">
 {{range .Alternates}}<link rel="alternate" hreflang="{{.Lang}}" href="{{.URL}}">
+{{end}}{{with .XDefaultURL}}<link rel="alternate" hreflang="x-default" href="{{.}}">
 {{end}}<meta property="og:type" content="website">
 <meta property="og:site_name" content="{{.T "seo.title_brand"}}">
 <meta property="og:title" content="{{.OGTitle}}">
@@ -118,7 +119,9 @@
      mapwindow.WINDOW_CHOICES — now, then each published window, coarsest last —
      which is why it is one comma-separated attribute rather than five whose
      names would have to spell "24h" as a dataset key. */}}
-{{define "mapLayerLabels"}}data-t-window-label="{{.T "map.window.label"}}"
+{{define "mapLayerLabels"}}data-t-map-title="{{.T "map.label"}}"
+     data-t-attribution-toggle="{{.T "map.attribution.toggle"}}"
+     data-t-window-label="{{.T "map.window.label"}}"
      data-t-windows="{{.T "map.window.live"}},{{.T "map.window.24h"}},{{.T "map.window.48h"}},{{.T "map.window.7d"}}"
      data-t-play-label="{{.T "map.play.play"}}"
      data-t-pause-label="{{.T "map.play.pause"}}"

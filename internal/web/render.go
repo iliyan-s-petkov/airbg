@@ -860,6 +860,17 @@ func (p PageData) Alternates() []alternate {
 	return out
 }
 
+// XDefaultURL is the default-language alternate, which the head names x-default
+// as the sitemap does. Empty when no served language is the default.
+func (p PageData) XDefaultURL() string {
+	for _, a := range p.Alternates() {
+		if a.Lang == i18n.DefaultLang {
+			return a.URL
+		}
+	}
+	return ""
+}
+
 func (p PageData) GeneratedAtISO() string { return p.GeneratedAt.UTC().Format(time.RFC3339) }
 
 func (p PageData) GeneratedAtHuman() string {
@@ -1037,7 +1048,7 @@ func (rr *Renderer) RenderError(w http.ResponseWriter, r *http.Request, status i
 	data := rr.newPageData(lang, path, time.Time{})
 	data.TitleKey = "error." + kind + ".title"
 	data.BodyKey = "error." + kind + ".body"
-	data.Title = data.T(data.TitleKey) + titleBrandSep + data.T("site.title")
+	data.Title = data.T(data.TitleKey) + titleBrandSep + data.T("seo.title_brand")
 	// Never indexed and never a canonical target: base.gohtml drops
 	// canonical/alternate/OG tags for this page and emits robots noindex
 	// instead — see OpenProject #605's error-page audit finding.

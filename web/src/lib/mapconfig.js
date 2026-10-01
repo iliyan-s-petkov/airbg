@@ -186,6 +186,9 @@ export function readConfig(el) {
       windNote: d.tWindNote || '',
       windAttribution: d.tWindAttribution || '',
       windCredit: d.tWindCredit || '',
+      // MapLibre's own UI strings (canvas name, attribution toggle), see map.js.
+      mapTitle: d.tMapTitle || '',
+      attributionToggle: d.tAttributionToggle || '',
     },
   }
 }

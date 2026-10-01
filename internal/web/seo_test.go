@@ -143,7 +143,12 @@ func TestSitemapAlternatesMatchPageHead(t *testing.T) {
 			if got["x-default"] != head["bg"] {
 				t.Errorf("%s: x-default = %q, want the bg alternate %q", path, got["x-default"], head["bg"])
 			}
+			// The head names x-default too, at the same URL.
+			if head["x-default"] != got["x-default"] {
+				t.Errorf("%s: head x-default = %q, sitemap %q", path, head["x-default"], got["x-default"])
+			}
 			delete(got, "x-default")
+			delete(head, "x-default")
 			if !reflect.DeepEqual(got, head) {
 				t.Errorf("%s: sitemap alternates %v != head alternates %v", path, got, head)
 			}
