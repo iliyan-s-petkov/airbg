@@ -3,6 +3,8 @@ package web_test
 import (
 	"encoding/xml"
 	"net/http"
+	"reflect"
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -93,8 +95,62 @@ func TestSitemapContainsEveryArea(t *testing.T) {
 			t.Errorf("sitemap is missing %q", want)
 		}
 	}
-	if len(doc.URLs) != 6 {
-		t.Errorf("sitemap has %d <url> entries, want 6: %+v", len(doc.URLs), doc.URLs)
+	for _, want := range []string{
+		"https://airbg.org/en/",
+		"https://airbg.org/en/areas",
+		"https://airbg.org/en/about",
+		"https://airbg.org/en/about-the-data",
+		"https://airbg.org/en/area/sofia",
+		"https://airbg.org/en/area/vidin",
+	} {
+		if !locs[want] {
+			t.Errorf("sitemap is missing the English variant %q", want)
+		}
+	}
+	// Six pages in each of the two fixture languages.
+	if len(doc.URLs) != 12 {
+		t.Errorf("sitemap has %d <url> entries, want 12: %+v", len(doc.URLs), doc.URLs)
+	}
+}
+
+// TestSitemapAlternatesMatchPageHead: the hreflang set on a sitemap entry is
+// the set the page itself emits in <head>, for the bg and the en variant.
+func TestSitemapAlternatesMatchPageHead(t *testing.T) {
+	doc := fetchSitemap(t)
+	rr := renderer(t, fixture(t))
+	linkRe := regexp.MustCompile(`<link rel="alternate" hreflang="([^"]+)" href="([^"]+)">`)
+
+	for _, path := range []string{"/about", "/en/about", "/area/sofia", "/en/area/sofia"} {
+		head := map[string]string{}
+		for _, m := range linkRe.FindAllStringSubmatch(fetch(t, rr, path).Body.String(), -1) {
+			head[m[1]] = m[2]
+		}
+		if len(head) == 0 {
+			t.Fatalf("%s: no hreflang alternates in <head>", path)
+		}
+
+		loc := "https://airbg.org" + path
+		found := false
+		for _, u := range doc.URLs {
+			if u.Loc != loc {
+				continue
+			}
+			found = true
+			got := map[string]string{}
+			for _, l := range u.Links {
+				got[l.Hreflang] = l.Href
+			}
+			if got["x-default"] != head["bg"] {
+				t.Errorf("%s: x-default = %q, want the bg alternate %q", path, got["x-default"], head["bg"])
+			}
+			delete(got, "x-default")
+			if !reflect.DeepEqual(got, head) {
+				t.Errorf("%s: sitemap alternates %v != head alternates %v", path, got, head)
+			}
+		}
+		if !found {
+			t.Errorf("sitemap has no entry for %s", loc)
+		}
 	}
 }
 
@@ -129,8 +185,8 @@ func TestSitemapHasReciprocalAlternatesAndXDefault(t *testing.T) {
 		if xdefault != bg {
 			t.Errorf("%s: x-default = %q, want it to match the bg alternate %q", u.Loc, xdefault, bg)
 		}
-		if bg != u.Loc {
-			t.Errorf("%s: bg alternate = %q, want it to equal loc (bg is the default, unprefixed language)", u.Loc, bg)
+		if u.Loc != bg && u.Loc != en {
+			t.Errorf("%s: loc is neither the bg alternate %q nor the en alternate %q", u.Loc, bg, en)
 		}
 		if !strings.HasPrefix(en, "https://airbg.org/en/") && en != "https://airbg.org/en/" {
 			t.Errorf("%s: en alternate = %q, want it under /en/", u.Loc, en)

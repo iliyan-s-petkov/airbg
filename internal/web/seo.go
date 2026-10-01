@@ -41,7 +41,7 @@ type sitemapLink struct {
 	Href     string `xml:"href,attr"`
 }
 
-// handleSitemap lists the static pages and every area; cached per snapshot.
+// handleSitemap lists the static pages and every area in every language; cached per snapshot.
 func (rr *Renderer) handleSitemap(w http.ResponseWriter, r *http.Request) {
 	var generatedAt time.Time
 	if snap := rr.holder.Load(); snap != nil {
@@ -85,13 +85,13 @@ func (rr *Renderer) sitemapBytes(generatedAt time.Time) ([]byte, error) {
 		lastMod = generatedAt.UTC().Format("2006-01-02")
 	}
 
-	urls := make([]sitemapURL, 0, len(paths))
+	urls := make([]sitemapURL, 0, len(paths)*len(rr.cat.Languages()))
 	for _, path := range paths {
-		urls = append(urls, sitemapURL{
-			Loc:     rr.sitemapLoc(path),
-			LastMod: lastMod,
-			Links:   rr.sitemapLinks(path),
-		})
+		// One <url> per language variant, each carrying the full alternate set.
+		links := rr.sitemapLinks(path)
+		for _, a := range rr.pageAlternates(path) {
+			urls = append(urls, sitemapURL{Loc: a.URL, LastMod: lastMod, Links: links})
+		}
 	}
 
 	set := sitemapURLSet{
@@ -111,16 +111,15 @@ func (rr *Renderer) sitemapBytes(generatedAt time.Time) ([]byte, error) {
 	return body, nil
 }
 
-// sitemapLoc is the default-language URL, same as x-default.
-func (rr *Renderer) sitemapLoc(path string) string {
-	data := PageData{cat: rr.cat, BaseURL: rr.baseURL, RequestPath: path, Lang: i18n.DefaultLang}
-	return data.BaseURL + data.Path(path)
+// pageAlternates is the same list the page <head> renders for this path.
+func (rr *Renderer) pageAlternates(path string) []alternate {
+	data := PageData{cat: rr.cat, BaseURL: rr.baseURL, RequestPath: path}
+	return data.Alternates()
 }
 
 // sitemapLinks reuses the <head> Alternates so the two never disagree, plus x-default.
 func (rr *Renderer) sitemapLinks(path string) []sitemapLink {
-	data := PageData{cat: rr.cat, BaseURL: rr.baseURL, RequestPath: path}
-	alts := data.Alternates()
+	alts := rr.pageAlternates(path)
 
 	links := make([]sitemapLink, 0, len(alts)+1)
 	for _, a := range alts {
