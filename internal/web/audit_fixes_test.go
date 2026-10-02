@@ -131,7 +131,7 @@ func TestHomeHasOneHiddenH1AndNoVisibleHero(t *testing.T) {
 // The areas tab is not map-first: it keeps its visible head and toolbar.
 func TestAreasTabKeepsVisibleHeadAndToolbar(t *testing.T) {
 	body := fetch(t, renderer(t, fixture(t)), "/en/areas").Body.String()
-	for _, want := range []string{`<h1 class="t-title">My Air</h1>`, `class="toolbar"`} {
+	for _, want := range []string{`<h1 class="t-title">Areas and cities</h1>`, `class="toolbar"`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("/en/areas: want %s", want)
 		}

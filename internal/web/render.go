@@ -806,15 +806,6 @@ func (p PageData) Path(path string) string {
 
 func (p PageData) CanonicalURL() string { return p.BaseURL + p.Path(p.RequestPath) }
 
-// PageH1 is the heading of the shared home template: /areas has its own, every
-// other page keeps the product name.
-func (p PageData) PageH1() string {
-	if p.RequestPath == "/areas" {
-		return p.T("areas.h1")
-	}
-	return p.T("site.title")
-}
-
 // OnPath reports whether the page being rendered IS the given route, so the
 // masthead can mark the current tab. Compared against RequestPath, which is
 // language-stripped — the English reader of /en/areas is on /areas.

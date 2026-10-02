@@ -117,8 +117,6 @@ func TestAreasPageHasItsOwnH1(t *testing.T) {
 	for path, h1 := range map[string]string{
 		"/areas":    "Области и градове",
 		"/en/areas": "Areas and cities",
-		"/":         "Моят въздух",
-		"/en/":      "My Air",
 	} {
 		rec := httptest.NewRecorder()
 		rr.Routes().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, path, nil))
