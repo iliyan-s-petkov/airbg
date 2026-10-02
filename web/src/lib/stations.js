@@ -23,6 +23,7 @@
 //   lon/lat  - the sensor's location, not a reading
 //   quality  - the sensor's own data-quality flag, exposed to the panel as
 //              `flag` because it is metadata ABOUT the readings
+//   flags    - per-metric unusable flags, see flagsAt
 //   station  - the address join key, this file's own subject
 //   measures - what each device's hardware measures, see measuresAt
 //   first_seen / last_seen
@@ -36,7 +37,7 @@
 // metrics — is what lets a metric added server-side reach the panel with no
 // frontend change.
 export const META_COLUMNS = new Set([
-  'id', 'type', 'lon', 'lat', 'quality', 'station', 'measures', 'first_seen', 'last_seen',
+  'id', 'type', 'lon', 'lat', 'quality', 'flags', 'station', 'measures', 'first_seen', 'last_seen',
   'source', 'station_code', 'station_name', 'station_type', 'station_area',
 ])
 
@@ -129,4 +130,29 @@ export function readingAt(body, indices, metric) {
     if (value !== null) return { value, sensorId: ids[i] }
   }
   return { value: null, sensorId: ids[indices[0]] ?? null }
+}
+
+// flagsAt is metric -> unusable flag for one station; the first member flagged
+// for a metric wins. {} for a body without the column.
+export function flagsAt(body, indices) {
+  const column = body?.sensors?.flags
+  const out = {}
+  if (!Array.isArray(column)) return out
+  for (const i of indices) {
+    for (const [metric, flag] of Object.entries(column[i] ?? {})) {
+      if (flag && !(metric in out)) out[metric] = flag
+    }
+  }
+  return out
+}
+
+// A station is faulty for a metric when it has no usable reading and a member
+// carries a non-usable flag for it. The server only lists non-usable flags, so
+// the check here guards a hand-built body.
+const USABLE_FLAGS = new Set(['', 'ok', 'no_neighbours'])
+
+export function isFaultyAt(body, indices, metric) {
+  if (readingAt(body, indices, metric).value !== null) return false
+  const flag = flagsAt(body, indices)[metric]
+  return !!flag && !USABLE_FLAGS.has(flag)
 }

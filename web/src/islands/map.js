@@ -11,7 +11,7 @@ import { getViewState } from '../lib/viewstate.svelte.js'
 import { readWindow } from '../lib/mapwindow.js'
 import { provideAreaSelect } from '../lib/mapareas.svelte.js'
 import { BOUNDARY_FILL_LAYER_ID, boundsOf, findBoundary } from '../lib/boundaries.js'
-import { LAYER_ID, HEX_LAYER_ID, HEX_POINT_LAYER_ID, HEX_SOURCE_ID } from '../lib/mapids.js'
+import { LAYER_ID, FAULTY_LAYER_ID, HEX_LAYER_ID, HEX_POINT_LAYER_ID, HEX_SOURCE_ID } from '../lib/mapids.js'
 import { MIN_ZOOM, readConfig } from '../lib/mapconfig.js'
 import { POINT_TIER_MIN_ZOOM } from '../lib/hexes.js'
 import { registerProtocols, mapStyle, installErrorHandler } from '../lib/mapstyle.js'
@@ -186,7 +186,7 @@ export function mount(el) {
   // marker carries `id` instead and clicking it opens the panel via the
   // shared viewstate; the map does not render the panel itself (see
   // islands/panel.js), only publishes the click as a destination.
-  map.on('click', LAYER_ID, (e) => {
+  const onMarkerClick = (e) => {
     const props = e.features?.[0]?.properties
     if (!props) return
     if (props.slug) {
@@ -202,7 +202,9 @@ export function mount(el) {
     // stays a defensive match to that contract rather than an assumption
     // about MapLibre's internals.
     if (props.id !== undefined) vs.openSensor(Number(props.id))
-  })
+  }
+  map.on('click', LAYER_ID, onMarkerClick)
+  map.on('click', FAULTY_LAYER_ID, onMarkerClick)
 
   // The cells inherit that click wherever the markers have stepped aside.
   // A cell naming one station opens the panel; a bin of several has none to
@@ -297,6 +299,6 @@ export function mount(el) {
   return {
     map,
     chrome,
-    stop: () => { subs.unsubscribe?.(); subs.unprovide?.(); subs.unfilter?.(); subs.unfilterSource?.(); unselect() },
+    stop: () => { subs.unsubscribe?.(); subs.unprovide?.(); subs.unfilter?.(); subs.unfilterSource?.(); subs.unfilterFaulty?.(); unselect() },
   }
 }

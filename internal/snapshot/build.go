@@ -85,6 +85,10 @@ type sensorColumns struct {
 	Lon     []float64 `json:"lon"`
 	Lat     []float64 `json:"lat"`
 	Quality []string  `json:"quality"`
+	// Flags is, per sensor, the metrics whose newest reading carries an unusable
+	// flag, mapped to that flag. Same length as ID; {} for a healthy sensor.
+	// Quality is only the worst flag across metrics and cannot say which failed.
+	Flags []map[string]string `json:"flags"`
 	// Station names the physical site each sensor stands at — see stationIDs.
 	// Same length as ID, and for a sensor standing alone it is that sensor's
 	// own id.
@@ -132,6 +136,7 @@ func (c sensorColumns) MarshalJSON() ([]byte, error) {
 		"lon":          c.Lon,
 		"lat":          c.Lat,
 		"quality":      c.Quality,
+		"flags":        c.Flags,
 		"station":      c.Station,
 		"measures":     c.Measures,
 		"first_seen":   c.FirstSeen,
@@ -455,6 +460,7 @@ func sensorPayloadFrom(now time.Time, sensors []store.SensorReading) sensorPaylo
 		Lon:       make([]float64, 0, n),
 		Lat:       make([]float64, 0, n),
 		Quality:   make([]string, 0, n),
+		Flags:     make([]map[string]string, 0, n),
 		Measures:  make([][]string, 0, n),
 		FirstSeen: make([]time.Time, 0, n),
 		LastSeen:  make([]time.Time, 0, n),
@@ -481,6 +487,11 @@ func sensorPayloadFrom(now time.Time, sensors []store.SensorReading) sensorPaylo
 		cols.Lon = append(cols.Lon, sr.Lon)
 		cols.Lat = append(cols.Lat, sr.Lat)
 		cols.Quality = append(cols.Quality, sr.Quality)
+		flags := sr.Flags
+		if flags == nil {
+			flags = map[string]string{}
+		}
+		cols.Flags = append(cols.Flags, flags)
 		cols.Measures = append(cols.Measures, measuresOf(sr, metrics))
 		cols.FirstSeen = append(cols.FirstSeen, sr.FirstSeen)
 		cols.LastSeen = append(cols.LastSeen, sr.LastSeen)

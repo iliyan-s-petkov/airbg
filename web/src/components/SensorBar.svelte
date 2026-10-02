@@ -2,6 +2,7 @@
   import MetricSwitcher from './MetricSwitcher.svelte'
   import { getSensorStatus, setSensorStatus } from '../lib/sensorfilter.svelte.js'
   import { getSensors } from '../lib/sensors.svelte.js'
+  import { getShowFaulty } from '../lib/faultyfilter.svelte.js'
   import { countSensors, sensorCountLine } from '../lib/sensorcount.js'
 
   // `metric` arrives as a GETTER prop (see islands/sensorbar.js), the same shape
@@ -12,7 +13,7 @@
   const status = $derived(getSensorStatus())
   // Silence is per metric: a sensor reporting humidity but not PM2.5 is silent
   // on the PM2.5 map, and that is what the map paints.
-  const counts = $derived(countSensors(getSensors(), metric))
+  const counts = $derived(countSensors(getSensors(), metric, { showFaulty: getShowFaulty() }))
 
   const options = $derived([
     { metric: 'all', label: texts.all },

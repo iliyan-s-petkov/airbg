@@ -75,7 +75,7 @@ test.describe.serial('sensor panel', () => {
     await page.goto('/en/area/sofia#sensor=104')
     const panel = sensorPanel()
     await expect(panel).toBeVisible({ timeout: 10000 })
-    await expect(panel.getByText('This reading has not changed in a while.')).toBeVisible()
+    await expect(panel.getByText('PM2.5: This reading has not changed in a while.')).toBeVisible()
     await expect(panel.getByRole('button', { name: 'Close' })).toBeVisible()
     // 'stuck' is not a usable quality (store/aggregate.go's usableQuality), so
     // this station measures PM2.5 and has no number for it — the placeholder,

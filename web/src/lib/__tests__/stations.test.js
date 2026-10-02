@@ -226,10 +226,10 @@ describe('sensorFeatures over stations', () => {
 describe('countSensors over stations', () => {
   // The count line sits under the map and has to agree with it.
   it('counts addresses, not devices', () => {
-    expect(countSensors(body(), 'P2')).toEqual({ total: 2, active: 2, silent: 0 })
+    expect(countSensors(body(), 'P2')).toEqual({ total: 2, active: 2, silent: 0, faulty: 0 })
   })
 
   it('counts an address silent only when no device there reports the metric', () => {
-    expect(countSensors(body(), 'temperature')).toEqual({ total: 2, active: 1, silent: 1 })
+    expect(countSensors(body(), 'temperature')).toEqual({ total: 2, active: 1, silent: 1, faulty: 0 })
   })
 })

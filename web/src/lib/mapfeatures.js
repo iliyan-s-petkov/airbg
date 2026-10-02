@@ -1,5 +1,5 @@
 import { rampColour } from './ramp.js'
-import { stationsOf, readingAt } from './stations.js'
+import { stationsOf, readingAt, isFaultyAt } from './stations.js'
 import { bandsFor } from './mappaint.js'
 
 // areaFeatures maps the choropleth payload straight onto point features.
@@ -49,6 +49,8 @@ export function sensorFeatures(body, metric, scales, noDataColour) {
         colour: rampColour(value, bands, noDataColour),
         value,
         quality: s.quality?.[i] ?? '',
+        // Flagged for THIS metric only; drives the toggle and the hollow ring.
+        faulty: isFaultyAt(body, indices, metric),
         source: s.source?.[i] ?? 'sensor.community',
       },
     })

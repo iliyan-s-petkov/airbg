@@ -1,5 +1,5 @@
 // Package quality scores readings for plausibility. Bad readings are flagged,
-// never discarded: the map shows them greyed out, and aggregates exclude them
+// never discarded: the map hides stations they leave valueless unless asked, and aggregates exclude them
 // (spec §5.2, §6).
 package quality
 

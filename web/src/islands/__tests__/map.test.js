@@ -9,7 +9,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount } from '../map.js'
 import { installTimelapse } from '../../lib/timelapse-island.js'
 import {
-  NOT_OFFICIAL, CARRIED_OPACITY, FRESH_OPACITY, SETTLING_OPACITY, applyMarkerZoomRange,
+  NOT_OFFICIAL, NOT_FAULTY, CARRIED_OPACITY, FRESH_OPACITY, SETTLING_OPACITY, applyMarkerZoomRange,
 } from '../../lib/mappaint.js'
 import { mountChrome } from '../../lib/chrome.js'
 import { HEX_LABEL_LAYER_ID } from '../../lib/mapids.js'
@@ -895,9 +895,9 @@ describe('mount() hands the reading from the dots to the cells', () => {
     const markers = map.addLayer.mock.calls.map((c) => c[0])
       .filter((l) => l.source === 'airbg-data')
 
-    // Circles, official diamonds, labels — every layer the sensor source
-    // feeds, so a fourth one added later has to answer this question too.
-    expect(markers).toHaveLength(3)
+    // Circles, official diamonds, faulty rings, labels — every layer the sensor
+    // source feeds, so a fifth one added later has to answer this question too.
+    expect(markers).toHaveLength(4)
     // Mounted on the country tier: those markers are province/municipality
     // circles, and the cells cover the same ground from GRID_MIN_ZOOM up.
     // Held at the point tier they were drawn OVER six zoom levels of hexes —
@@ -919,6 +919,7 @@ describe('mount() hands the reading from the dots to the cells', () => {
       // Left out, they would have outlived the network they belong to.
       ['airbg-markers-official', 0, POINT_TIER_MIN_ZOOM_FRACTIONAL],
       ['airbg-marker-labels', 0, POINT_TIER_MIN_ZOOM_FRACTIONAL],
+      ['airbg-markers-faulty', 0, POINT_TIER_MIN_ZOOM_FRACTIONAL],
       // Task 12 round 3: re-pinned every call, not just the cellValues
       // toggle's own — see mappaint.js's hexLabelMinZoom. cellValues is off
       // in this fake map (never set), so this is the unchanged point-tier
@@ -1287,12 +1288,13 @@ describe('the official marker layer', () => {
   it('splits the source in two along the network, leaving areas with the dots', () => {
     const { map } = mountTestMap({ metric: 'P2' })
     const [circles, diamonds] = map.addLayer.mock.calls.map((c) => c[0])
-      .filter((l) => l.source === 'airbg-data' && l.id !== 'airbg-marker-labels')
+      .filter((l) => l.source === 'airbg-data' && l.id !== 'airbg-marker-labels' && l.id !== 'airbg-markers-faulty')
 
     expect(circles.type).toBe('circle')
     expect(diamonds.type).toBe('symbol')
-    expect(circles.filter).toEqual(NOT_OFFICIAL)
-    expect(diamonds.filter).toEqual(['==', ['get', 'source'], 'eea'])
+    // Faulty stations are skipped by both and drawn by the ring layer instead.
+    expect(circles.filter).toEqual(['all', NOT_OFFICIAL, NOT_FAULTY])
+    expect(diamonds.filter).toEqual(['all', ['==', ['get', 'source'], 'eea'], NOT_FAULTY])
   })
 
   it('registers the diamond as an SDF, which is what lets the ramp colour it', () => {

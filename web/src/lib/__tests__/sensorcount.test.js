@@ -7,7 +7,7 @@ const texts = { shown: 'Showing', of: 'of', sensors: 'sensors', silent: 'with no
 
 describe('countSensors', () => {
   it('splits the sensors into reporting and silent for the chosen metric', () => {
-    expect(countSensors(body([3.2, null, 7]), 'P2')).toEqual({ total: 3, active: 2, silent: 1 })
+    expect(countSensors(body([3.2, null, 7]), 'P2')).toEqual({ total: 3, active: 2, silent: 1, faulty: 0 })
   })
 
   // The same three sensors count differently per metric — that is the whole
@@ -19,19 +19,19 @@ describe('countSensors', () => {
   })
 
   it('counts a zero reading as reporting', () => {
-    expect(countSensors(body([0, 0, 0]), 'P2')).toEqual({ total: 3, active: 3, silent: 0 })
+    expect(countSensors(body([0, 0, 0]), 'P2')).toEqual({ total: 3, active: 3, silent: 0, faulty: 0 })
   })
 
   // An area where nothing reports this metric has no column at all. Reporting
   // "0 of 3, 0 silent" would be a lie about three sensors the map is drawing.
   it('calls every sensor silent when the metric column is missing entirely', () => {
-    expect(countSensors(body(undefined), 'P2')).toEqual({ total: 3, active: 0, silent: 3 })
+    expect(countSensors(body(undefined), 'P2')).toEqual({ total: 3, active: 0, silent: 3, faulty: 0 })
   })
 
   // The bar mounts before the map's fetch lands; a throw here would take the
   // island down for the two seconds before the data arrives.
   it('reports zeroes rather than throwing before any data has arrived', () => {
-    expect(countSensors(null, 'P2')).toEqual({ total: 0, active: 0, silent: 0 })
+    expect(countSensors(null, 'P2')).toEqual({ total: 0, active: 0, silent: 0, faulty: 0 })
   })
 })
 

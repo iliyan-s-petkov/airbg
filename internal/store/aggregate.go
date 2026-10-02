@@ -251,6 +251,10 @@ type SensorReading struct {
 	// the newest USABLE row, so a real value beside a rejecting flag is normal.
 	Quality string
 	Values  map[string]float64
+	// Flags maps a metric to its newest row's flag when that flag is not usable
+	// (see quality.Flag.Usable). Empty for a healthy sensor; Quality alone cannot
+	// say which metric failed.
+	Flags map[string]string
 	// Measures names the metrics this device produced a fresh reading for, of
 	// any quality — what the hardware measures, as opposed to Values, which is
 	// what it currently has a USABLE reading for. The two differ exactly when a
@@ -334,7 +338,10 @@ SELECT s.sensor_id, s.sensor_type,
        array_agg(DISTINCT m.metric::text),
        s.first_seen, s.last_seen,
        s.source, COALESCE(s.station_code, ''), COALESCE(s.station_name, ''),
-       COALESCE(s.station_type, ''), COALESCE(s.station_area, '')
+       COALESCE(s.station_type, ''), COALESCE(s.station_area, ''),
+       -- Per-metric unusable flags; the usable pair is the same list as usableQuality.
+       jsonb_object_agg(m.metric, m.quality::text)
+           FILTER (WHERE m.quality <> ALL($2::quality_flag[]))
   FROM sensor s
   JOIN measured m ON m.sensor_id = s.sensor_id
   LEFT JOIN latest l ON l.sensor_id = m.sensor_id AND l.metric = m.metric
@@ -369,16 +376,21 @@ func scanSensorReadings(rows pgx.Rows) ([]SensorReading, error) {
 	for rows.Next() {
 		var sr SensorReading
 		var values map[string]float64
+		var flags map[string]string
 		if err := rows.Scan(&sr.SensorID, &sr.SensorType, &sr.Lon, &sr.Lat,
 			&sr.Country, &sr.AreaSlugs, &sr.Quality, &values, &sr.Measures,
 			&sr.FirstSeen, &sr.LastSeen, &sr.Source, &sr.StationCode,
-			&sr.StationName, &sr.StationType, &sr.StationArea); err != nil {
+			&sr.StationName, &sr.StationType, &sr.StationArea, &flags); err != nil {
 			return nil, fmt.Errorf("store: scan sensor: %w", err)
 		}
 		if values == nil {
 			values = map[string]float64{}
 		}
 		sr.Values = values
+		if flags == nil {
+			flags = map[string]string{}
+		}
+		sr.Flags = flags
 		out = append(out, sr)
 	}
 	if err := rows.Err(); err != nil {
