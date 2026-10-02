@@ -1,14 +1,4 @@
 {{define "main"}}
-<div class="frame">
-{{/* Compact because the map leads this page: the head is its caption, not a
-     hero of its own. The copy is the site's — the kit's mockup writes a
-     different sentence, and which sentence the home page says is a product
-     decision, not a design-system one. */}}
-<div class="page-head page-head--compact">
-  <h1 class="t-title">{{.T "site.title"}}</h1>
-  <h2 class="t-sub">{{.T "home.subtitle"}}</h2>
-</div>
-
 {{/* This template serves both tabs — the map at "/" and the province list at
      "/areas" — because they render from one snapshot and one set of rows. What
      differs is which of the two is the page's subject; each tab shows its own
@@ -16,42 +6,29 @@
      near-identical pages and printed the same 28 provinces twice per visit. */}}
 {{$map := not (.OnPath "/areas")}}
 
-{{/* The toolbar is where this screen's controls live: the metric switcher on
-     one side of the spacer, the area finder on the other. Each control goes to
-     the tab that holds the thing it acts on. */}}
-<div class="toolbar">
 {{if $map}}
-{{/* The switcher: server-rendered metric list and labels, positional pairs —
-     see PageData.Metrics/MetricLabels. Above the map island because it
-     controls what the map shows, not the other way round. */}}
-<div data-island="switcher"
-     data-metrics="{{.MetricsAttr}}"
-     data-metric-labels="{{.MetricLabelsAttr}}"
-     data-metric="{{.DefaultMetric}}"
-     data-t-legend="{{.T "metric.legend"}}"></div>
-{{end}}
+{{/* Map-first: the map starts directly under the masthead, so the visible hero
+     and the toolbar are gone. The page still needs its one h1, kept for
+     assistive technology and crawlers; the controls ride on the map below. */}}
+<h1 class="visually-hidden">{{.T "home.h1"}}</h1>
+{{else}}
+<div class="frame">
+{{/* The list tab keeps its visible head and toolbar: the table is the page, not
+     a map with a caption. */}}
+<div class="page-head page-head--compact">
+  <h1 class="t-title">{{.T "site.title"}}</h1>
+  <h2 class="t-sub">{{.T "home.subtitle"}}</h2>
+</div>
+<div class="toolbar">
 <div class="toolbar__spacer"></div>
-{{/* The finder carries no list of its own. On the list tab it reads the table
-     rendered at the foot of this page, which is already the no-JS fallback: a
-     second copy of the same 28 names is a second thing that can disagree with
-     the one the reader can see. The map tab renders no table, so data-source is
-     omitted there and the island reads the areas the map has already loaded —
-     still one list, still no extra request. A pick means the same thing on both
-     tabs, which is "show me this province": the list tab opens its page, the
-     map tab flies to it, and the hint says which. */}}
-<div data-island="finder"
-     {{if not $map}}data-source=".table tbody"{{end}}
-     data-t-label="{{.T "find.label"}}"
-     data-t-placeholder="{{.T "find.placeholder"}}"
-     data-t-hint="{{if $map}}{{.T "find.hint_map"}}{{else}}{{.T "find.hint"}}{{end}}"
-     data-t-empty="{{.T "find.no_match"}}"></div>
-{{/* Solid-bordered and full height, on the finder's baseline: the toolbar is
-     where this screen's controls live, so the reload belongs beside the finder
-     rather than in a line of prose. Secondary, not primary — the page has no
-     single call to action for it to compete with. */}}
+{{template "finderIsland" .}}
+{{/* Solid-bordered and full height, on the finder's baseline: this is where the
+     list tab's controls live, so the reload belongs beside the finder rather
+     than in a line of prose. */}}
 <div data-island="refresh" data-t-label="{{.T "refresh.button"}}"></div>
 </div>
 </div>
+{{end}}
 
 {{if $map}}
 
@@ -118,8 +95,21 @@
      data-t-wind-note="{{.T "wind.note"}}"
      data-t-wind-attribution="{{.T "wind.attribution"}}"
      data-t-wind-credit="{{.T "wind.credit"}}"></div>
+{{/* The controls that used to sit in a toolbar above the map: the metric pill
+     top-left, beside the kit's layers button, and the place finder top-right,
+     beside the full-screen button. They are siblings of #map so the map's own
+     overflow cannot clip the metric menu's panel. */}}
+<div class="map-controls">
+<div class="map-controls__metric" data-island="switcher" data-compact
+     data-metrics="{{.MetricsAttr}}"
+     data-metric-labels="{{.MetricLabelsAttr}}"
+     data-metric="{{.DefaultMetric}}"
+     data-t-legend="{{.T "metric.legend"}}"></div>
+<div class="map-controls__find">{{template "finderIsland" .}}</div>
+</div>
 {{/* On the map, not under it: the line says how old what you are looking at is,
-     and the auto-refresh toggle governs the same thing. */}}
+     and the auto-refresh toggle governs the same thing. The manual refresh sits
+     in it beside the timer (dataFreshness, data-button). */}}
 <div class="map-freshness">{{template "dataFreshness" .}}</div>
 {{template "scrollCue" .}}
 </div>
@@ -318,3 +308,16 @@
 {{end}}
 </div>
 {{end}}
+
+{{/* The finder carries no list of its own. On the list tab it reads the table
+     rendered at the foot of the page, which is already the no-JS fallback; the
+     map tab renders no table, so data-source is omitted there and the island
+     reads the areas the map has already loaded. A pick means "show me this
+     province" on both tabs: the list tab opens its page, the map tab flies to
+     it, and the hint says which. */}}
+{{define "finderIsland"}}{{$map := not (.OnPath "/areas")}}<div data-island="finder"
+     {{if not $map}}data-source=".table tbody"{{end}}
+     data-t-label="{{.T "find.label"}}"
+     data-t-placeholder="{{.T "find.placeholder"}}"
+     data-t-hint="{{if $map}}{{.T "find.hint_map"}}{{else}}{{.T "find.hint"}}{{end}}"
+     data-t-empty="{{.T "find.no_match"}}"></div>{{end}}

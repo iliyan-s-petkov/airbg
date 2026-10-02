@@ -16,16 +16,16 @@ test.afterEach(async ({ ctx, phoneCtx }) => {
   }
 })
 
-test.describe('S03: home heading pair', () => {
-  test('the H1 and a visible H2 render on desktop and phone', async ({ ctx, phoneCtx }) => {
+test.describe('S03: home heading', () => {
+  test('one hidden H1 and no visible hero on desktop and phone', async ({ ctx, phoneCtx }) => {
     for (const [context, size] of [[ctx, { width: 1280, height: 800 }], [phoneCtx, { width: 390, height: 844 }]]) {
       const page = await context.newPage()
       await page.setViewportSize(size)
       await page.goto('/en')
-      await expect(page.locator('h1').first()).toHaveText('My Air')
-      const sub = page.locator('.page-head h2')
-      await expect(sub).toHaveText('Air quality in Bulgaria')
-      await expect(sub).toBeVisible()
+      await expect(page.locator('h1')).toHaveCount(1)
+      await expect(page.locator('h1')).toHaveText('airbg — Bulgaria air quality map: PM2.5 and PM10 now')
+      await expect(page.locator('h1')).toHaveClass('visually-hidden')
+      await expect(page.locator('.page-head')).toHaveCount(0)
       await page.close()
     }
   })

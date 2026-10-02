@@ -33,9 +33,10 @@
 <body>
 {{/* The brand is the domain, not the page title: "airbg.org" is the same in
      every language, so it is written here rather than pulled from the
-     catalogue. The muted .org is the kit's lockup. */}}
+     catalogue. The .org is hidden at every width (app.css); the aria-label
+     keeps the full domain as the link's name. */}}
 <header class="masthead">
-  <a class="masthead__brand" href="{{.Path "/"}}"><img src="{{.Static "favicon.svg"}}" width="20" height="20" alt="">airbg<span class="tld">.org</span></a>
+  <a class="masthead__brand" href="{{.Path "/"}}" aria-label="airbg.org"><img src="{{.Static "favicon.svg"}}" width="20" height="20" alt="">airbg<span class="tld">.org</span></a>
   <nav class="masthead__nav" aria-label="{{.T "nav.map"}}">
     <a class="masthead__link" href="{{.Path "/"}}"{{if .OnPath "/"}} aria-current="page"{{end}}>{{.T "nav.map"}}</a>
     <a class="masthead__link" href="{{.Path "/areas"}}"{{if .OnPath "/areas"}} aria-current="page"{{end}}>{{.T "nav.areas"}}</a>
@@ -175,12 +176,11 @@
 </div>
 {{end}}
 
-{{/* The freshness line, on both pages that carry a map. The only difference is
-     where the reload button sits: in the toolbar on the home page, inside this
-     line on an area page, which is the kit's own split — on a page about one
-     place the reload is chrome beside the data, not a screen-level action. */}}
+{{/* The freshness line, on both pages that carry a map. The reload button sits
+     inside it on both: on the home page it moved here from the toolbar when the
+     controls went onto the map. */}}
 {{define "dataFreshness"}}<div data-island="freshness"
-     data-button="{{if .Area}}true{{else}}false{{end}}"
+     data-button="true"
      data-t-label="{{.T "refresh.button"}}"
      data-t-updated="{{.T "refresh.updated"}}"
      data-t-loading="{{.T "refresh.loading"}}"

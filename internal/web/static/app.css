@@ -611,6 +611,8 @@ strong, b { font-weight: var(--weight-emphasis); }
    already has the map, and the province list below carries the same readings
    in text either way. Not `display:none` — that would hide it from assistive
    technology too, which is the opposite of the point. */
+/* "airbg" alone in the masthead at every width; the link's aria-label says airbg.org. */
+.masthead__brand .tld { display: none; }
 .visually-hidden {
   position: absolute; inline-size: 1px; block-size: 1px; margin: -1px; padding: 0;
   overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0;
@@ -763,6 +765,15 @@ html:has(> body.embed) { block-size: 100%; }
 .scroll-cue__chevron { animation: cue-bob 1.8s ease-in-out 3; }
 @keyframes cue-bob { 50% { transform: translateY(3px); } }
 @media (hover: hover) { .scroll-cue { display: none; } }
+/* The home map ends at the viewport bottom on desktop, so its tab sits inside the edge instead of hanging off it. */
+@media (hover: hover) {
+  .map-shell:has(> .map--hero) .scroll-cue { display: grid; inset-block-start: auto; inset-block-end: 0; }
+  .map-shell:has(> .map--hero) .scroll-cue::after {
+    border-block-start: 1px solid var(--border); border-block-end: 0; border-radius: 12px 12px 0 0;
+    clip-path: inset(-12px -12px 0 -12px);
+  }
+  .map-shell:has(> .map--hero) .scroll-cue::before { inset: -12px -4px 0; }
+}
 .map-shell:has(.map:fullscreen, .map--faux-full) .scroll-cue { display: none; }
 /* The caption clears the tab. */
 .map-shell:has(.scroll-cue) + .map-tier { margin-block-start: calc(20px + var(--space-1)); }
@@ -785,6 +796,43 @@ html:has(> body.embed) { block-size: 100%; }
 /* Fullscreen and faux-full pin the frame over the viewport; nothing outside it is reachable. */
 .map-shell:has(.map:fullscreen, .map--faux-full) ~ .back-to-map { display: none; }
 
+/* Map-first home: the metric pill and the finder ride on the map's top row, between
+   the kit's layers button (start) and full-screen button (end). */
+.map-controls {
+  position: absolute; z-index: 3; inset-block-start: var(--space-2);
+  inset-inline-start: calc(12px + 32px + var(--space-2));
+  inset-inline-end: calc(var(--space-2) + 40px + var(--space-2));
+  display: flex; align-items: center; justify-content: space-between; gap: var(--space-2);
+  pointer-events: none;
+}
+.map-controls > * { pointer-events: auto; }
+.map-controls:has(.colmenu__panel:not([hidden])) { z-index: 7; }
+.map-controls__metric, .map-controls__find { min-block-size: 0; }
+.map-controls__metric { flex: none; }
+.map-controls__metric .btn {
+  block-size: 40px; padding-inline: var(--space-3); background: var(--bg); border: 0;
+  border-radius: var(--radius); box-shadow: var(--elev-raised); color: var(--fg);
+}
+.map-controls__metric .btn:hover { background: var(--surface-2); }
+.map-controls__find { flex: 0 1 20rem; min-inline-size: 0; }
+.map-controls__find .toolbar__find { flex: 1 1 auto; min-inline-size: 0; inline-size: 100%; }
+.map-controls__find .input { box-shadow: var(--elev-raised); border-color: transparent; }
+.map-controls__find .field__label {
+  position: absolute; inline-size: 1px; block-size: 1px; margin: -1px; overflow: hidden;
+  clip-path: inset(50%); white-space: nowrap; border: 0;
+}
+/* The transient map note drops under the controls row instead of sharing it. */
+.map-shell:has(.map-controls) .map-note { inset-inline-start: 12px; top: calc(var(--space-2) + 40px + var(--space-2)); }
+.map-shell:has(.map:fullscreen, .map--faux-full) .map-controls { display: none; }
+@media (min-width: 672px) {
+  .map-shell:has(> .map--hero) { max-inline-size: none; block-size: auto; max-block-size: none; }
+  .map--hero { aspect-ratio: auto; block-size: calc(100svh - var(--masthead-h)); min-block-size: 22rem; max-block-size: none; }
+}
+/* A touch tablet's pull tab hangs 20px below the map, so the map gives that back. */
+@media (min-width: 672px) and (hover: none) {
+  .map--hero { block-size: calc(100svh - var(--masthead-h) - 20px); }
+}
+
 /* Phone layout: masthead wraps, map taller, scale horizontal, replay row wraps. */
 @media (max-width: 672px) {
   /* One line, 48px: brand shortens and links tighten instead of wrapping. */
@@ -796,7 +844,6 @@ html:has(> body.embed) { block-size: 100%; }
     .masthead__link--source, .masthead__link--about { display: none; }
     .langpick__extra { display: list-item; }
     .langpick__extra--first { border-block-start: 1px solid var(--border); margin-block-start: var(--space-1); padding-block-start: var(--space-1); }
-    .masthead__brand .tld { display: none; }
   }
   .langpick__list { max-inline-size: calc(100vw - var(--space-4)); }
 
@@ -804,10 +851,10 @@ html:has(> body.embed) { block-size: 100%; }
      .map--hero instead. The shell no longer fixes its own height too — a
      fixed-height shell clipped the static, in-flow scale below the map. */
   .map-shell:has(.map--hero) { block-size: auto; max-block-size: none; }
-  /* Capped so the tier caption (1.5rem), the 1.25rem subtitle and the 20px pull tab stay in the first viewport. */
+  /* Fills what is left: the tier caption (1.5rem) and the 20px pull tab stay in the first viewport. */
   .map--hero {
-    aspect-ratio: auto; block-size: calc(100svh - var(--phone-chrome) - 1.5rem - 1.25rem - 20px);
-    min-block-size: 20rem; max-block-size: 44rem;
+    aspect-ratio: auto; block-size: calc(100svh - var(--masthead-h) - 1.5rem - 20px);
+    min-block-size: 20rem; max-block-size: none;
   }
   .map--wide { block-size: calc(100svh - 15rem); min-block-size: 18rem; }
   /* Area pages, covered or not: shrink so the pull tab stays above the fold on touch phones. */
@@ -1019,6 +1066,12 @@ html:has(> body.embed) { block-size: 100%; }
   .page-head:not(.page-head--compact) h1 { font-size: var(--text-sub); margin: 0; }
   h1 { font-size: var(--text-sub); }
 
+  /* On-map controls: 44px targets, the row centred on the 44px corner buttons. */
+  .map-controls { inset-inline-start: calc(12px + 44px + var(--space-2)); inset-inline-end: calc(var(--space-2) + 44px + var(--space-2)); }
+  .map-controls__metric .btn { block-size: 44px; min-block-size: 44px; }
+  .map-controls__find .input { min-block-size: 44px; }
+  .map-shell:has(.map-controls) .map-note { top: calc(var(--space-2) + 44px + var(--space-2)); }
+
   /* Toolbar: one 48px row — metric value, finder stretches, icon-only refresh. */
   .toolbar { flex-wrap: nowrap; align-items: center; gap: var(--space-2); padding-block-end: var(--space-2); }
   .toolbar__spacer { display: none; }
@@ -1066,8 +1119,8 @@ html:has(> body.embed) { block-size: 100%; }
    of height and the shell collapses to 0. Height-led instead, chrome on top. */
 @media (orientation: landscape) and (max-height: 520px) and (hover: none) {
   .map-shell:has(.map--hero) { max-inline-size: none; block-size: auto; max-block-size: none; }
-  /* 7rem: the measured 92px of chrome above the map plus the 20px subtitle line; 20px is the pull tab. */
-  .map--hero { aspect-ratio: auto; block-size: calc(100svh - 7rem - 20px); min-block-size: 12rem; }
+  /* 40px masthead, the 1.5rem tier caption and the 20px pull tab. */
+  .map--hero { aspect-ratio: auto; block-size: calc(100svh - 40px - 1.5rem - 20px); min-block-size: 12rem; max-block-size: none; }
   /* 7rem: measured 6rem of chrome above the map left the pull tab on the fold; 20px is the pull tab. */
   .map--wide { block-size: calc(100svh - 7rem - 20px); min-block-size: 12rem; }
 
