@@ -73,7 +73,7 @@ func TestSitemapIsWellFormedXML(t *testing.T) {
 }
 
 // TestSitemapContainsEveryArea: both fixture areas (sofia, vidin) must appear,
-// plus the four static pages. A dropped area is invisible in the rendered
+// plus the six static pages. A dropped area is invisible in the rendered
 // site and only shows up here.
 func TestSitemapContainsEveryArea(t *testing.T) {
 	doc := fetchSitemap(t)
@@ -107,9 +107,9 @@ func TestSitemapContainsEveryArea(t *testing.T) {
 			t.Errorf("sitemap is missing the English variant %q", want)
 		}
 	}
-	// Six pages in each of the two fixture languages.
-	if len(doc.URLs) != 12 {
-		t.Errorf("sitemap has %d <url> entries, want 12: %+v", len(doc.URLs), doc.URLs)
+	// Eight pages in each of the two fixture languages.
+	if len(doc.URLs) != 16 {
+		t.Errorf("sitemap has %d <url> entries, want 16: %+v", len(doc.URLs), doc.URLs)
 	}
 }
 

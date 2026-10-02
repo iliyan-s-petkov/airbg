@@ -1,0 +1,24 @@
+{{/* /privacy: static prose plus the shared storage list and clear button. Every
+     statement here is a fact of the code; see the catalogue's privacy.* keys. */}}
+{{define "main"}}
+<div class="measure">
+<div class="page-head">
+  <h1 class="t-title">{{.T "privacy.title"}}</h1>
+  <p class="t-body">{{.T "privacy.intro"}}</p>
+</div>
+
+<h2>{{.T "privacy.requests.heading"}}</h2>
+<p>{{.T "about.privacy.intro"}}</p>
+
+<h2>{{.T "privacy.locate.heading"}}</h2>
+<p>{{.T "privacy.locate.body"}}</p>
+
+<h2>{{.T "privacy.third.heading"}}</h2>
+<p>{{.T "privacy.third.body"}} <a href="https://wiki.osmfoundation.org/wiki/Privacy_Policy" rel="noopener noreferrer">{{.T "privacy.third.link"}}</a>.</p>
+
+<h2>{{.T "privacy.storage.heading"}}</h2>
+{{template "privacyStorage" .}}
+
+<p><a href="{{.Path "/"}}">{{.T "area.back_to_map"}}</a></p>
+</div>
+{{end}}

@@ -61,9 +61,10 @@ test.describe.serial('the network layers', () => {
 test('the footer credits both programmes', async ({ ctx }) => {
   const page = await ctx.newPage()
   await page.goto('/en/')
-  await expect(page.getByRole('link', { name: 'Official government map' }))
+  const footer = page.locator('footer')
+  await expect(footer.getByRole('link', { name: /ИАОС \/ EEA/ }))
     .toHaveAttribute('href', 'https://eea.government.bg/kav/')
-  await expect(page.getByRole('link', { name: 'sensor.community map' }))
+  await expect(footer.getByRole('link', { name: /^sensor\.community/ }))
     .toHaveAttribute('href', 'https://maps.sensor.community/')
   await page.close()
 })

@@ -84,8 +84,8 @@ func (rr *Renderer) sitemapBytes(generatedAt time.Time) ([]byte, error) {
 	// directory and areas with coverage. Static pages and areas without data
 	// get none rather than a date nothing supports.
 	type entry struct{ path, lastMod string }
-	entries := make([]entry, 0, len(slugs)+4)
-	entries = append(entries, entry{"/", day}, entry{"/areas", day}, entry{"/about", ""}, entry{"/about-the-data", ""})
+	entries := make([]entry, 0, len(slugs)+6)
+	entries = append(entries, entry{"/", day}, entry{"/areas", day}, entry{"/about", ""}, entry{"/about-the-data", ""}, entry{"/privacy", ""}, entry{"/licences", ""})
 	for _, slug := range slugs {
 		lm := ""
 		if covered[slug] {

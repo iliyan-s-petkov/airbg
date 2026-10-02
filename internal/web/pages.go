@@ -78,6 +78,8 @@ func (rr *Renderer) handlers() map[string]http.Handler {
 		h["GET "+prefix+"/area/{slug}"] = http.HandlerFunc(rr.handleArea)
 		h["GET "+prefix+"/about"] = http.HandlerFunc(rr.handleAboutProject)
 		h["GET "+prefix+"/about-the-data"] = http.HandlerFunc(rr.handleAbout)
+		h["GET "+prefix+"/privacy"] = http.HandlerFunc(rr.handlePrivacy)
+		h["GET "+prefix+"/licences"] = http.HandlerFunc(rr.handleLicences)
 		h["GET "+prefix+"/embed"] = http.HandlerFunc(rr.handleEmbed)
 	}
 
@@ -265,6 +267,33 @@ func (rr *Renderer) handleAboutProject(w http.ResponseWriter, r *http.Request) {
 	data.StorageKeys = storageKeyInfos(rr.cat, lang)
 	data.StorageKeysCSV = storageKeysCSV()
 	rr.render(w, r, http.StatusOK, "about_project", data)
+}
+
+// handlePrivacy serves /privacy. Static prose like /about: no snapshot needed.
+func (rr *Renderer) handlePrivacy(w http.ResponseWriter, r *http.Request) {
+	data := rr.staticPageData(r, "seo.privacy")
+	data.StorageKeys = storageKeyInfos(rr.cat, data.Lang)
+	data.StorageKeysCSV = storageKeysCSV()
+	rr.render(w, r, http.StatusOK, "privacy", data)
+}
+
+// handleLicences serves /licences: every data source and the code licence.
+func (rr *Renderer) handleLicences(w http.ResponseWriter, r *http.Request) {
+	rr.render(w, r, http.StatusOK, "licences", rr.staticPageData(r, "seo.licences"))
+}
+
+// staticPageData is the shared setup of the snapshot-free prose pages; keyBase
+// names the catalogue's <keyBase>.title and <keyBase>.description.
+func (rr *Renderer) staticPageData(r *http.Request, keyBase string) PageData {
+	var generatedAt time.Time
+	if snap := rr.holder.Load(); snap != nil {
+		generatedAt = snap.GeneratedAt
+	}
+	lang, path := rr.cat.LangFromPath(r.URL.Path)
+	data := rr.newPageData(lang, path, generatedAt)
+	data.Title = composeTitle(rr.cat.T(lang, keyBase+".title"), rr.cat.T(lang, "seo.title_brand"))
+	data.Description = rr.cat.T(lang, keyBase+".description")
+	return data
 }
 
 // handleEmbed serves the map on its own, for an <iframe> on someone else's

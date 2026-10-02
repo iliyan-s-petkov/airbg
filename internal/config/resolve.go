@@ -27,6 +27,7 @@ type Config struct {
 	Tiles      Tiles
 	I18n       I18n
 	DesignKit  DesignKit
+	Social     Social
 }
 
 type Listen struct {
@@ -337,6 +338,12 @@ type DesignKit struct {
 	Dir string
 }
 
+// Social holds the footer's optional profile links; an empty URL hides the icon.
+type Social struct {
+	FacebookURL string
+	LinkedInURL string
+}
+
 // Enabled reports whether the design-kit route exists.
 func (d DesignKit) Enabled() bool { return d.Dir != "" }
 
@@ -525,6 +532,10 @@ func resolve(r *raw) Config {
 		},
 		DesignKit: DesignKit{
 			Dir: *r.DesignKit.Dir,
+		},
+		Social: Social{
+			FacebookURL: *r.Social.FacebookURL,
+			LinkedInURL: *r.Social.LinkedInURL,
 		},
 	}
 

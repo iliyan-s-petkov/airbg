@@ -523,3 +523,9 @@ i18n:
 # from outside the LAN: the kit is a review surface, not part of the site.
 design_kit:
   dir: "/design-kit"  # design-kit/ in the repo, copied in by the Dockerfile
+
+# Footer profile links, rendered only when set (https URLs). GitHub always shows.
+# Env: AIRBG_SOCIAL_FACEBOOK_URL, AIRBG_SOCIAL_LINKEDIN_URL.
+social:
+  facebook_url: ""
+  linkedin_url: ""

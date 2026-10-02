@@ -51,6 +51,7 @@ type Renderer struct {
 	frontend        config.Frontend
 	defaultMetric   string
 	defaultPeriod   string
+	social          config.Social
 	// File order, which is the order the switcher offers them in and the order
 	// the config author chose — alphabetical would put "1y" first.
 	periodNames []string
@@ -108,6 +109,7 @@ func NewRenderer(cat *i18n.Catalogue, holder *snapshot.Holder, cfg config.Config
 		baseURL:         strings.TrimSuffix(cfg.Listen.BaseURL, "/"),
 		basemapStyleURL: cfg.Tiles.StyleURL(),
 		frontend:        cfg.Frontend,
+		social:          cfg.Social,
 		defaultMetric:   cfg.Series.DefaultMetric,
 		defaultPeriod:   cfg.Series.PeriodNames[0],
 		periodNames:     cfg.Series.PeriodNames,
@@ -129,7 +131,7 @@ func NewRenderer(cat *i18n.Catalogue, holder *snapshot.Holder, cfg config.Config
 
 	// "embed" is parsed with base.gohtml like the rest, and then redefines
 	// "base" itself: it needs base's map partials but none of its chrome.
-	for _, page := range []string{"index", "area", "about", "about_project", "error", "embed"} {
+	for _, page := range []string{"index", "area", "about", "about_project", "privacy", "licences", "error", "embed"} {
 		t, err := template.New("base.gohtml").Funcs(templateFuncs).ParseFS(templateFS,
 			"templates/base.gohtml", "templates/"+page+".gohtml")
 		if err != nil {
@@ -281,6 +283,12 @@ type PageData struct {
 	// StorageKeysCSV is the same keys, comma-joined, for the "clear my
 	// settings" island's data-keys attribute — see clearsettings.js.
 	StorageKeysCSV string
+
+	// FooterAreas are the footer's Explore links: the busiest cities in the
+	// snapshot, named in the page language. Empty without a snapshot.
+	FooterAreas []FooterArea
+	// FacebookURL and LinkedInURL are the optional footer profiles; empty hides the icon.
+	FacebookURL, LinkedInURL string
 
 	cat *i18n.Catalogue
 	// sofiaLoc is the zone the area sentences' {time} placeholders are
@@ -881,6 +889,50 @@ func (p PageData) GeneratedAtHuman() string {
 // is currently embedded, so an edit cannot be served from a stale cache.
 func (p PageData) Static(name string) string { return p.static.URL(name) }
 
+// FooterArea is one city link in the footer.
+type FooterArea struct{ Slug, Name string }
+
+// footerCityCount is how many cities the footer's Explore column lists.
+const footerCityCount = 4
+
+// footerAreas picks the cities with the most sensors from the snapshot, so the
+// slugs are the ones the area pages route on. Ties break by slug for a stable page.
+func (rr *Renderer) footerAreas(lang string) []FooterArea {
+	snap := rr.holder.Load()
+	if snap == nil {
+		return nil
+	}
+	cities := make([]snapshot.AreaMeta, 0, len(snap.KnownSlugs))
+	for _, meta := range snap.KnownSlugs {
+		if meta.Kind == "city" {
+			cities = append(cities, meta)
+		}
+	}
+	sort.Slice(cities, func(i, j int) bool {
+		if cities[i].SensorCount != cities[j].SensorCount {
+			return cities[i].SensorCount > cities[j].SensorCount
+		}
+		return cities[i].Slug < cities[j].Slug
+	})
+	if len(cities) > footerCityCount {
+		cities = cities[:footerCityCount]
+	}
+	out := make([]FooterArea, len(cities))
+	for i, meta := range cities {
+		out[i] = FooterArea{Slug: meta.Slug, Name: rr.rowFrom(meta, lang).Name}
+	}
+	return out
+}
+
+// Year is the current year for the footer's copyright line.
+func (p PageData) Year() int { return p.Now.Year() }
+
+// SourceIssuesURL is where the footer's Contact link goes until an email is chosen.
+func (p PageData) SourceIssuesURL() string { return sourceRepoURL + "/issues" }
+
+// SourceLicenceURL is the repository's LICENSE file.
+func (p PageData) SourceLicenceURL() string { return sourceRepoURL + "/blob/master/LICENSE" }
+
 // SourceRepoURL is the public repository; templates take it from here so the
 // address is written once (jsonld.go).
 func (p PageData) SourceRepoURL() string { return sourceRepoURL }
@@ -913,6 +965,9 @@ func (rr *Renderer) newPageData(lang, path string, generatedAt time.Time) PageDa
 		Assets:          rr.assets,
 		static:          rr.static,
 		BasemapStyleURL: rr.basemapStyleURL,
+		FooterAreas:     rr.footerAreas(lang),
+		FacebookURL:     rr.social.FacebookURL,
+		LinkedInURL:     rr.social.LinkedInURL,
 
 		NoDataColour:       rr.frontend.NoDataColour,
 		UnscaledColour:     rr.frontend.UnscaledColour,

@@ -831,22 +831,19 @@ func TestNoTilesRendersAnEmptyBasemapAttribute(t *testing.T) {
 // OpenStreetMap for the BOUNDARIES, which render with or without tiles, so the
 // bare name is present either way and the absence half would prove nothing.
 func TestBasemapAttribution(t *testing.T) {
-	cat, err := i18n.Load()
-	if err != nil {
-		t.Fatalf("i18n.Load: %v", err)
-	}
-	credit := cat.T("bg", "footer.basemap")
-
-	with := fetch(t, newTestRendererWithTiles(t, "https://tiles.airbg.org"), "/").Body.String()
-	if !strings.Contains(with, credit) {
-		t.Errorf("page with a basemap does not carry the basemap credit:\n%s", with)
-	}
-	if strings.Contains(with, "Protomaps") {
-		t.Errorf("basemap credit names Protomaps, which contributed nothing to this archive:\n%s", with)
-	}
-	without := fetch(t, newTestRendererWithTiles(t, ""), "/").Body.String()
-	if strings.Contains(without, credit) {
-		t.Error("page with no basemap carries the basemap credit anyway")
+	// The footer's OSM credit is unconditional: boundaries render with or
+	// without tiles, so "© OpenStreetMap contributors" is owed on every page.
+	for name, rr := range map[string]*web.Renderer{
+		"with tiles":    newTestRendererWithTiles(t, "https://tiles.airbg.org"),
+		"without tiles": newTestRendererWithTiles(t, ""),
+	} {
+		page := fetch(t, rr, "/").Body.String()
+		if !strings.Contains(footerOf(t, page), "© OpenStreetMap contributors") {
+			t.Errorf("%s: footer does not carry the OpenStreetMap credit", name)
+		}
+		if strings.Contains(page, "Protomaps") {
+			t.Errorf("%s: credit names Protomaps, which contributed nothing to this archive", name)
+		}
 	}
 }
 
@@ -910,8 +907,13 @@ func TestFooterCreditsOpenMeteo(t *testing.T) {
 		if !strings.Contains(page, `href="https://open-meteo.com/"`) {
 			t.Errorf("%s: footer has no link to open-meteo.com:\n%s", path, page)
 		}
-		if !strings.Contains(page, `href="https://creativecommons.org/licenses/by/4.0/"`) {
-			t.Errorf("%s: footer has no link to the CC BY 4.0 licence", path)
+		if !strings.Contains(footerOf(t, page), "CC BY 4.0") {
+			t.Errorf("%s: footer does not name the CC BY 4.0 licence", path)
+		}
+		// The licence link itself lives on the Licences page.
+		lic := fetch(t, renderer(t, fixture(t)), strings.TrimSuffix(path, "/")+"/licences").Body.String()
+		if !strings.Contains(lic, `href="https://creativecommons.org/licenses/by/4.0/"`) {
+			t.Errorf("%s: licences page has no link to the CC BY 4.0 licence", path)
 		}
 	}
 }

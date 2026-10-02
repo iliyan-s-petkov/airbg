@@ -79,6 +79,7 @@ func (c Config) Validate() error {
 	c.validateQuality(&p)
 	c.validateFrontend(&p)
 	c.validateTiles(&p)
+	c.validateSocial(&p)
 
 	if len(p) > 0 {
 		return fmt.Errorf("config: %d problem(s):\n  %s", len(p), strings.Join(p, "\n  "))
@@ -837,3 +838,19 @@ func splitListenAddr(addr string) (host, port string) {
 }
 
 func loopbackHost(h string) bool { return h == "localhost" || h == "127.0.0.1" }
+
+// validateSocial accepts empty or an https URL with a host; the value lands in an href.
+func (c Config) validateSocial(p *problems) {
+	for key, v := range map[string]string{
+		"social.facebook_url": c.Social.FacebookURL,
+		"social.linkedin_url": c.Social.LinkedInURL,
+	} {
+		if v == "" {
+			continue
+		}
+		u, err := url.Parse(v)
+		if err != nil || u.Scheme != "https" || u.Host == "" {
+			p.addf("%s must be empty or an https URL", key)
+		}
+	}
+}
