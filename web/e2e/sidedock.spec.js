@@ -79,6 +79,9 @@ test('1440: a tapped sensor docks inside the right of the map without scrolling'
   expect(await page.evaluate(() => window.scrollY)).toBe(before)
   await expect(dock.locator('h2')).toContainText(/\S/)
   await expect(dock.locator('.gauges .gauge').first()).toBeVisible()
+  // Sized to its content, not stretched to the map's height.
+  const gap = await dock.evaluate((el) => el.getBoundingClientRect().bottom - el.lastElementChild.getBoundingClientRect().bottom)
+  expect(gap).toBeLessThanOrEqual(32)
   await context.close()
 })
 
