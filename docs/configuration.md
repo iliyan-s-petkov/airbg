@@ -275,7 +275,7 @@ the catalogues.
 
 ## 10. Rate limiting: eviction intervals and the two `Retry-After`s
 
-There are three limiters, and they are configured asymmetrically on purpose.
+There are four limiters (api, pages, series, enumerate), configured asymmetrically on purpose. `ratelimit.pages` covers every path outside `/api/`, is looser than the API bucket so a crawler fetching the sitemap in a burst is not refused, and sweeps on its own `evict_interval`.
 
 **`evict_interval` is per limiter.** It is how often a limiter's key map is
 swept for idle entries, and bounding that map is a memory-exhaustion defence,

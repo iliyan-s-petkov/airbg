@@ -36,12 +36,13 @@ type ldOrganization struct {
 }
 
 type ldWebSite struct {
-	Type       string `json:"@type"`
-	ID         string `json:"@id"`
-	Name       string `json:"name"`
-	URL        string `json:"url"`
-	InLanguage string `json:"inLanguage"`
-	Publisher  ldRef  `json:"publisher"`
+	Type          string `json:"@type"`
+	ID            string `json:"@id"`
+	Name          string `json:"name"`
+	AlternateName string `json:"alternateName,omitempty"`
+	URL           string `json:"url"`
+	InLanguage    string `json:"inLanguage"`
+	Publisher     ldRef  `json:"publisher"`
 }
 
 type ldGeoShape struct {
@@ -144,12 +145,13 @@ func (p PageData) organization() ldOrganization {
 func (p PageData) homeJSONLD() (template.JS, error) {
 	org := p.organization()
 	site := ldWebSite{
-		Type:       "WebSite",
-		ID:         p.BaseURL + "/#website",
-		Name:       p.T("site.title"),
-		URL:        p.CanonicalURL(),
-		InLanguage: p.Lang,
-		Publisher:  ldRef{ID: org.ID},
+		Type:          "WebSite",
+		ID:            p.BaseURL + "/#website",
+		Name:          "airbg",
+		AlternateName: org.Name,
+		URL:           p.CanonicalURL(),
+		InLanguage:    p.Lang,
+		Publisher:     ldRef{ID: org.ID},
 	}
 	return encodeJSONLD(site, org)
 }

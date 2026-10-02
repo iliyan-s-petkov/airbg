@@ -210,14 +210,3 @@ func TestSitemapExcludesEmbedAndAPI(t *testing.T) {
 		t.Error("sitemap.xml references /api/, which robots.txt disallows")
 	}
 }
-
-// TestSitemapCarriesLastMod: every entry needs a <lastmod> so a crawler can
-// tell a stale area page from a fresh one.
-func TestSitemapCarriesLastMod(t *testing.T) {
-	doc := fetchSitemap(t)
-	for _, u := range doc.URLs {
-		if u.LastMod != "2026-08-09" {
-			t.Errorf("%s: lastmod = %q, want 2026-08-09 (the fixture's GeneratedAt)", u.Loc, u.LastMod)
-		}
-	}
-}

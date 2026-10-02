@@ -86,6 +86,7 @@ type StatementTimeouts struct {
 
 type RateLimit struct {
 	API        Bucket
+	Pages      Bucket
 	Series     SeriesBucket
 	Enumerate  Enumerate
 	ShardCount int
@@ -393,6 +394,7 @@ func resolve(r *raw) Config {
 		},
 		RateLimit: RateLimit{
 			API:        resolveBucket(r.RateLimit.API),
+			Pages:      resolveBucket(r.RateLimit.Pages),
 			Series:     resolveSeriesBucket(r.RateLimit.Series),
 			ShardCount: *r.RateLimit.ShardCount,
 			Enumerate: Enumerate{

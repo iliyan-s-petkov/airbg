@@ -58,6 +58,7 @@ type Server struct {
 	// Pre-bound listeners; nil unless Options set them. See serveCapped/listen.
 	publicLn, privateLn, tilesLn net.Listener
 	limiter                      *ratelimit.Limiter
+	pageLimiter                  *ratelimit.Limiter
 	breadth                      *ratelimit.Breadth
 	seriesLimiter                *ratelimit.Limiter
 	log                          *slog.Logger
@@ -67,6 +68,7 @@ type Server struct {
 	// ratelimit.series.evict_interval for as long as both values happened to be
 	// equal in airbg.yaml.
 	apiEvictInterval    time.Duration
+	pagesEvictInterval  time.Duration
 	seriesEvictInterval time.Duration
 	shutdownGrace       time.Duration
 }
@@ -99,6 +101,7 @@ func New(opts Options) (*Server, error) {
 	}
 
 	limiter := ratelimit.New(opts.Config.RateLimit.API, opts.Config.RateLimit.ShardCount)
+	pageLimiter := ratelimit.New(opts.Config.RateLimit.Pages, opts.Config.RateLimit.ShardCount)
 	seriesLimiter := api.NewSeriesLimiter(opts.Config)
 	breadth := ratelimit.NewBreadth(opts.Config.RateLimit.Enumerate)
 
@@ -154,6 +157,7 @@ func New(opts Options) (*Server, error) {
 	chain := httpx.Chain{
 		Resolver:          resolver,
 		Limiter:           limiter,
+		PageLimiter:       pageLimiter,
 		MaxBodyBytes:      maxBodyBytes,
 		CSP:               opts.Config.Listen.CSP,
 		PermissionsPolicy: opts.Config.Listen.PermissionsPolicy,
@@ -182,11 +186,13 @@ func New(opts Options) (*Server, error) {
 		publicLn:            opts.PublicListener,
 		privateLn:           opts.PrivateListener,
 		limiter:             limiter,
+		pageLimiter:         pageLimiter,
 		breadth:             breadth,
 		seriesLimiter:       seriesLimiter,
 		log:                 opts.Logger,
 		maxConns:            opts.Config.Listen.MaxConns,
 		apiEvictInterval:    opts.Config.RateLimit.API.EvictInterval,
+		pagesEvictInterval:  opts.Config.RateLimit.Pages.EvictInterval,
 		seriesEvictInterval: opts.Config.RateLimit.Series.EvictInterval,
 		shutdownGrace:       opts.Config.Timeouts.ShutdownGrace,
 	}
@@ -313,6 +319,7 @@ func (s *Server) Run(ctx context.Context) error {
 // series bug happened in the first place.
 func (s *Server) startEvicting(ctx context.Context) {
 	s.limiter.StartEvicting(ctx, s.apiEvictInterval)
+	s.pageLimiter.StartEvicting(ctx, s.pagesEvictInterval)
 	s.breadth.StartEvicting(ctx, s.apiEvictInterval)
 	s.seriesLimiter.StartEvicting(ctx, s.seriesEvictInterval)
 }

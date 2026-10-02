@@ -65,6 +65,7 @@ type rawStatementTimeouts struct {
 
 type rawRateLimit struct {
 	API        *rawBucket       `yaml:"api"`
+	Pages      *rawBucket       `yaml:"pages"`
 	Series     *rawSeriesBucket `yaml:"series"`
 	Enumerate  *rawEnumerate    `yaml:"enumerate"`
 	ShardCount *int             `yaml:"shard_count"`

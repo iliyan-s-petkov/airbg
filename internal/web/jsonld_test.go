@@ -16,6 +16,7 @@ type ldNode struct {
 	Type                string   `json:"@type"`
 	ID                  string   `json:"@id"`
 	Name                string   `json:"name"`
+	AlternateName       string   `json:"alternateName"`
 	Description         string   `json:"description"`
 	URL                 string   `json:"url"`
 	InLanguage          string   `json:"inLanguage"`
