@@ -15,6 +15,7 @@ export function mount(el) {
     props: {
       options: zipLabels(metrics, parseMetricList(d.metricLabels)),
       legend: d.tLegend,
+      compact: 'compact' in d,
       get selected() { return vs.metric },
       onselect: (m) => vs.setMetric(m),
     },

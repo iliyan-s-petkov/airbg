@@ -104,21 +104,45 @@ func TestAboutEmbedCodeIsKeyboardScrollable(t *testing.T) {
 	}
 }
 
-// S03: the home page keeps the product H1 and adds a visible keyword H2 under it.
-func TestHomeHeadingPairsProductH1WithKeywordH2(t *testing.T) {
+// S03, map-first: the home page carries one visually hidden product h1 and no visible hero.
+func TestHomeHasOneHiddenH1AndNoVisibleHero(t *testing.T) {
 	rr := renderer(t, fixture(t))
-	cases := map[string][2]string{
-		"/":    {"Моят въздух", "Качество на въздуха в България"},
-		"/en/": {"My Air", "Air quality in Bulgaria"},
+	cases := map[string]string{
+		"/":    "airbg — Качество на въздуха в България: карта на живо",
+		"/en/": "airbg — Bulgaria air quality map: PM2.5 and PM10 now",
 	}
 	for path, want := range cases {
 		body := fetch(t, rr, path).Body.String()
-		h1 := `<h1 class="t-title">` + want[0] + `</h1>`
-		h2 := `<h2 class="t-sub">` + want[1] + `</h2>`
-		i, j := strings.Index(body, h1), strings.Index(body, h2)
-		if i < 0 || j < 0 || j < i {
-			t.Errorf("%s: want %s followed by %s (h1 at %d, h2 at %d)", path, h1, h2, i, j)
+		h1 := `<h1 class="visually-hidden">` + want + `</h1>`
+		if !strings.Contains(body, h1) {
+			t.Errorf("%s: want %s", path, h1)
 		}
+		if n := strings.Count(body, "<h1"); n != 1 {
+			t.Errorf("%s: want exactly one h1, got %d", path, n)
+		}
+		for _, gone := range []string{`class="page-head`, `class="t-title"`, `class="t-sub"`, `class="toolbar"`} {
+			if strings.Contains(body, gone) {
+				t.Errorf("%s: the visible hero/toolbar is still rendered (%s)", path, gone)
+			}
+		}
+	}
+}
+
+// The areas tab is not map-first: it keeps its visible head and toolbar.
+func TestAreasTabKeepsVisibleHeadAndToolbar(t *testing.T) {
+	body := fetch(t, renderer(t, fixture(t)), "/en/areas").Body.String()
+	for _, want := range []string{`<h1 class="t-title">My Air</h1>`, `class="toolbar"`} {
+		if !strings.Contains(body, want) {
+			t.Errorf("/en/areas: want %s", want)
+		}
+	}
+}
+
+// The brand link keeps the full domain as its accessible name while .tld is hidden by CSS.
+func TestBrandLinkKeepsDomainAccessibleName(t *testing.T) {
+	body := fetch(t, renderer(t, fixture(t)), "/en/").Body.String()
+	if !strings.Contains(body, `class="masthead__brand" href="/en/" aria-label="airbg.org"`) {
+		t.Error("brand link lacks aria-label=\"airbg.org\"")
 	}
 }
 

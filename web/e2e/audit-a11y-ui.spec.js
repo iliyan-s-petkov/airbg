@@ -228,7 +228,7 @@ test.describe('U04: the metric button keeps a visible space after its legend', (
   test('there is a gap between "Metric:" and the value', async ({ ctx }) => {
     const page = await ctx.newPage()
     await page.setViewportSize({ width: 1280, height: 900 })
-    await page.goto('/en')
+    await page.goto('/en/area/sofia')
     await page.waitForSelector('[data-island="switcher"] .colmenu__legend')
     const gap =await page.evaluate(() => {
       const legend = document.querySelector('[data-island="switcher"] .colmenu__legend')

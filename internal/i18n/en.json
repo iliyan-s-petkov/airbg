@@ -166,6 +166,7 @@
   "footer.official.map": "Official government map",
   "footer.wind": "Wind forecast data, resampled by airbg.org, from",
   "home.subtitle": "Air quality in Bulgaria",
+  "home.h1": "airbg — Bulgaria air quality map: PM2.5 and PM10 now",
   "home.tier_covered": "provinces with data",
   "home.tier_sensors": "counted in the provincial medians",
   "home.tier_silent": "no recent readings",

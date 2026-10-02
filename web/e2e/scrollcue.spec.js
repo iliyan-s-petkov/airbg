@@ -207,13 +207,14 @@ test('the pull tab is hidden while the map is full screen', async ({ browser }) 
   await ctx.close()
 })
 
-test('the pull tab is not shown on a 1280x800 desktop', async ({ ctx }) => {
+test('the pull tab is shown on the 1280x800 desktop home map only, not on an area page', async ({ ctx }) => {
   const page = await ctx.newPage()
   await page.setViewportSize({ width: 1280, height: 800 })
   for (const path of PAGES) {
     await page.goto(path)
     await expect(page.locator('#map, #area-map').first()).toBeVisible()
-    await expect(page.locator('a.scroll-cue')).toBeHidden()
+    if (path === '/') await expect(page.locator('a.scroll-cue')).toBeVisible()
+    else await expect(page.locator('a.scroll-cue')).toBeHidden()
     // On desktop the area summary stays under the title, above the map.
     if (path.includes('/area/')) {
       const summary = await page.locator('.area-summary').boundingBox()

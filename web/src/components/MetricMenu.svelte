@@ -17,7 +17,8 @@
 
   // `id` because a page may carry two of these — the area page has its own
   // switcher — and aria-controls has to point at ONE panel.
-  let { options, selected, onselect, legend, name = 'metric', id = 'metric-menu' } = $props()
+  // compact: the button shows the metric alone and the legend moves to aria-label.
+  let { options, selected, onselect, legend, name = 'metric', id = 'metric-menu', compact = false } = $props()
 
   let open = $state(false)
   let menuEl = $state()
@@ -62,8 +63,9 @@
     bind:this={menuBtn}
     aria-expanded={open}
     aria-controls="{id}-panel"
+    aria-label={compact ? `${legend}: ${current ? current.label : ''}` : undefined}
     onclick={() => { open = !open }}
-  ><span class="colmenu__legend">{legend}:</span>{' '}{current ? current.label : ''}<span class="colmenu__caret" aria-hidden="true"></span></button>
+  >{#if !compact}<span class="colmenu__legend">{legend}:</span>{' '}{/if}{current ? current.label : ''}<span class="colmenu__caret" aria-hidden="true"></span></button>
   <div class="colmenu__panel" id="{id}-panel" hidden={!open}>
     <fieldset>
       <legend>{legend}</legend>

@@ -50,8 +50,6 @@
      pixel value: 926:382 is a maximum aspect, so a wider box crops the country
      top and bottom while a taller one is always safe. */
   --map-cap: 78vh;
-  /* Phone chrome above the hero map: masthead 48 + page head 45 + toolbar 56, measured. */
-  --phone-chrome: 9.5rem;
   /* Phone chrome above an area page's map, worst case (city note), measured 349px. */
   --phone-chrome-area: 22rem;
   /* Phone masthead height; app.css drops it to 40px in landscape. */

@@ -70,11 +70,11 @@ test.describe('phone layout does not widen the viewport', () => {
     await page.goto('/en')
     const masthead = await page.locator('.masthead').boundingBox()
     expect(masthead.height).toBeLessThanOrEqual(56)
-    const toolbar = await page.locator('.toolbar').boundingBox()
-    expect(toolbar.height).toBeLessThanOrEqual(64)
+    // Map-first: no toolbar or hero above the map, so it starts at the masthead's bottom edge and fills the rest.
+    await expect(page.locator('.toolbar')).toHaveCount(0)
     const map = await page.locator('#map').boundingBox()
-    expect(map.y).toBeLessThanOrEqual(200)
-    expect(map.height).toBeGreaterThanOrEqual(0.6 * 844)
+    expect(Math.abs(map.y - (masthead.y + masthead.height))).toBeLessThanOrEqual(8)
+    expect(map.height).toBeGreaterThanOrEqual(0.8 * 844)
     await page.close()
   })
 
@@ -580,16 +580,14 @@ test.describe('landscape phone keeps the map', () => {
     expect(after.height).toBeGreaterThan(150)
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(844)
 
-    // Landscape (Task 10): masthead shrinks to a slim bar, title and toolbar
-    // share the row above a tall map, and the corner cards stay over the
-    // canvas rather than sliding off it.
+    // Landscape: masthead shrinks to a slim bar, the map starts right under it,
+    // and the corner cards stay over the canvas rather than sliding off it.
     const masthead = await page.locator('.masthead').boundingBox()
     expect(masthead.height).toBeLessThanOrEqual(44)
-    const toolbar = await page.locator('.toolbar').boundingBox()
-    expect(toolbar.y).toBeLessThan(90)
+    await expect(page.locator('.toolbar')).toHaveCount(0)
     const map = await page.locator('#map').boundingBox()
-    expect(map.y).toBeLessThan(100)
-    expect(map.height).toBeGreaterThanOrEqual(250)
+    expect(Math.abs(map.y - (masthead.y + masthead.height))).toBeLessThanOrEqual(8)
+    expect(map.height).toBeGreaterThanOrEqual(290)
 
     const scale = await page.locator('.scale--onmap').boundingBox()
     const freshness = await page.locator('.map-freshness').boundingBox()
@@ -613,7 +611,7 @@ test.describe('landscape phone keeps the map', () => {
     const backMasthead = await page.locator('.masthead').boundingBox()
     expect(backMasthead.height).toBeLessThanOrEqual(56)
     const backMap = await page.locator('#map').boundingBox()
-    expect(backMap.y).toBeLessThanOrEqual(200)
+    expect(backMap.y).toBeLessThanOrEqual(backMasthead.y + backMasthead.height + 8)
 
     await page.close()
   })

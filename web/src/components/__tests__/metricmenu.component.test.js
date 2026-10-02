@@ -35,6 +35,19 @@ describe('MetricMenu.svelte', () => {
     expect(button(t).getAttribute('aria-expanded')).toBe('false')
   })
 
+  // Map-first pill: just the metric on the button, the legend kept for screen readers.
+  it('compact shows the metric alone and keeps the legend in aria-label', () => {
+    const t = render({ selected: 'P2', compact: true, onselect: () => {} })
+    expect(button(t).textContent.trim()).toBe('PM2.5')
+    expect(button(t).querySelector('.colmenu__legend')).toBeNull()
+    expect(button(t).getAttribute('aria-label')).toBe('Metric: PM2.5')
+  })
+
+  it('not compact leaves the button without an aria-label override', () => {
+    const t = render({ selected: 'P2', onselect: () => {} })
+    expect(button(t).hasAttribute('aria-label')).toBe(false)
+  })
+
   // The label is the server's, carried by the option — never a second copy
   // written in the component, which would still read as the old name the day
   // the catalogue renames a metric.
