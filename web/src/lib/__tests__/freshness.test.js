@@ -48,7 +48,7 @@ describe('formatTime', () => {
 
 describe('constants', () => {
   it('keys the preference under the site namespace', () => {
-    expect(AUTO_KEY).toBe('airbg:auto-refresh')
+    expect(AUTO_KEY).toBe('kanarche:auto-refresh')
   })
 
   // Five minutes. Faster asks the origin for numbers that have not changed;

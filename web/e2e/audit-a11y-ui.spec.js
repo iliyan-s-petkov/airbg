@@ -18,7 +18,7 @@ test.afterEach(async ({ ctx, phoneCtx }) => {
   }
 })
 
-const withTheme = (page, theme) => page.addInitScript((v) => localStorage.setItem('airbg:theme', v), theme)
+const withTheme = (page, theme) => page.addInitScript((v) => localStorage.setItem('kanarche:theme', v), theme)
 
 const mockWind = (page) => page.route('**/api/v1/wind', (route) => route.fulfill({
   status: 200,
@@ -249,7 +249,7 @@ test.describe('U03: the legend no-data row keeps its inline-end padding', () => 
   test('the label ends inside the open legend panel, not on its edge', async ({ ctx }) => {
     const page = await ctx.newPage()
     await page.setViewportSize({ width: 1280, height: 800 })
-    await page.addInitScript(() => localStorage.setItem('airbg:legend-open', 'true'))
+    await page.addInitScript(() => localStorage.setItem('kanarche:legend-open', 'true'))
     await page.goto('/en')
     await expect(page.locator('.scale--onmap .scale__none .legend__label')).toBeVisible()
     const room = await page.evaluate(() => {

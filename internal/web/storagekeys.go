@@ -19,6 +19,7 @@ const storageKeysFile = "static/storage-keys.json"
 // storageAllowList is the shape of storage-keys.json.
 type storageAllowList struct {
 	LocalStorage   []string `json:"localStorage"`
+	Legacy         []string `json:"legacy"`
 	SessionStorage []string `json:"sessionStorage"`
 }
 
@@ -58,7 +59,7 @@ var loadStorageKeys = sync.OnceValue(func() []string {
 
 // storagePurposeKey is the catalogue key holding a storage key's one-line
 // purpose. A colon is a legal JSON-object key and Catalogue is a plain map, so
-// "airbg:theme" needs no escaping to become "privacy.storage.airbg:theme".
+// "kanarche:theme" needs no escaping to become "privacy.storage.kanarche:theme".
 func storagePurposeKey(storageKey string) string {
 	return "privacy.storage." + storageKey
 }
@@ -75,6 +76,21 @@ func storageKeyInfos(cat *i18n.Catalogue, lang string) []StorageKeyInfo {
 	return infos
 }
 
+// loadLegacyStorageKeys are the pre-rename keys: read as a fallback and cleared
+// with the rest, never written and not listed in the privacy section.
+var loadLegacyStorageKeys = sync.OnceValue(func() []string {
+	raw, err := staticFS.ReadFile(storageKeysFile)
+	if err != nil {
+		return nil
+	}
+	var list storageAllowList
+	if err := json.Unmarshal(raw, &list); err != nil {
+		return nil
+	}
+	return list.Legacy
+})
+
+// storageKeysCSV is the "clear my settings" list: published keys, then legacy.
 func storageKeysCSV() string {
-	return strings.Join(loadStorageKeys(), ",")
+	return strings.Join(append(append([]string{}, loadStorageKeys()...), loadLegacyStorageKeys()...), ",")
 }

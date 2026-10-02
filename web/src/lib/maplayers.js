@@ -29,7 +29,7 @@ import { fitLayers } from './layersfit.js'
 
 const SVG_NS = 'http://www.w3.org/2000/svg'
 
-export const STORAGE_KEY = 'airbg:map-layers'
+export const STORAGE_KEY = 'kanarche:map-layers'
 
 // The order a reader thinks in: the ground first, then what is built on it,
 // then what is inside the buildings.

@@ -72,7 +72,7 @@ func (c *Client) fetchBatch(ctx context.Context, points []Point) ([]Forecast, er
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("User-Agent", "airbg.org collector (+https://airbg.org)")
+	req.Header.Set("User-Agent", c.cfg.UserAgent)
 
 	resp, err := c.http.Do(req)
 	if err != nil {

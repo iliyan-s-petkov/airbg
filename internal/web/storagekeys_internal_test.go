@@ -1,6 +1,7 @@
 package web
 
 import (
+	"strings"
 	"testing"
 
 	"airbg.org/internal/i18n"
@@ -34,11 +35,40 @@ func TestStorageKeysHaveACataloguePurpose(t *testing.T) {
 	}
 }
 
+// The legacy keys are what "clear my settings" must also remove, and each is
+// the airbg: predecessor of a published kanarche: key; the privacy list shows
+// only the published ones.
+func TestLegacyStorageKeysMirrorThePublishedKeys(t *testing.T) {
+	keys, legacy := loadStorageKeys(), loadLegacyStorageKeys()
+	if len(legacy) != len(keys) {
+		t.Fatalf("got %d legacy keys for %d published keys", len(legacy), len(keys))
+	}
+	for i, k := range keys {
+		if want := "airbg:" + strings.TrimPrefix(k, "kanarche:"); legacy[i] != want {
+			t.Errorf("legacy[%d] = %q, want %q", i, legacy[i], want)
+		}
+	}
+	for _, info := range storageKeyInfos(mustCatalogue(t), "en") {
+		if strings.HasPrefix(info.Key, "airbg:") {
+			t.Errorf("privacy list shows legacy key %q", info.Key)
+		}
+	}
+}
+
+func mustCatalogue(t *testing.T) *i18n.Catalogue {
+	t.Helper()
+	cat, err := i18n.Load()
+	if err != nil {
+		t.Fatalf("i18n.Load: %v", err)
+	}
+	return cat
+}
+
 // TestStorageKeysCSVMatchesKeys pins the island's data-keys contract: the CSV
-// the template writes to the "clear my settings" button is exactly the
-// allow-list, comma-joined, in file order.
+// the template writes to the "clear my settings" button is the allow-list
+// followed by the legacy keys, comma-joined, in file order.
 func TestStorageKeysCSVMatchesKeys(t *testing.T) {
-	keys := loadStorageKeys()
+	keys := append(loadStorageKeys(), loadLegacyStorageKeys()...)
 	got := storageKeysCSV()
 	want := ""
 	for i, k := range keys {

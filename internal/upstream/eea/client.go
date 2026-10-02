@@ -27,8 +27,6 @@ func metadataCachePath(dir string) string {
 	return filepath.Join(dir, metadataCacheFile)
 }
 
-const userAgent = "airbg.org collector (+https://airbg.org)"
-
 // urlWithoutQuery strips a URL's query string before it is used anywhere
 // that might end up in a log line. EEA download URLs carry a SAS token in the
 // query, so logging one whole would leak a credential into the log stream.
@@ -146,7 +144,7 @@ func (c *Client) FileURLs(ctx context.Context) (urls []string, rejected int, err
 		return nil, 0, scrubURLError(err)
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("User-Agent", userAgent)
+	req.Header.Set("User-Agent", c.cfg.UserAgent)
 
 	resp, err := c.http.Do(req)
 	if err != nil {
@@ -192,7 +190,7 @@ func (c *Client) FetchFile(ctx context.Context, url string, since time.Time) (bo
 	if err != nil {
 		return nil, false, time.Time{}, scrubURLError(err)
 	}
-	req.Header.Set("User-Agent", userAgent)
+	req.Header.Set("User-Agent", c.cfg.UserAgent)
 	if !since.IsZero() {
 		req.Header.Set("If-Modified-Since", since.UTC().Format(http.TimeFormat))
 	}
@@ -232,7 +230,7 @@ func (c *Client) FetchMetadata(ctx context.Context) (Metadata, error) {
 	if err != nil {
 		return nil, scrubURLError(err)
 	}
-	req.Header.Set("User-Agent", userAgent)
+	req.Header.Set("User-Agent", c.cfg.UserAgent)
 
 	resp, err := c.http.Do(req)
 	if err != nil {

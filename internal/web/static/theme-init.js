@@ -13,7 +13,8 @@
 // prefers-color-scheme decide, so an explicit "auto" value would be a third
 // state meaning the same as the first.
 try {
-  var stored = localStorage.getItem('airbg:theme')
+  // airbg:theme is the pre-rename key, read until visitors have re-saved.
+  var stored = localStorage.getItem('kanarche:theme') || localStorage.getItem('airbg:theme')
   if (stored === 'light' || stored === 'dark') {
     document.documentElement.dataset.theme = stored
   }

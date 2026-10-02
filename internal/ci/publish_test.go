@@ -290,16 +290,41 @@ func isStepStart(line string, indent int) bool {
 }
 
 // cosignSignsDigest matches the cosign sign invocation and requires it to
-// target an `@sha256:...`-style digest reference built from the build step's
-// digest output, never a mutable `:tag`.
-var cosignSignsDigest = regexp.MustCompile(`cosign sign --yes \S+@\$\{\{\s*steps\.build\.outputs\.digest\s*\}\}`)
+// target the derived image name joined to the build step's digest output by
+// `@`, never a mutable `:tag`.
+var cosignSignsDigest = regexp.MustCompile(`cosign sign --yes \$\{\{\s*env\.IMAGE\s*\}\}@\$\{\{\s*steps\.build\.outputs\.digest\s*\}\}\s*$`)
+
+// imageFromRepository matches the step that defines IMAGE from the lowercased
+// github.repository, so the signed path follows the repository.
+var imageFromRepository = regexp.MustCompile(`IMAGE=ghcr\.io/\$\{GITHUB_REPOSITORY,,\}"?\s*>>\s*"?\$GITHUB_ENV`)
 
 // TestCosignSignsTheDigestNotATag proves cosign signs the immutable digest
-// docker/build-push-action produced, not a tag another push could repoint.
+// docker/build-push-action produced, not a tag another push could repoint,
+// and that the image name it signs is derived from github.repository.
 func TestCosignSignsTheDigestNotATag(t *testing.T) {
-	raw := readWorkflow(t, publishWorkflowPath)
-	if !cosignSignsDigest.MatchString(raw) {
-		t.Errorf("%s: no `cosign sign` step found targeting `@${{ steps.build.outputs.digest }}`", publishWorkflowPath)
+	lines := strings.Split(readWorkflow(t, publishWorkflowPath), "\n")
+	signIdx, defIdx := -1, -1
+	for i, line := range lines {
+		if defIdx == -1 && imageFromRepository.MatchString(line) {
+			defIdx = i
+		}
+		if !strings.Contains(line, "cosign sign") || strings.HasPrefix(strings.TrimSpace(line), "#") {
+			continue
+		}
+		// Every sign command must be digest-form; a tag form fails here.
+		if !cosignSignsDigest.MatchString(line) {
+			t.Errorf("%s:%d: `cosign sign` does not target `${{ env.IMAGE }}@${{ steps.build.outputs.digest }}`: %s",
+				publishWorkflowPath, i+1, strings.TrimSpace(line))
+		}
+		if signIdx == -1 {
+			signIdx = i
+		}
+	}
+	if signIdx == -1 {
+		t.Fatalf("%s: no `cosign sign` step found targeting `@${{ steps.build.outputs.digest }}`", publishWorkflowPath)
+	}
+	if defIdx == -1 || defIdx > signIdx {
+		t.Errorf("%s: env.IMAGE is not derived from github.repository before the `cosign sign` step", publishWorkflowPath)
 	}
 }
 

@@ -87,8 +87,8 @@
         <img class="about-shot__img about-shot__img--dark" src="{{.Static (printf "about/start-embed-%s-dark.webp" .Lang)}}" alt="{{.T "about.start.embed.alt"}}" width="560" height="460" loading="lazy" decoding="async">
       </figure>
       {{/* The real form: /embed takes a province slug only (docs/embedding.md). */}}
-      <pre class="about-code" dir="ltr" tabindex="0" role="region" aria-label="{{.T "about.start.embed.code_label"}}"><code>&lt;iframe src="https://airbg.org/embed?area=plovdiv-oblast"
-        title="airbg.org" width="100%" height="480"
+      <pre class="about-code" dir="ltr" tabindex="0" role="region" aria-label="{{.T "about.start.embed.code_label"}}"><code>&lt;iframe src="{{.BaseURL}}/embed?area=plovdiv-oblast"
+        title="{{.BaseHost}}" width="100%" height="480"
         loading="lazy" style="border:0"&gt;&lt;/iframe&gt;</code></pre>
       <p><a href="{{.SourceRepoURL}}/blob/master/docs/embedding.md" rel="noopener">{{.T "about.start.embed.docs"}}</a></p>
     </li>

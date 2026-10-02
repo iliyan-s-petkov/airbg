@@ -89,7 +89,7 @@ describe('mountChrome() defaults cellValues by viewport, storage wins', () => {
   }
 
   const cellValuesChecked = (stored) => {
-    const store = new Map(stored ? [['airbg:map-layers', JSON.stringify(stored)]] : [])
+    const store = new Map(stored ? [['kanarche:map-layers', JSON.stringify(stored)]] : [])
     const storage = {
       getItem: (k) => (store.has(k) ? store.get(k) : null),
       setItem: (k, v) => store.set(k, v),

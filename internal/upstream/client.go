@@ -156,6 +156,7 @@ func (b Batch) Total() int { return len(b.Readings) + b.Skipped }
 type Client struct {
 	baseURL    string
 	maxPayload int64
+	userAgent  string
 	http       *http.Client
 }
 
@@ -172,6 +173,7 @@ func New(cfg config.Upstream) *Client {
 	return &Client{
 		baseURL:    fetchURL(cfg.URL, cfg.Countries),
 		maxPayload: cfg.MaxPayloadBytes,
+		userAgent:  cfg.UserAgent,
 		http:       &http.Client{Timeout: cfg.RequestTimeout},
 	}
 }
@@ -195,7 +197,7 @@ func (c *Client) Fetch(ctx context.Context) (Batch, error) {
 	if err != nil {
 		return Batch{}, err
 	}
-	req.Header.Set("User-Agent", "airbg.org collector (+https://airbg.org)")
+	req.Header.Set("User-Agent", c.userAgent)
 
 	resp, err := c.http.Do(req)
 	if err != nil {

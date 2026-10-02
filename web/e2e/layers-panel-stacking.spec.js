@@ -8,7 +8,7 @@ const VIEWPORTS = [
 ]
 
 const withTheme = (page, theme) =>
-  page.addInitScript((v) => localStorage.setItem('airbg:theme', v), theme)
+  page.addInitScript((v) => localStorage.setItem('kanarche:theme', v), theme)
 
 const openLayers = async (page) => {
   await expect(page.locator('.map__layers .colmenu__btn')).toBeVisible()

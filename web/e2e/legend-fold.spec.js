@@ -18,7 +18,7 @@ const openLayers = async (page) => {
 // default (mobile starts folded, desktop starts open) so every test starts
 // from a known state regardless of viewport.
 const withLegend = (page, open) =>
-  page.addInitScript((v) => localStorage.setItem('airbg:legend-open', v), String(open))
+  page.addInitScript((v) => localStorage.setItem('kanarche:legend-open', v), String(open))
 
 for (const vp of VIEWPORTS) {
   test.describe(vp.name, () => {
@@ -78,13 +78,13 @@ for (const vp of VIEWPORTS) {
       // <details> fires `toggle` as a queued task, not synchronously with the
       // .open write — give it a turn before reading what got persisted.
       await page.waitForTimeout(150)
-      expect(await page.evaluate(() => localStorage.getItem('airbg:legend-open'))).toBe('true')
+      expect(await page.evaluate(() => localStorage.getItem('kanarche:legend-open'))).toBe('true')
 
       await layersBtn.click()
       await expect(page.locator('.map__layers .colmenu__panel')).toBeHidden()
       await expect(legend).toHaveAttribute('open', '')
       await page.waitForTimeout(150)
-      expect(await page.evaluate(() => localStorage.getItem('airbg:legend-open'))).toBe('true')
+      expect(await page.evaluate(() => localStorage.getItem('kanarche:legend-open'))).toBe('true')
 
       await context.close()
     })

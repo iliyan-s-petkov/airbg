@@ -18,8 +18,8 @@ test('localStorage after exercising the map holds only allow-listed keys', async
   const page = await ctx.newPage()
   await page.goto('/en/area/sofia')
 
-  // Toggle a layer, which writes airbg:map-layers; the page load itself may
-  // have already read/written airbg:theme and airbg:legend-open.
+  // Toggle a layer, which writes kanarche:map-layers; the page load itself may
+  // have already read/written kanarche:theme and kanarche:legend-open.
   await page.locator('.map__layers .colmenu__btn').click()
   await page.locator('.map__layers .colmenu__panel input[type="checkbox"]').first().click()
 

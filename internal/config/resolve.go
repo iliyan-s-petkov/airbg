@@ -125,6 +125,8 @@ type Cache struct {
 
 type Upstream struct {
 	URL string
+	// UserAgent identifies the collector to the upstream; derived from Listen.BaseURL.
+	UserAgent string
 	// Countries is the ISO 3166-1 alpha-2 allow list. One list, two
 	// enforcement points: it builds the upstream fetch filter and it scopes
 	// the boundaries area.FilterByBoundary tests against.
@@ -140,6 +142,8 @@ type Upstream struct {
 type Wind struct {
 	Enabled bool
 	URL     string
+	// UserAgent is derived from Listen.BaseURL.
+	UserAgent string
 	// Model and ResolutionDeg are shown to the user, not just used to build
 	// the request: the overlay names the model it is upsampling from.
 	Model           string
@@ -155,6 +159,8 @@ type Wind struct {
 // EEA configures the official-station feed. See internal/upstream/eea/README.md.
 type EEA struct {
 	Enabled bool
+	// UserAgent is derived from Listen.BaseURL.
+	UserAgent string
 	// URL is the download API base; MetadataURL is a different host on a much
 	// longer refresh cycle.
 	URL           string
@@ -364,6 +370,14 @@ func (t Tiles) StyleURL() string {
 	return strings.TrimSuffix(t.PublicURL, "/") + "/style.json"
 }
 
+// CollectorUserAgent is "<host> collector (+<base url>)", so an upstream
+// operator can find who is polling them from the configured public URL alone.
+func CollectorUserAgent(baseURL string) string {
+	base := strings.TrimSuffix(baseURL, "/")
+	host := strings.TrimPrefix(strings.TrimPrefix(base, "https://"), "http://")
+	return host + " collector (+" + base + ")"
+}
+
 // resolve dereferences every pointer in the raw schema. Safe to dereference
 // unconditionally because readRaw has already guaranteed no leaf is nil.
 // Database.URL is populated by LoadFile from the environment.
@@ -416,6 +430,7 @@ func resolve(r *raw) Config {
 			ScalesMaxAge: r.Cache.ScalesMaxAge.Std(),
 		},
 		Upstream: Upstream{
+			UserAgent:       CollectorUserAgent(*r.Listen.BaseURL),
 			URL:             *r.Upstream.URL,
 			Countries:       *r.Upstream.Countries,
 			RequestTimeout:  r.Upstream.RequestTimeout.Std(),
@@ -424,6 +439,7 @@ func resolve(r *raw) Config {
 			MaxPayloadBytes: *r.Upstream.MaxPayloadBytes,
 		},
 		Wind: Wind{
+			UserAgent:       CollectorUserAgent(*r.Listen.BaseURL),
 			Enabled:         *r.Wind.Enabled,
 			URL:             *r.Wind.URL,
 			Model:           *r.Wind.Model,
@@ -436,6 +452,7 @@ func resolve(r *raw) Config {
 			Retention:       r.Wind.Retention.Std(),
 		},
 		EEA: EEA{
+			UserAgent:        CollectorUserAgent(*r.Listen.BaseURL),
 			Enabled:          *r.EEA.Enabled,
 			URL:              *r.EEA.URL,
 			MetadataURL:      *r.EEA.MetadataURL,

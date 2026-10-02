@@ -9,6 +9,7 @@
 package deploy
 
 import (
+	"fmt"
 	"net"
 	"os"
 	"regexp"
@@ -440,27 +441,57 @@ func caddyBlocks(t *testing.T, name string) map[string]string {
 	if err != nil {
 		t.Fatalf("ReadFile(%s) error = %v, want nil", name, err)
 	}
+	blocks, err := parseCaddyBlocks(name, string(data))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return blocks
+}
+
+// parseCaddyBlocks is caddyBlocks on text. A header may list several
+// addresses ("airbg.org, kanarche.eu {"); the block is stored under each one,
+// so a lookup by any address returns the same body and every invariant checked
+// per name holds for every name the block serves.
+func parseCaddyBlocks(name, text string) (map[string]string, error) {
 	blocks := map[string]string{}
-	var current string
+	var current []string
 	var body []string
-	for _, line := range strings.Split(string(data), "\n") {
+	for _, line := range strings.Split(text, "\n") {
 		switch {
-		case current == "" && strings.HasSuffix(line, " {") && !strings.HasPrefix(line, " ") && !strings.HasPrefix(line, "\t"):
-			current = strings.TrimSuffix(line, " {")
+		case current == nil && strings.HasSuffix(line, " {") && !strings.HasPrefix(line, " ") && !strings.HasPrefix(line, "\t"):
+			for _, addr := range strings.Split(strings.TrimSuffix(line, " {"), ",") {
+				if addr = strings.TrimSpace(addr); addr != "" {
+					current = append(current, addr)
+				}
+			}
 			body = nil
-		case current != "" && line == "}":
-			blocks[current] = strings.Join(body, "\n")
-			current = ""
-		case current != "":
+		case current != nil && line == "}":
+			for _, addr := range current {
+				blocks[addr] = strings.Join(body, "\n")
+			}
+			current = nil
+		case current != nil:
 			if stripped := stripCaddyComment(line); strings.TrimSpace(stripped) != "" {
 				body = append(body, stripped)
 			}
 		}
 	}
-	if current != "" {
-		t.Fatalf("%s block %q is never closed at column 0", name, current)
+	if current != nil {
+		return nil, fmt.Errorf("%s block %q is never closed at column 0", name, current)
 	}
-	return blocks
+	return blocks, nil
+}
+
+// clientAuthProblems is what the apex-style (proxied) block must satisfy.
+func clientAuthProblems(name, block string) []string {
+	var problems []string
+	if !strings.Contains(block, "client_auth") {
+		problems = append(problems, name+" does not require a client certificate - the origin is reachable directly")
+	}
+	if !strings.Contains(block, "require_and_verify") {
+		problems = append(problems, name+" does not use require_and_verify; any weaker mode accepts a connection with no certificate")
+	}
+	return problems
 }
 
 // This is the whole enforcement. Cloudflare's edge holds a client certificate
@@ -478,11 +509,8 @@ func TestOnlyTheSiteVhostRequiresCloudflaresCertificate(t *testing.T) {
 	if !ok {
 		t.Fatalf("Caddyfile has no airbg.org site block; found %v", keysOf(blocks))
 	}
-	if !strings.Contains(site, "client_auth") {
-		t.Error("the airbg.org block does not require a client certificate — the origin is reachable directly")
-	}
-	if !strings.Contains(site, "require_and_verify") {
-		t.Error("the airbg.org block does not use require_and_verify; any weaker mode accepts a connection with no certificate")
+	for _, problem := range clientAuthProblems("airbg.org", site) {
+		t.Error(problem)
 	}
 
 	tiles, ok := blocks["tiles.airbg.org"]

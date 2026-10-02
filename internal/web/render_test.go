@@ -24,6 +24,10 @@ import (
 // same shape. BaseURL is overridden because every assertion in this file pins
 // it to "https://airbg.org", not to whatever the committed file's
 // listen.base_url happens to be.
+// testBaseURL is the public URL fixtures render against; tests that assert on
+// it use this instead of a host literal so a domain move is a one-line change.
+const testBaseURL = "https://airbg.org"
+
 func testConfig(t *testing.T) config.Config {
 	t.Helper()
 	t.Setenv(config.DatabaseURLEnv, "postgres://user:pass@localhost:5432/airbg")
@@ -31,7 +35,7 @@ func testConfig(t *testing.T) config.Config {
 	if err != nil {
 		t.Fatalf("LoadFile error = %v, want nil", err)
 	}
-	cfg.Listen.BaseURL = "https://airbg.org"
+	cfg.Listen.BaseURL = testBaseURL
 	return cfg
 }
 

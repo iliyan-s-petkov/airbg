@@ -11,7 +11,7 @@ for (const lang of ['bg', 'en']) {
     test(`layers panel options stay inside panel and viewport (${lang}, ${theme})`, async ({ browser }) => {
       const context = await browser.newContext(PHONE)
       const page = await context.newPage()
-      await page.addInitScript((v) => localStorage.setItem('airbg:theme', v), theme)
+      await page.addInitScript((v) => localStorage.setItem('kanarche:theme', v), theme)
       await page.goto(`${langPrefix(lang)}/`)
       await page.locator('.map__layers .colmenu__btn').click()
       const panel = page.locator('.map__layers .colmenu__panel')
