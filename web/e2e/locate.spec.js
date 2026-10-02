@@ -1,4 +1,4 @@
-import { test, expect } from './fixtures.js'
+import { test, expect, mapSettled } from './fixtures.js'
 
 // EN routes throughout — see metric.spec.js's header comment.
 //
@@ -37,6 +37,7 @@ test.describe.serial('find me', () => {
     // moment locate can succeed rather than the moment the data arrived.
     const gridLoaded = page.waitForResponse(/\/api\/v1\/hexes/)
     await page.goto('/en/')
+    await mapSettled(page)
     await gridLoaded
     // find-me stays on this page and zooms the map to the nearest sensor
     // (showNearestSensor, islands/map.js), so what it does that is visible
@@ -56,6 +57,7 @@ test.describe.serial('find me', () => {
   test('a denied permission explains itself and leaves the map usable', async () => {
     await context.clearPermissions()
     await page.goto('/en/')
+    await mapSettled(page)
     await page.getByRole('button', { name: 'Find me' }).click()
     await expect(page.getByText('Location access was denied.')).toBeVisible()
   })

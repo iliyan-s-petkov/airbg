@@ -10,6 +10,12 @@ export default defineConfig({
   // every browser as the same client — out of the results.
   workers: 1,
   retries: 0,
+  // Every spec cold-loads its own context, and a CI runner takes seconds, not
+  // milliseconds, to fetch and evaluate the map chunk. The defaults (30s test,
+  // 5s expect) were tuned for a laptop and made the slowest cold load the
+  // failure. Local runs are unaffected: these are ceilings, not waits.
+  timeout: 60_000,
+  expect: { timeout: 15_000 },
   reporter: process.env.CI ? 'github' : 'list',
   use: {
     baseURL: process.env.AIRBG_E2E_BASE_URL,

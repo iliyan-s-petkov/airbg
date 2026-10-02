@@ -1,4 +1,4 @@
-import { test, expect } from './fixtures.js'
+import { test, expect, mapSettled } from './fixtures.js'
 
 // Landscape phone: the layers list must stay on screen and stay scrollable.
 // Two hypotheses (plan Task 3): (a) the map frame clips the panel below what
@@ -71,6 +71,7 @@ for (const path of ['/en', '/en/area/sofia']) {
       const context = await browser.newContext({ viewport: vp, isMobile: true, hasTouch: true })
       const page = await context.newPage()
       await page.goto(path)
+      await mapSettled(page)
       await openLayers(page)
 
       const before = await measure(page)
@@ -102,6 +103,7 @@ for (const path of ['/en', '/en/area/sofia']) {
     const context = await browser.newContext({ viewport: { width: 873, height: 393 }, isMobile: true, hasTouch: true })
     const page = await context.newPage()
     await page.goto(path)
+    await mapSettled(page)
     await page.evaluate(() => window.scrollTo(0, 80))
     await openLayers(page)
     const m = await measure(page)

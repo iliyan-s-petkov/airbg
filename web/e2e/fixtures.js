@@ -14,6 +14,35 @@ export const test = base.extend({
     await use(context)
     await context.close()
   }, { scope: 'worker' }],
+
+  // The shared context keeps its HTTP cache (see above) but must not keep its
+  // state: legend fold, layer toggles, wind and metric choices all persist in
+  // localStorage, so a spec that flips one would otherwise hand the next spec
+  // on the same origin a different starting page, and which spec that is
+  // varies with run order. Cleared after each test, on every page the context
+  // still holds. A spec that seeds storage does so with addInitScript on its
+  // own page, which runs on the next navigation, after this.
+  isolateSharedContext: [async ({ ctx }, use) => {
+    await use()
+    await ctx.clearCookies()
+    for (const page of ctx.pages()) {
+      if (page.isClosed() || page.url() === 'about:blank') continue
+      await page.evaluate(() => {
+        localStorage.clear()
+        sessionStorage.clear()
+      }).catch(() => {})
+    }
+  }, { auto: true }],
 })
+
+// Resolves once the map island has mounted, its style is loaded and its opening
+// camera has stopped. The legend, layers menu and pull tab are built by that
+// island and the page reflows when it lands, so asserting or measuring earlier
+// races hydration: on a slow CI runner the map chunk arrives seconds after the
+// load event. waitForFunction is not capped by the 5s expect timeout.
+export const mapSettled = (page) => page.waitForFunction(() => {
+  const map = document.querySelector('[data-island="map"]')?.__map
+  return !!map?.isStyleLoaded?.() && !map.isMoving()
+}, null, { timeout: 45_000 })
 
 export { expect }
