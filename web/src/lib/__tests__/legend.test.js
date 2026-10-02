@@ -336,6 +336,12 @@ describe('wind legend row', () => {
     expect(row.querySelector('svg')).not.toBeNull()
   })
 
+  it('does not reuse the no-data class, which other code selects on', () => {
+    const row = buildWindRow('Wind')
+    expect(row.classList.contains('scale__none')).toBe(false)
+    expect(row.classList.contains('scale__wind')).toBe(true)
+  })
+
   it('draws 2-3 curved streaks in the streak blue in streaks mode', () => {
     const row = buildWindRow('Wind')
     setWindRow(row, { on: true, mode: 'streaks' })

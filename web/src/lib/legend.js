@@ -245,7 +245,7 @@ function swatch(colour, className) {
 // renderLegend clears the key. Hidden until setWindRow turns it on.
 export function buildWindRow(label) {
   const wrap = document.createElement('p')
-  wrap.className = 'scale__none scale__wind'
+  wrap.className = 'scale__wind'
   wrap.hidden = true
   const row = document.createElement('span')
   row.className = 'legend__row'

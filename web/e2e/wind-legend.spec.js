@@ -22,11 +22,17 @@ test('the legend wind row appears with the wind layer and goes with it', async (
   await page.addInitScript(() => localStorage.setItem('airbg:legend-open', 'true'))
   await page.goto('/en')
 
-  const row = page.locator('.scale--onmap .scale__wind')
+  const legend = page.locator('.scale--onmap')
+  const row = legend.locator('.scale__wind')
   const wind = page.locator('.map__layers').getByLabel('Wind', { exact: true })
+  // Opening the layers list folds an open legend and closing it restores that
+  // one, but only if the legend was open when the list opened. Wait for that,
+  // or on a slow runner the list opens first and the legend never comes back.
+  await expect(legend).toHaveAttribute('open', '')
   await page.locator('.map__layers .colmenu__btn').click()
   if (!(await wind.isChecked())) await wind.check()
   await page.keyboard.press('Escape')
+  await expect(legend).toHaveAttribute('open', '')
   await expect(row).toBeVisible()
   await expect(row).toContainText('Wind: direction and strength')
 
