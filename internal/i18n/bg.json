@@ -213,7 +213,7 @@
   "map.view.boundaries": "Областни граници",
   "map.view.cell_values": "Стойности в клетките",
   "map.view.community_sensors": "Граждански сензори",
-  "map.view.faulty_stations": "Покажи неизправните станции",
+  "map.view.faulty_stations": "Неизправни станции",
   "map.view.inactive_sensors": "Неактивни сензори",
   "map.view.legend": "Скала",
   "map.view.not_measured": "не измерва това",
