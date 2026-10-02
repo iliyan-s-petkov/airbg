@@ -28,6 +28,19 @@ for (const [name, vp] of [['1440', DESKTOP], ['390', { width: 390, height: 844 }
   })
 }
 
+// A masthead wider than the screen makes a phone zoom the whole page out.
+for (const path of ['/', '/en/']) {
+  test(`360px ${path}: the masthead fits the screen`, async ({ ctx }) => {
+    const page = await ctx.newPage()
+    await page.setViewportSize({ width: 360, height: 740 })
+    await page.goto(path)
+    await expect(page.locator('[data-island="theme"]')).toBeVisible()
+    const widths = await page.evaluate(() => [document.querySelector('header.masthead').scrollWidth, document.documentElement.scrollWidth])
+    expect(widths).toEqual([360, 360])
+    await page.close()
+  })
+}
+
 for (const [name, vp] of [['desktop', DESKTOP], ['phone', PHONE]]) {
   test(`${name}: no .toolbar above the map, one hidden h1, no visible hero`, async ({ ctx }) => {
     const page = await ctx.newPage()
