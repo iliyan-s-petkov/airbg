@@ -17,13 +17,26 @@ test('desktop 1440x900: the map starts under the masthead and fills the viewport
 })
 
 for (const [name, vp] of [['1440', DESKTOP], ['390', { width: 390, height: 844 }]]) {
-  test(`${name}px: brand reads "airbg" and keeps "airbg.org" as its accessible name`, async ({ ctx }) => {
+  test(`${name}px: brand reads "kanarche" and keeps "Kanarche" as its accessible name`, async ({ ctx }) => {
     const page = await ctx.newPage()
     await page.setViewportSize(vp)
     await page.goto('/en/')
     const brand = page.locator('header.masthead .masthead__brand')
-    expect((await brand.innerText()).trim()).toBe('airbg')
-    await expect(brand).toHaveAttribute('aria-label', 'airbg.org')
+    expect((await brand.innerText()).trim()).toBe('kanarche')
+    await expect(brand).toHaveAttribute('aria-label', 'Kanarche')
+    await page.close()
+  })
+}
+
+// A masthead wider than the screen makes a phone zoom the whole page out.
+for (const path of ['/', '/en/']) {
+  test(`360px ${path}: the masthead fits the screen`, async ({ ctx }) => {
+    const page = await ctx.newPage()
+    await page.setViewportSize({ width: 360, height: 740 })
+    await page.goto(path)
+    await expect(page.locator('[data-island="theme"]')).toBeVisible()
+    const widths = await page.evaluate(() => [document.querySelector('header.masthead').scrollWidth, document.documentElement.scrollWidth])
+    expect(widths).toEqual([360, 360])
     await page.close()
   })
 }
@@ -37,7 +50,7 @@ for (const [name, vp] of [['desktop', DESKTOP], ['phone', PHONE]]) {
     await expect(page.locator('.page-head')).toHaveCount(0)
     const h1 = page.locator('h1')
     await expect(h1).toHaveCount(1)
-    await expect(h1).toHaveText('airbg — Bulgaria air quality map: PM2.5 and PM10 now')
+    await expect(h1).toHaveText('Kanarche — Bulgaria air quality map: PM2.5 and PM10 now')
     const box = await h1.boundingBox()
     expect(box.width * box.height).toBeLessThanOrEqual(1)
     await page.close()

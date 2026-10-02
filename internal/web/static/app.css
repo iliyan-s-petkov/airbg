@@ -616,8 +616,6 @@ strong, b { font-weight: var(--weight-emphasis); }
    already has the map, and the province list below carries the same readings
    in text either way. Not `display:none` — that would hide it from assistive
    technology too, which is the opposite of the point. */
-/* "airbg" alone in the masthead at every width; the link's aria-label says airbg.org. */
-.masthead__brand .tld { display: none; }
 .visually-hidden {
   position: absolute; inline-size: 1px; block-size: 1px; margin: -1px; padding: 0;
   overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0;
@@ -845,6 +843,8 @@ html:has(> body.embed) { block-size: 100%; }
   .masthead__brand { flex: none; }
   .masthead__nav { gap: 0; flex-wrap: nowrap; }
   .masthead__link { padding-inline: var(--space-1); min-block-size: 44px; }
+  /* Keeps the wordmark plus both pickers inside 360px. */
+  .langpick__btn { padding-inline: var(--space-2); gap: var(--space-1); }
   @media (max-width: 480px) {
     .masthead__link--source, .masthead__link--about { display: none; }
     .langpick__extra { display: list-item; }

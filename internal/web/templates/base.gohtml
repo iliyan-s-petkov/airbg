@@ -31,12 +31,10 @@
 {{with .Assets.Style "main"}}<link rel="stylesheet" href="{{.}}">
 {{end}}</head>
 <body>
-{{/* The brand is the domain, not the page title: "airbg.org" is the same in
-     every language, so it is written here rather than pulled from the
-     catalogue. The .org is hidden at every width (app.css); the aria-label
-     keeps the full domain as the link's name. */}}
+{{/* The masthead brand is the lowercase wordmark of the active language
+     (brand.wordmark); the aria-label carries the capitalised product name. */}}
 <header class="masthead">
-  <a class="masthead__brand" href="{{.Path "/"}}" aria-label="airbg.org"><img src="{{.Static "favicon.svg"}}" width="20" height="20" alt="">airbg<span class="tld">.org</span></a>
+  <a class="masthead__brand" href="{{.Path "/"}}" aria-label="{{.T "seo.title_brand"}}"><img src="{{.Static "favicon.svg"}}" width="20" height="20" alt="">{{.T "brand.wordmark"}}</a>
   <nav class="masthead__nav" aria-label="{{.T "nav.map"}}">
     <a class="masthead__link" href="{{.Path "/"}}"{{if .OnPath "/"}} aria-current="page"{{end}}>{{.T "nav.map"}}</a>
     <a class="masthead__link" href="{{.Path "/areas"}}"{{if .OnPath "/areas"}} aria-current="page"{{end}}>{{.T "nav.areas"}}</a>
@@ -95,7 +93,7 @@
        every number the site shows. The language picker lives in the masthead. */}}
   <div class="frame footer__grid">
     <div class="footer__brand">
-      <p class="masthead__brand footer__wordmark"><img src="{{.Static "favicon.svg"}}" width="20" height="20" alt="">airbg<span class="tld">.org</span></p>
+      <p class="masthead__brand footer__wordmark"><img src="{{.Static "favicon.svg"}}" width="20" height="20" alt="">{{.T "brand.wordmark"}}</p>
       <p class="footer__tagline">{{.T "footer.brand.tagline"}}</p>
       <p class="footer__disclaimer">{{.T "footer.brand.disclaimer"}}</p>
     </div>
@@ -138,7 +136,7 @@
     </ul>
   </div>
   <div class="frame footer__bar">
-    <p>© {{.Year}} airbg <span aria-hidden="true">·</span> <a href="{{.Path "/privacy"}}">{{.T "footer.privacy"}}</a> <span aria-hidden="true">·</span> <a href="{{.Path "/licences"}}">{{.T "footer.licences"}}</a></p>
+    <p>© {{.Year}} {{.T "seo.title_brand"}} <span aria-hidden="true">·</span> <a href="{{.Path "/privacy"}}">{{.T "footer.privacy"}}</a> <span aria-hidden="true">·</span> <a href="{{.Path "/licences"}}">{{.T "footer.licences"}}</a></p>
     {{/* Donated, so the credit is owed on every page and at a size that can be
          read — the rest of the footer is 12px caption. */}}
     <p class="footer__sponsor">{{.T "footer.hosting_short"}}

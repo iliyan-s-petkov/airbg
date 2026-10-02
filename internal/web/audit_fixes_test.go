@@ -23,8 +23,8 @@ func TestNotFoundPageUsesSiteBrandAndNoAlternates(t *testing.T) {
 		if m == nil {
 			t.Fatalf("%s: no <title>", path)
 		}
-		if !strings.HasSuffix(m[1], " | airbg.org") {
-			t.Errorf("%s: title %q does not end with the site brand", path, m[1])
+		if brand := testBrand(map[bool]string{true: "/en", false: ""}[strings.HasPrefix(path, "/en")]); !strings.HasSuffix(m[1], " | "+brand) {
+			t.Errorf("%s: title %q does not end with the site brand %q", path, m[1], brand)
 		}
 		for _, unwanted := range []string{`rel="canonical"`, `rel="alternate"`} {
 			if strings.Contains(body, unwanted) {
@@ -37,8 +37,8 @@ func TestNotFoundPageUsesSiteBrandAndNoAlternates(t *testing.T) {
 // The embed's title uses the same brand as the rest of the site.
 func TestEmbedTitleUsesSiteBrand(t *testing.T) {
 	body := framed(t, renderer(t, fixture(t)), "/embed").Body.String()
-	if m := titleRe.FindStringSubmatch(body); m == nil || m[1] != "airbg.org" {
-		t.Errorf("embed title = %v, want airbg.org", m)
+	if m := titleRe.FindStringSubmatch(body); m == nil || m[1] != "Канарче" {
+		t.Errorf("embed title = %v, want Канарче", m)
 	}
 }
 
@@ -108,8 +108,8 @@ func TestAboutEmbedCodeIsKeyboardScrollable(t *testing.T) {
 func TestHomeHasOneHiddenH1AndNoVisibleHero(t *testing.T) {
 	rr := renderer(t, fixture(t))
 	cases := map[string]string{
-		"/":    "airbg — Качество на въздуха в България: карта на живо",
-		"/en/": "airbg — Bulgaria air quality map: PM2.5 and PM10 now",
+		"/":    "Канарче — Качество на въздуха в България: карта на живо",
+		"/en/": "Kanarche — Bulgaria air quality map: PM2.5 and PM10 now",
 	}
 	for path, want := range cases {
 		body := fetch(t, rr, path).Body.String()
@@ -138,11 +138,11 @@ func TestAreasTabKeepsVisibleHeadAndToolbar(t *testing.T) {
 	}
 }
 
-// The brand link keeps the full domain as its accessible name while .tld is hidden by CSS.
-func TestBrandLinkKeepsDomainAccessibleName(t *testing.T) {
+// The brand link shows the lowercase wordmark and is named by the product name.
+func TestBrandLinkIsNamedByProductName(t *testing.T) {
 	body := fetch(t, renderer(t, fixture(t)), "/en/").Body.String()
-	if !strings.Contains(body, `class="masthead__brand" href="/en/" aria-label="airbg.org"`) {
-		t.Error("brand link lacks aria-label=\"airbg.org\"")
+	if !strings.Contains(body, `class="masthead__brand" href="/en/" aria-label="Kanarche">`) || !strings.Contains(body, `alt="">kanarche</a>`) {
+		t.Error("brand link lacks aria-label=\"Kanarche\" and the lowercase wordmark")
 	}
 }
 

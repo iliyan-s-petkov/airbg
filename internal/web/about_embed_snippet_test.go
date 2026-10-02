@@ -33,8 +33,8 @@ func TestAboutEmbedSnippetFollowsBaseURL(t *testing.T) {
 		if !strings.Contains(body, `&lt;iframe src="https://example.test/embed?area=plovdiv-oblast"`) {
 			t.Errorf("%s: embed snippet does not use the configured base URL", p)
 		}
-		if !strings.Contains(body, `title="example.test"`) {
-			t.Errorf("%s: embed snippet title is not the configured host", p)
+		if !strings.Contains(body, `title="`+testBrand(map[bool]string{true: "/en", false: ""}[strings.HasPrefix(p, "/en")])+`"`) {
+			t.Errorf("%s: embed snippet title is not the product name", p)
 		}
 		if strings.Contains(body, "https://airbg.org/embed") {
 			t.Errorf("%s: embed snippet still carries the literal airbg.org host", p)
@@ -46,7 +46,7 @@ func TestAboutEmbedSnippetFollowsBaseURL(t *testing.T) {
 func TestAboutEmbedSnippetIsUnchangedOnTheCurrentHost(t *testing.T) {
 	body := fetch(t, rendererAt(t, testBaseURL), "/en/about").Body.String()
 	want := `&lt;iframe src="https://airbg.org/embed?area=plovdiv-oblast"
-        title="airbg.org" width="100%" height="480"`
+        title="Kanarche" width="100%" height="480"`
 	if !strings.Contains(body, want) {
 		t.Errorf("embed snippet changed on the current host; want %q", want)
 	}

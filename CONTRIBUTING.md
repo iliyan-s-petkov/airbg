@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for looking at airbg.org. This project is a Go backend + Svelte/Vite
+Thanks for looking at Kanarche. This project is a Go backend + Svelte/Vite
 frontend for an air quality map of Bulgaria.
 
 ## Setup

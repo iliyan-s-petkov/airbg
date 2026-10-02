@@ -45,7 +45,7 @@ const tx0 = Math.floor((MAP.x - offX) / WORLD * 2 ** TZ), tx1 = Math.floor((MAP.
 const ty0 = Math.floor((MAP.y - offY) / WORLD * 2 ** TZ), ty1 = Math.floor((MAP.y + MAP.h - offY) / WORLD * 2 ** TZ)
 let tiles = ''
 for (let ty = ty0; ty <= ty1; ty++) for (let tx = tx0; tx <= tx1; tx++) {
-  const r = await fetch(`https://tile.openstreetmap.org/${TZ}/${tx}/${ty}.png`, { headers: { 'User-Agent': `airbg-social-preview/1.0 (${SITE})` } })
+  const r = await fetch(`https://tile.openstreetmap.org/${TZ}/${tx}/${ty}.png`, { headers: { 'User-Agent': `kanarche-social-preview/1.0 (${SITE})` } })
   if (!r.ok) throw new Error(`tile ${tx},${ty} ${r.status}`)
   const b64 = Buffer.from(await r.arrayBuffer()).toString('base64')
   const x = offX + (tx / 2 ** TZ) * WORLD, y = offY + (ty / 2 ** TZ) * WORLD
@@ -178,7 +178,7 @@ ${hexLabels}
 <text x="${MAP.x + MAP.w - 10}" y="${MAP.y + MAP.h - 7}" text-anchor="end" font-family="Helvetica Neue, Arial, sans-serif" font-size="12" fill="#333">© OpenStreetMap contributors</text>
 </g>
 <rect x="${MAP.x + 0.5}" y="${MAP.y + 0.5}" width="${MAP.w - 1}" height="${MAP.h - 1}" rx="22" fill="none" stroke="#fff" stroke-opacity="0.12"/>
-<text x="56" y="232" font-size="74" font-weight="800" fill="#fff" letter-spacing="-2">airbg<tspan fill="#3fdccb">.org</tspan></text>
+<text x="56" y="232" font-size="74" font-weight="800" fill="#fff" letter-spacing="-2">Kanarche</text>
 <text x="58" y="285" font-size="29" font-weight="500" fill="#b9d3d6">Live air quality map</text>
 <text x="58" y="321" font-size="29" font-weight="500" fill="#b9d3d6">for Bulgaria</text>
 <g transform="translate(58,372)">

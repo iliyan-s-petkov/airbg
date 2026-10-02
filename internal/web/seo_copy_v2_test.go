@@ -125,7 +125,7 @@ func TestSEOCopyWordingRules(t *testing.T) {
 	}
 }
 
-// Every title ends with " | airbg.org" and fits 60 runes; og:title is the
+// Every title ends with " | <brand>" and fits 60 runes; og:title is the
 // same title without the suffix, so the two cannot drift apart.
 func TestTitlesEndWithBrandAndOGTitleFollows(t *testing.T) {
 	snap := seoFixture(t)
@@ -134,8 +134,8 @@ func TestTitlesEndWithBrandAndOGTitleFollows(t *testing.T) {
 	for slug := range snap.KnownSlugs {
 		paths = append(paths, "/area/"+slug)
 	}
-	const suffix = " | airbg.org"
 	for _, lang := range []string{"", "/en"} {
+		suffix := " | " + testBrand(lang)
 		for _, path := range paths {
 			body := fetch(t, rr, lang+path).Body.String()
 			title := pageTitle(t, body)

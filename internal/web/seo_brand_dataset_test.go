@@ -11,13 +11,14 @@ import (
 	"testing"
 )
 
-// og:site_name is the brand domain in both languages.
-func TestOGSiteNameIsBrandDomain(t *testing.T) {
+// og:site_name is the localized product name.
+func TestOGSiteNameIsTheProductName(t *testing.T) {
 	rr := renderer(t, seoFixture(t))
 	for _, path := range []string{"/", "/en/", "/area/plovdiv", "/en/about-the-data"} {
 		body := fetch(t, rr, path).Body.String()
-		if got := tagAttr(t, body, `<meta property="og:site_name" content="`); got != "airbg.org" {
-			t.Errorf("%s: og:site_name = %q, want airbg.org", path, got)
+		brand := testBrand(map[bool]string{true: "/en", false: ""}[strings.HasPrefix(path, "/en")])
+		if got := tagAttr(t, body, `<meta property="og:site_name" content="`); got != brand {
+			t.Errorf("%s: og:site_name = %q, want %q", path, got, brand)
 		}
 		if alt := tagAttr(t, body, `<meta property="og:image:alt" content="`); strings.Contains(alt, "Моят въздух") || strings.Contains(alt, "My Air") {
 			t.Errorf("%s: og:image:alt %q carries the old brand", path, alt)

@@ -6,7 +6,7 @@ chrome is gone.
 
 ```html
 <iframe src="https://airbg.org/embed"
-        title="Качество на въздуха — airbg.org"
+        title="Качество на въздуха — Канарче"
         width="100%" height="480" loading="lazy"
         style="border:0"></iframe>
 ```
@@ -19,7 +19,7 @@ height has already been decided by the page around it.
 
 The map, its layers menu, its zoom and fullscreen controls, its colour key, the
 metric switcher as an overlay in the top-left row, and a link back to
-airbg.org in the bottom-left corner. Clicking a sensor opens the reading panel
+Kanarche in the bottom-left corner. Clicking a sensor opens the reading panel
 over the lower half of the frame. There is no masthead, no language picker, no
 province table and no footer — those belong to the host page's own design.
 
