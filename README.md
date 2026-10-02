@@ -2,7 +2,7 @@
 
 <img src="internal/web/static/favicon.svg" width="64" height="64" alt="">
 
-# airbg.org
+# Kanarche
 
 **Real-time air quality in Bulgaria, from citizen sensors and official stations on one map.**
 
@@ -12,7 +12,7 @@
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/hero-dark.png">
-  <img src="docs/images/hero-light.png" alt="The airbg.org map of Bulgaria: coloured hexagons showing PM2.5 medians by area,">
+  <img src="docs/images/hero-light.png" alt="The Kanarche map of Bulgaria: coloured hexagons showing PM2.5 medians by area,">
 </picture>
 
 ## What and why
@@ -20,7 +20,7 @@
 Hundreds of volunteers across Bulgaria run low-cost particulate sensors on
 their balconies and roofs, and the state runs a few dozen reference stations.
 Both publish open data, but neither is easy to read at a glance, and the two
-are rarely seen side by side. airbg.org puts them on one map, in Bulgarian and
+are rarely seen side by side. Kanarche puts them on one map, in Bulgarian and
 English, so anyone can see what the air is like where they live right now and
 how it has changed.
 

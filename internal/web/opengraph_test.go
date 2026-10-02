@@ -108,7 +108,7 @@ func TestOGTitleNeverCarriesTheBrandSuffix(t *testing.T) {
 	for _, path := range []string{"/", "/en/", "/area/plovdiv", "/area/veliko-tarnovo-oblast"} {
 		body := fetch(t, rr, path).Body.String()
 		ogTitle := tagAttr(t, body, `<meta property="og:title" content="`)
-		if strings.Contains(ogTitle, "airbg.org") {
+		if strings.Contains(ogTitle, "airbg.org") || strings.HasSuffix(ogTitle, " | Kanarche") || strings.HasSuffix(ogTitle, " | Канарче") {
 			t.Errorf("%s: og:title %q carries the brand suffix", path, ogTitle)
 		}
 	}

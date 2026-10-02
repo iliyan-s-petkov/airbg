@@ -129,10 +129,10 @@ func TestAreasPageHasItsOwnH1(t *testing.T) {
 
 func TestWebSiteNameIsTheBrand(t *testing.T) {
 	rr := renderer(t, jsonLDFixture(t))
-	for _, path := range []string{"/", "/en/"} {
+	for path, want := range map[string][2]string{"/": {"Канарче", "канарче"}, "/en/": {"Kanarche", "kanarche"}} {
 		site := nodeOfType(jsonLD(t, path, fetch(t, rr, path).Body.String()), "WebSite")
-		if site == nil || site.Name != "airbg" || site.AlternateName != "airbg.org" {
-			t.Errorf("%s: WebSite name/alternateName = %+v, want airbg / airbg.org", path, site)
+		if site == nil || site.Name != want[0] || site.AlternateName != want[1] {
+			t.Errorf("%s: WebSite name/alternateName = %+v, want %v", path, site, want)
 		}
 	}
 }

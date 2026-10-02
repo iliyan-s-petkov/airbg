@@ -46,7 +46,7 @@ func TestAboutPageTitleAndDescription(t *testing.T) {
 		if n := utf8.RuneCountInString(title); n == 0 || n > 60 {
 			t.Errorf("%s title %q is %d runes, want 1..60", p, title, n)
 		}
-		if !strings.HasSuffix(title, " | airbg.org") {
+		if !strings.HasSuffix(title, " | "+testBrand(map[bool]string{true: "/en", false: ""}[strings.HasPrefix(p, "/en")])) {
 			t.Errorf("%s title %q lacks the brand suffix", p, title)
 		}
 		if n := utf8.RuneCountInString(desc); n == 0 || n > 155 {
@@ -57,7 +57,7 @@ func TestAboutPageTitleAndDescription(t *testing.T) {
 			t.Errorf("%s shares a title with the data page: %q", p, title)
 		}
 	}
-	if got := pageTitle(t, fetch(t, rr, "/en/about").Body.String()); got != "About: free, open air-quality map for Bulgaria | airbg.org" {
+	if got := pageTitle(t, fetch(t, rr, "/en/about").Body.String()); got != "About: free, open air-quality map for Bulgaria | Kanarche" {
 		t.Errorf("en title = %q", got)
 	}
 }

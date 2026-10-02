@@ -125,9 +125,9 @@ func (ldDataset) ldNode()        {}
 func (ldBreadcrumbList) ldNode() {}
 func (ldPlace) ldNode()          {}
 
-// organization is the site itself; its name is the BaseURL host, the brand used in the masthead.
+// organization is the site itself, named by the localized product name.
 func (p PageData) organization() ldOrganization {
-	name := p.BaseHost()
+	name := p.T("seo.title_brand")
 	return ldOrganization{
 		Type:   "Organization",
 		ID:     p.BaseURL + "/#organization",
@@ -143,8 +143,8 @@ func (p PageData) homeJSONLD() (template.JS, error) {
 	site := ldWebSite{
 		Type:          "WebSite",
 		ID:            p.BaseURL + "/#website",
-		Name:          "airbg",
-		AlternateName: org.Name,
+		Name:          p.T("seo.title_brand"),
+		AlternateName: p.T("brand.wordmark"),
 		URL:           p.CanonicalURL(),
 		InLanguage:    p.Lang,
 		Publisher:     ldRef{ID: org.ID},

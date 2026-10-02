@@ -158,7 +158,9 @@
   function embed() {
     const prefix = document.querySelector('[data-lang-prefix]')?.dataset.langPrefix ?? ''
     const src = `${window.location.origin}${prefix}/embed?metric=${encodeURIComponent(metrics[0] ?? '')}`
-    copy(`<iframe src="${src}" width="100%" height="520" style="border:0" loading="lazy" title="airbg"></iframe>`, embedDone)
+    // Bulgarian is the unprefixed default; every other language uses the Latin name.
+    const brand = prefix ? 'Kanarche' : 'Канарче'
+    copy(`<iframe src="${src}" width="100%" height="520" style="border:0" loading="lazy" title="${brand}"></iframe>`, embedDone)
   }
 
   const menuItems = $derived([

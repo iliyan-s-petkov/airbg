@@ -184,10 +184,10 @@ func TestFooterProjectColumnLinks(t *testing.T) {
 func TestFooterSocialIconsFollowTheConfig(t *testing.T) {
 	// Unconfigured: GitHub only.
 	foot := footerOf(t, fetch(t, renderer(t, cityFixture(t)), "/en/").Body.String())
-	if !strings.Contains(foot, `aria-label="airbg on GitHub"`) {
+	if !strings.Contains(foot, `aria-label="Kanarche on GitHub"`) {
 		t.Error("GitHub icon missing or unnamed")
 	}
-	for _, absent := range []string{"airbg on Facebook", "airbg on LinkedIn", "facebook.com", "linkedin.com"} {
+	for _, absent := range []string{"Kanarche on Facebook", "Kanarche on LinkedIn", "facebook.com", "linkedin.com"} {
 		if strings.Contains(foot, absent) {
 			t.Errorf("unconfigured footer renders %q", absent)
 		}
@@ -197,8 +197,8 @@ func TestFooterSocialIconsFollowTheConfig(t *testing.T) {
 	rr := rendererWithSocial(t, "https://www.facebook.com/airbg", "https://www.linkedin.com/company/airbg")
 	foot = footerOf(t, fetch(t, rr, "/en/").Body.String())
 	for _, want := range []string{
-		`href="https://www.facebook.com/airbg"`, `aria-label="airbg on Facebook"`,
-		`href="https://www.linkedin.com/company/airbg"`, `aria-label="airbg on LinkedIn"`,
+		`href="https://www.facebook.com/airbg"`, `aria-label="Kanarche on Facebook"`,
+		`href="https://www.linkedin.com/company/airbg"`, `aria-label="Kanarche on LinkedIn"`,
 	} {
 		if !strings.Contains(foot, want) {
 			t.Errorf("configured footer lacks %s", want)
@@ -219,7 +219,7 @@ func TestFooterSocialIconsFollowTheConfig(t *testing.T) {
 func TestFooterBottomBar(t *testing.T) {
 	foot := footerOf(t, fetch(t, renderer(t, cityFixture(t)), "/en/").Body.String())
 	year := fmt.Sprint(time.Now().Year())
-	for _, want := range []string{"© " + year + " airbg", `href="/en/privacy"`, `href="/en/licences"`, "Hostellation"} {
+	for _, want := range []string{"© " + year + " Kanarche", `href="/en/privacy"`, `href="/en/licences"`, "Hostellation"} {
 		if !strings.Contains(foot, want) {
 			t.Errorf("bottom bar lacks %q", want)
 		}
@@ -357,8 +357,8 @@ func TestAirbgInfoIsLinkedFromTheFooterAndAboutAsIndependent(t *testing.T) {
 		}
 	}
 	for _, tc := range []struct{ path, note string }{
-		{"/about", "не е свързан с него"},
-		{"/en/about", "not affiliated with it"},
+		{"/about", "Канарче не е свързано с airbg.info"},
+		{"/en/about", "Kanarche is not affiliated with airbg.info"},
 	} {
 		body := fetch(t, rr, tc.path).Body.String()
 		for _, href := range []string{

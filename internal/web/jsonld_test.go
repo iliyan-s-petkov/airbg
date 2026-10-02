@@ -96,6 +96,7 @@ func jsonLDFixture(t *testing.T) *snapshot.Snapshot {
 func TestJSONLDHomeHasWebSiteAndOrganization(t *testing.T) {
 	rr := renderer(t, jsonLDFixture(t))
 	for path, lang := range map[string]string{"/": "bg", "/en/": "en"} {
+		brand := testBrand(map[string]string{"bg": "", "en": "/en"}[lang])
 		doc := jsonLD(t, path, fetch(t, rr, path).Body.String())
 
 		site := nodeOfType(doc, "WebSite")
@@ -103,7 +104,7 @@ func TestJSONLDHomeHasWebSiteAndOrganization(t *testing.T) {
 			t.Errorf("%s: WebSite = %+v", path, site)
 		}
 		org := nodeOfType(doc, "Organization")
-		if org == nil || org.Name != "airbg.org" || org.URL != "https://airbg.org/" {
+		if org == nil || org.Name != brand || org.URL != "https://airbg.org/" {
 			t.Fatalf("%s: Organization = %+v", path, org)
 		}
 		if len(org.SameAs) != 1 || org.SameAs[0] != "https://github.com/iliyan-s-petkov/airbg" {

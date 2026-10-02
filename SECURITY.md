@@ -2,7 +2,7 @@
 
 ## Scope
 
-This covers the airbg.org web app, its API, and the sensor.community ingest
+This covers the Kanarche web app, its API, and the sensor.community ingest
 pipeline in this repository.
 
 ## Reporting a vulnerability
