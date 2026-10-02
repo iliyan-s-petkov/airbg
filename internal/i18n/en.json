@@ -213,7 +213,7 @@
   "map.view.boundaries": "Province outlines",
   "map.view.cell_values": "Cell values",
   "map.view.community_sensors": "Citizen sensors",
-  "map.view.faulty_stations": "Show faulty stations",
+  "map.view.faulty_stations": "Faulty stations",
   "map.view.inactive_sensors": "Inactive sensors",
   "map.view.legend": "Scale",
   "map.view.not_measured": "does not measure this",
