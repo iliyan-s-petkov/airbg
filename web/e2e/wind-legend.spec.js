@@ -19,7 +19,14 @@ const mockWind = (page) => page.route('**/api/v1/wind', (route) => route.fulfill
 test('the legend wind row appears with the wind layer and goes with it', async ({ ctx }) => {
   const page = await ctx.newPage()
   await mockWind(page)
-  await page.addInitScript(() => localStorage.setItem('airbg:legend-open', 'true'))
+  await page.addInitScript(() => {
+    // The context is shared across specs; start from clean storage on first load only.
+    if (!sessionStorage.getItem('wind-legend-spec')) {
+      localStorage.clear()
+      sessionStorage.setItem('wind-legend-spec', '1')
+    }
+    localStorage.setItem('airbg:legend-open', 'true')
+  })
   await page.goto('/en')
 
   const legend = page.locator('.scale--onmap')
