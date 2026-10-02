@@ -109,7 +109,8 @@ strong, b { font-weight: var(--weight-emphasis); }
    would read as an error state on 27 healthy pages. */
 .notice-inline { color: var(--muted); font-size: var(--text-compact); letter-spacing: var(--track-compact); }
 /* Breadcrumb replaces the old single back-to-map link on area pages. */
-.breadcrumb { font-size: var(--text-compact); color: var(--fg-2); }
+/* Top spacing matches the kit's .page-head--compact so the crumb is not flush under the masthead. */
+.breadcrumb { font-size: var(--text-compact); color: var(--fg-2); margin-block-start: var(--space-6); }
 .breadcrumb__sep { color: var(--muted); padding-inline: var(--space-1); }
 /* The air-now and 24h sentences sit under the h1, above the readouts. */
 .area-now, .area-day { margin-block: var(--space-2) 0; }
@@ -539,6 +540,9 @@ strong, b { font-weight: var(--weight-emphasis); }
   border: 1px solid var(--glass-border);
   border-radius: var(--radius);
   box-shadow: var(--elev-float);
+  /* The kit's on-map key has no padding; the glass card needs it or the last row touches the border. */
+  /* The kit's on-map key has no padding; the glass card needs it or the last row touches the border. */
+  padding-inline: var(--space-2);
 }
 .map-freshness .data-refresh {
   margin: 0; background: var(--overlay-bg); border-radius: var(--radius);
