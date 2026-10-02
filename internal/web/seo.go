@@ -67,30 +67,39 @@ func (rr *Renderer) sitemapBytes(generatedAt time.Time) ([]byte, error) {
 	}
 
 	var slugs []string
+	covered := map[string]bool{}
 	if snap := rr.holder.Load(); snap != nil {
-		for slug := range snap.KnownSlugs {
+		for slug, meta := range snap.KnownSlugs {
 			slugs = append(slugs, slug)
+			covered[slug] = meta.Covered
 		}
 		sort.Strings(slugs)
 	}
 
-	paths := make([]string, 0, len(slugs)+3)
-	paths = append(paths, "/", "/areas", "/about", "/about-the-data")
-	for _, slug := range slugs {
-		paths = append(paths, "/area/"+slug)
-	}
-
-	var lastMod string
+	var day string
 	if !generatedAt.IsZero() {
-		lastMod = generatedAt.UTC().Format("2006-01-02")
+		day = generatedAt.UTC().Format("2006-01-02")
+	}
+	// lastmod only where the page body follows the data: the home, the
+	// directory and areas with coverage. Static pages and areas without data
+	// get none rather than a date nothing supports.
+	type entry struct{ path, lastMod string }
+	entries := make([]entry, 0, len(slugs)+4)
+	entries = append(entries, entry{"/", day}, entry{"/areas", day}, entry{"/about", ""}, entry{"/about-the-data", ""})
+	for _, slug := range slugs {
+		lm := ""
+		if covered[slug] {
+			lm = day
+		}
+		entries = append(entries, entry{"/area/" + slug, lm})
 	}
 
-	urls := make([]sitemapURL, 0, len(paths)*len(rr.cat.Languages()))
-	for _, path := range paths {
+	urls := make([]sitemapURL, 0, len(entries)*len(rr.cat.Languages()))
+	for _, e := range entries {
 		// One <url> per language variant, each carrying the full alternate set.
-		links := rr.sitemapLinks(path)
-		for _, a := range rr.pageAlternates(path) {
-			urls = append(urls, sitemapURL{Loc: a.URL, LastMod: lastMod, Links: links})
+		links := rr.sitemapLinks(e.path)
+		for _, a := range rr.pageAlternates(e.path) {
+			urls = append(urls, sitemapURL{Loc: a.URL, LastMod: e.lastMod, Links: links})
 		}
 	}
 

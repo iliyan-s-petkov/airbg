@@ -125,6 +125,15 @@ ratelimit:
     burst: 60
     ttl: "30m"
     evict_interval: "5m"
+  # HTML pages, static assets and sitemap/robots: every path outside /api/.
+  # 20/s with a 300 burst lets one IP fetch the whole sitemap (about 170 URLs)
+  # in one go and then sustain well above a crawler's 2-5 pages/s; cached
+  # server-rendered pages are cheap, so this is looser than the API bucket.
+  pages:
+    per_second: 20
+    burst: 300
+    ttl: "30m"
+    evict_interval: "5m"
   # The series routes are the expensive ones and get their own, much tighter
   # bucket. Worst case is one series request per page load.
   series:

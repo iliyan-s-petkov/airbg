@@ -30,8 +30,12 @@ const (
 func (rr *Renderer) Routes() *http.ServeMux {
 	mux := http.NewServeMux()
 	for pattern, h := range rr.handlers() {
+		if pattern == "/" {
+			continue // catchAll needs the mux to test slash-stripped paths
+		}
 		mux.Handle(pattern, h)
 	}
+	mux.Handle("/", rr.catchAll(mux))
 	return mux
 }
 
@@ -65,6 +69,11 @@ func (rr *Renderer) handlers() map[string]http.Handler {
 		}
 		root := prefix + "/{$}" // exact match only, so it does not swallow every path
 		h["GET "+root] = http.HandlerFunc(rr.handleIndex)
+		if prefix != "" {
+			// The language home is canonical with its slash; ServeMux's own
+			// redirect from the bare prefix is a 307.
+			h["GET "+prefix] = http.RedirectHandler(prefix+"/", http.StatusMovedPermanently)
+		}
 		h["GET "+prefix+"/areas"] = http.HandlerFunc(rr.handleIndex)
 		h["GET "+prefix+"/area/{slug}"] = http.HandlerFunc(rr.handleArea)
 		h["GET "+prefix+"/about"] = http.HandlerFunc(rr.handleAboutProject)
@@ -88,7 +97,13 @@ func (rr *Renderer) handlers() map[string]http.Handler {
 	// staticAssetCacheControl.
 	h["GET /static/"] = staticAssetCacheControl(noDirList(serveStaticFiles(rr.static, staticFS)), rr.static)
 
+	// Browsers and crawlers ask for this path regardless of <link rel=icon>.
+	h["GET /favicon.ico"] = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, rr.static.URL("favicon.svg"), http.StatusMovedPermanently)
+	})
+
 	// Anything unmatched is a rendered 404, not net/http's bare text one.
+	// Routes swaps this for catchAll, which also handles trailing slashes.
 	h["/"] = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		rr.RenderError(w, r, http.StatusNotFound, "not_found")
 	})
@@ -456,4 +471,28 @@ func hasDotSegment(p string) bool {
 		}
 	}
 	return false
+}
+
+// catchAll renders the 404, except that a GET/HEAD for "<page>/" gets a 301 to
+// "<page>" when the slash-less path is a real page route. Subtree routes (static
+// files) and the language homes are never redirected, so a redirect target is
+// always a final answer and cannot loop.
+func (rr *Renderer) catchAll(mux *http.ServeMux) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet || r.Method == http.MethodHead {
+			if stripped := strings.TrimRight(r.URL.Path, "/"); stripped != "" && stripped != r.URL.Path {
+				probe := r.Clone(r.Context())
+				probe.URL.Path = stripped
+				if _, pattern := mux.Handler(probe); pattern != "" && pattern != "/" && !strings.HasSuffix(pattern, "/") {
+					target := stripped
+					if r.URL.RawQuery != "" {
+						target += "?" + r.URL.RawQuery
+					}
+					http.Redirect(w, r, target, http.StatusMovedPermanently)
+					return
+				}
+			}
+		}
+		rr.RenderError(w, r, http.StatusNotFound, "not_found")
+	})
 }

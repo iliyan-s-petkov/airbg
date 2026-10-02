@@ -212,6 +212,7 @@ func (c Config) validateDatabase(p *problems) {
 func (c Config) validateRateLimit(p *problems) {
 	for path, b := range map[string]Bucket{
 		"ratelimit.api":    c.RateLimit.API,
+		"ratelimit.pages":  c.RateLimit.Pages,
 		"ratelimit.series": c.RateLimit.Series.Bucket,
 	} {
 		p.positiveFloat(path+".per_second", b.PerSecond)

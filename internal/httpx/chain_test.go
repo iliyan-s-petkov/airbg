@@ -327,3 +327,45 @@ func TestChainWrapComposesInDocumentedOrder(t *testing.T) {
 		t.Errorf("composition order = %v, want %v", order, want)
 	}
 }
+
+// Pages are limited by their own bucket, so a crawler burst does not spend
+// the API budget and the tight API budget does not 429 a crawler.
+func TestChainPagesUseTheirOwnLimiter(t *testing.T) {
+	chain := httpx.Chain{
+		Resolver:     resolver(t),
+		Limiter:      ratelimit.New(testBucket(0, 1, time.Hour), testShardCount),
+		PageLimiter:  ratelimit.New(testBucket(0, 20, time.Hour), testShardCount),
+		MaxBodyBytes: 4096,
+	}
+	h := chain.Wrap(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	get := func(path string) *httptest.ResponseRecorder {
+		rec := httptest.NewRecorder()
+		r := httptest.NewRequest(http.MethodGet, path, nil)
+		r.RemoteAddr = "203.0.113.61:41000"
+		h.ServeHTTP(rec, r)
+		return rec
+	}
+
+	for i := 0; i < 20; i++ {
+		if rec := get("/area/sofiya"); rec.Code != http.StatusOK {
+			t.Fatalf("page request %d = %d, want 200 within the page burst", i, rec.Code)
+		}
+	}
+	rec := get("/area/sofiya")
+	if rec.Code != http.StatusTooManyRequests {
+		t.Fatalf("page request over the burst = %d, want 429", rec.Code)
+	}
+	if rec.Header().Get("Retry-After") == "" {
+		t.Error("page 429 has no Retry-After")
+	}
+
+	// The API bucket is untouched by page traffic and still tight.
+	if rec := get("/api/v1/overview"); rec.Code != http.StatusOK {
+		t.Errorf("first API request = %d, want 200 (pages must not spend the API bucket)", rec.Code)
+	}
+	if rec := get("/api/v1/overview"); rec.Code != http.StatusTooManyRequests {
+		t.Errorf("second API request = %d, want 429 (API bucket must stay tight)", rec.Code)
+	}
+}

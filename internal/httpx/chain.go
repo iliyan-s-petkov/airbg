@@ -3,6 +3,7 @@ package httpx
 import (
 	"net/http"
 	"strconv"
+	"strings"
 
 	"airbg.org/internal/metrics"
 	"airbg.org/internal/ratelimit"
@@ -47,9 +48,19 @@ func probe(name string) {
 // "unattributed" otherwise, which would pool every client into one bucket. Chain
 // guarantees the ordering.
 func RateLimit(next http.Handler, l *ratelimit.Limiter) http.Handler {
+	return rateLimitSplit(next, l, nil)
+}
+
+// rateLimitSplit sends /api/ requests to api and everything else to pages. A
+// nil pages falls back to api. The split is by path, never by User-Agent.
+func rateLimitSplit(next http.Handler, api, pages *ratelimit.Limiter) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		probe("rateLimit")
 		key := BucketKeyFrom(r.Context())
+		l := api
+		if pages != nil && !strings.HasPrefix(r.URL.Path, "/api/") {
+			l = pages
+		}
 		ok, retryAfter := l.Allow(key)
 		if !ok {
 			// Label by the route PATTERN, never the concrete path: the path is
@@ -84,8 +95,10 @@ func patternLabel(r *http.Request) string {
 
 // Chain composes the middleware every public request passes through.
 type Chain struct {
-	Resolver     *IPResolver
-	Limiter      *ratelimit.Limiter
+	Resolver *IPResolver
+	Limiter  *ratelimit.Limiter
+	// PageLimiter covers every path outside /api/. Nil means pages share Limiter.
+	PageLimiter  *ratelimit.Limiter
 	MaxBodyBytes int64
 
 	// CSP is the policy SecurityHeaders sets. Per-process rather than constant,
@@ -116,7 +129,7 @@ type Chain struct {
 // api package's per-route handlers.
 func (c Chain) Wrap(h http.Handler) http.Handler {
 	h = LimitBody(h, c.MaxBodyBytes)
-	h = RateLimit(h, c.Limiter)
+	h = rateLimitSplit(h, c.Limiter, c.PageLimiter)
 	h = WithClientIP(h, c.Resolver)
 	h = SecurityHeaders(h, c.CSP, c.PermissionsPolicy)
 	h = Recover(h)

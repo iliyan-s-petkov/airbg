@@ -69,6 +69,8 @@ func TestShippedValuesMatchPhase2Behaviour(t *testing.T) {
 			{"database.statement_timeouts.series", cfg.Database.StatementTimeouts.Series, 5 * time.Second},
 			{"ratelimit.api.ttl", cfg.RateLimit.API.TTL, 30 * time.Minute},
 			{"ratelimit.api.evict_interval", cfg.RateLimit.API.EvictInterval, 5 * time.Minute},
+			{"ratelimit.pages.ttl", cfg.RateLimit.Pages.TTL, 30 * time.Minute},
+			{"ratelimit.pages.evict_interval", cfg.RateLimit.Pages.EvictInterval, 5 * time.Minute},
 			{"ratelimit.series.ttl", cfg.RateLimit.Series.TTL, 30 * time.Minute},
 			{"ratelimit.series.evict_interval", cfg.RateLimit.Series.EvictInterval, 5 * time.Minute},
 			{"ratelimit.series.retry_after", cfg.RateLimit.Series.RetryAfter, 2 * time.Second},
@@ -100,6 +102,8 @@ func TestShippedValuesMatchPhase2Behaviour(t *testing.T) {
 			{"database.max_inflight", float64(cfg.Database.MaxInflight), 16},
 			{"ratelimit.api.per_second", cfg.RateLimit.API.PerSecond, 10},
 			{"ratelimit.api.burst", cfg.RateLimit.API.Burst, 60},
+			{"ratelimit.pages.per_second", cfg.RateLimit.Pages.PerSecond, 20},
+			{"ratelimit.pages.burst", cfg.RateLimit.Pages.Burst, 300},
 			{"ratelimit.series.per_second", cfg.RateLimit.Series.PerSecond, 1},
 			{"ratelimit.series.burst", cfg.RateLimit.Series.Burst, 10},
 			// The one deliberate divergence from Phase 2 behaviour: raised from
