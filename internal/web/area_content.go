@@ -63,6 +63,10 @@ func (p PageData) crumbLabel(row AreaRow) string {
 	return row.Name
 }
 
+// AreaHeading is the H1 of an area page: the oblast label form for an oblast,
+// the plain name otherwise.
+func (p PageData) AreaHeading() string { return p.crumbLabel(*p.Area) }
+
 // oblastFormRow resolves row's oblast label form the same way areaSEO's
 // oblastForm does, without needing the Renderer: PageData already carries the
 // catalogue.

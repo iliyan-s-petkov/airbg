@@ -33,6 +33,8 @@ func germanCatalogue(t *testing.T, extra map[string]string) string {
 	for _, key := range cat.Keys() {
 		m[key] = "de:" + key
 	}
+	// The oblast label is a template; a placeholder-less copy would hide the area name.
+	m["seo.oblast.label"] = "{name} Provinz"
 	for k, v := range extra {
 		m[k] = v
 	}

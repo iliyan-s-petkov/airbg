@@ -52,7 +52,7 @@ export async function setWind(map, cfg, chrome, state, on, fetchJSON = getJSON) 
   const streaks = await startStreaksUnlessOptedOut(map, cfg, state)
   map.setLayoutProperty(WIND_LAYER_ID, 'visibility', streaks ? 'none' : 'visible')
   state.on = true
-  chrome.showWind(true, windLabel(state.body, cfg.t))
+  chrome.showWind(true, windLabel(state.body, cfg.t, undefined, cfg.lang || undefined))
   return true
 }
 

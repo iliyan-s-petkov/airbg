@@ -11,6 +11,7 @@
 import { soleOpen } from './lib/disclosure.js'
 import { scrollCue } from './lib/scrollcue.js'
 import { createBackToMap } from './lib/backtomap.js'
+import { localizeTimes } from './lib/localtime.js'
 
 const ISLANDS = {
   map: () => import('./islands/map.js'),
@@ -119,6 +120,7 @@ function init() {
   soleOpen(document.querySelector('.masthead__nav') ?? document.body)
   scrollCue(document, window)
   createBackToMap({ doc: document, win: window })
+  localizeTimes(document, document.documentElement.lang || undefined)
 
   scheduleAfterFirstPaint(mountIslands)
 }

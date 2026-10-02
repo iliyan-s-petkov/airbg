@@ -134,6 +134,17 @@ describe('DataFreshness', () => {
     expect(seen).toEqual([true])
   })
 
+  // U07: two circular arrows side by side read as one control twice.
+  it('draws the auto-refresh switch differently from the manual refresh button', () => {
+    const el = render(DataFreshness, { ...base, auto: true, button: true, buttonLabel: 'Обнови' })
+    const manual = el.querySelector('.data-refresh__btn svg').innerHTML
+    const auto = el.querySelector('.data-refresh__auto svg').innerHTML
+    expect(auto).not.toBe(manual)
+    expect(el.querySelector('.data-refresh__auto svg path').getAttribute('d')).not.toBe(el.querySelector('.data-refresh__btn svg path').getAttribute('d'))
+    expect(el.querySelector('.data-refresh__btn').getAttribute('aria-label')).toBe('Обнови')
+    expect(el.querySelector('.data-refresh__auto').getAttribute('aria-label')).toContain('Автоматично обновяване')
+  })
+
   // Colour alone would say nothing to a reader who cannot see the difference.
   it('draws the off state rather than only recolouring it', () => {
     const on = render(DataFreshness, { ...base, auto: true })

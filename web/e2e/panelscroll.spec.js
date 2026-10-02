@@ -52,7 +52,13 @@ const featurePoint = (page, layer) => page.evaluate((layer) => {
 async function tapSensor(page) {
   const layer = new URL(page.url()).pathname.includes('/area/') ? 'airbg-markers' : 'airbg-hex-fill'
   let pt = null
-  await expect.poll(async () => (pt = await featurePoint(page, layer)), { timeout: 20000 }).not.toBeNull()
+  // Fullscreen resizes the canvas after the click; take the point once it holds still for 200ms.
+  await expect.poll(async () => {
+    const a = await featurePoint(page, layer)
+    await page.waitForTimeout(200)
+    pt = await featurePoint(page, layer)
+    return a && pt && a.x === pt.x && a.y === pt.y
+  }, { timeout: 20000 }).toBe(true)
   await page.mouse.click(pt.x, pt.y)
   await expect(page).toHaveURL(/#.*sensor=\d+/)
 }

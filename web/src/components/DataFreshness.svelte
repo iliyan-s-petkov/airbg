@@ -26,8 +26,9 @@
     onclick={() => onauto(!auto)}
   >
     <svg class="data-refresh__ico" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false">
-      <path d="M13.5 8a5.5 5.5 0 1 1-1.61-3.89" fill="none" stroke="currentColor" stroke-width="1.5"/>
-      <path d="M13.5 2.5v3h-3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square"/>
+      <!-- A timer, not the manual button's circular arrow: this one repeats on its own. -->
+      <path d="M8 14.5a5.5 5.5 0 1 0 0-11 5.5 5.5 0 0 0 0 11Z" fill="none" stroke="currentColor" stroke-width="1.5"/>
+      <path d="M8 6.5V9l1.75 1.25M6.25 1h3.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
       <!-- Off is struck through, so colour is never the only signal. -->
       {#if !auto}
         <path d="M2.5 13.5 13.5 2.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>

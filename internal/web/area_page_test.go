@@ -95,3 +95,18 @@ func TestAreaPageNoDataExample(t *testing.T) {
 		t.Errorf("the no-data city page does not state the absence in words:\n%s", body)
 	}
 }
+
+// U06: an oblast page H1 carries the kind prefix; a city keeps the bare name.
+func TestAreaH1CarriesOblastKindPrefix(t *testing.T) {
+	rr := renderer(t, areaPageFixture(t))
+	cases := map[string]string{
+		"/area/plovdiv-oblast":    `<h1 class="t-title">Област Пловдив</h1>`,
+		"/en/area/plovdiv-oblast": `<h1 class="t-title">Plovdiv Province</h1>`,
+		"/area/sofia":             `<h1 class="t-title">София</h1>`,
+	}
+	for path, want := range cases {
+		if body := fetch(t, rr, path).Body.String(); !strings.Contains(body, want) {
+			t.Errorf("%s: missing %s", path, want)
+		}
+	}
+}

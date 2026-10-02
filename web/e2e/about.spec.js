@@ -9,7 +9,7 @@ for (const lang of ['/en', '']) {
     const page = await ctx.newPage()
     await page.setViewportSize({ width: 1280, height: 800 })
     await page.goto(`${lang}/about`)
-    const tab = page.locator(`.masthead a[href="${lang}/about"]`)
+    const tab = page.locator(`.masthead__link--about[href="${lang}/about"]`)
     await expect(tab).toBeVisible()
     await expect(tab).toHaveAttribute('aria-current', 'page')
     const m = await page.evaluate(() => ({
@@ -26,7 +26,7 @@ for (const lang of ['/en', '']) {
     const page = await ctx.newPage()
     await page.setViewportSize({ width: 390, height: 844 })
     await page.goto(`${lang}/areas`)
-    await expect(page.locator(`.masthead a[href="${lang}/about"]`)).toBeHidden()
+    await expect(page.locator(`.masthead__link--about[href="${lang}/about"]`)).toBeHidden()
     const footer = page.locator(`.footer a[href="${lang}/about"]`)
     await expect(footer).toBeVisible()
     await footer.click()

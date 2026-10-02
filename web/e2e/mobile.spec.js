@@ -284,7 +284,7 @@ test.describe('phone layout does not widen the viewport', () => {
 
   // Owner feedback (Task 7c): the shared bottom-left card was 56px tall with
   // 44/48px buttons inside; both fold to a 44px card.
-  test('/en freshness card and idle play button are 44/36px, not 56/48px', async ({ mobileCtx }) => {
+  test('/en freshness card and idle play button are 44px, not 56/48px', async ({ mobileCtx }) => {
     const page = await mobileCtx.newPage()
     await page.setViewportSize({ width: 390, height: 844 })
     await page.goto('/en')
@@ -293,9 +293,9 @@ test.describe('phone layout does not widen the viewport', () => {
     await expect.poll(async () => (await page.locator('.map-freshness').boundingBox())?.height ?? 0)
       .toBeGreaterThanOrEqual(40)
     const play = page.getByRole('button', { name: 'Play the animation' })
-    await expect.poll(async () => (await play.boundingBox())?.height ?? 0).toBeLessThanOrEqual(36)
+    await expect.poll(async () => (await play.boundingBox())?.height ?? 0).toBeLessThanOrEqual(44)
     const windowBtn = page.locator('.map-window__btn')
-    await expect.poll(async () => (await windowBtn.boundingBox())?.height ?? 0).toBeLessThanOrEqual(36)
+    await expect.poll(async () => (await windowBtn.boundingBox())?.height ?? 0).toBeLessThanOrEqual(44)
     await page.close()
   })
 

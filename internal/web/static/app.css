@@ -49,10 +49,13 @@ body {
   text-align: start;
 }
 
+/* About and GitHub live in the language menu only where the header drops them. */
+.langpick__extra { display: none; }
 h1 { font-size: var(--text-page); font-weight: var(--weight-display); line-height: 1.19; }
 h2 { font-size: var(--text-section); font-weight: var(--weight-body); line-height: 1.25; }
 h3 { font-size: var(--text-sub); font-weight: var(--weight-body); line-height: 1.33; }
 a { color: var(--accent); }
+.page-head .t-sub { font-size: var(--text-card); font-weight: var(--weight-body); line-height: 1.25; margin: 0; color: var(--muted); }
 :focus-visible { outline: none; box-shadow: var(--focus-ring); }
 
 /* The province list is the kit's .table now — the caption, the columns, the
@@ -787,6 +790,8 @@ html:has(> body.embed) { block-size: 100%; }
   .masthead__link { padding-inline: var(--space-1); min-block-size: 44px; }
   @media (max-width: 480px) {
     .masthead__link--source, .masthead__link--about { display: none; }
+    .langpick__extra { display: list-item; }
+    .langpick__extra--first { border-block-start: 1px solid var(--border); margin-block-start: var(--space-1); padding-block-start: var(--space-1); }
     .masthead__brand .tld { display: none; }
   }
   .langpick__list { max-inline-size: calc(100vw - var(--space-4)); }
@@ -795,9 +800,9 @@ html:has(> body.embed) { block-size: 100%; }
      .map--hero instead. The shell no longer fixes its own height too — a
      fixed-height shell clipped the static, in-flow scale below the map. */
   .map-shell:has(.map--hero) { block-size: auto; max-block-size: none; }
-  /* Capped so the tier caption (1.5rem) and the 20px pull tab stay in the first viewport. */
+  /* Capped so the tier caption (1.5rem), the 1.25rem subtitle and the 20px pull tab stay in the first viewport. */
   .map--hero {
-    aspect-ratio: auto; block-size: calc(100svh - var(--phone-chrome) - 1.5rem - 20px);
+    aspect-ratio: auto; block-size: calc(100svh - var(--phone-chrome) - 1.5rem - 1.25rem - 20px);
     min-block-size: 20rem; max-block-size: 44rem;
   }
   .map--wide { block-size: calc(100svh - 15rem); min-block-size: 18rem; }
@@ -848,7 +853,8 @@ html:has(> body.embed) { block-size: 100%; }
     inset-block-end: calc(44px + var(--space-3) + var(--space-2));
     margin: 0; display: flex; align-items: center; gap: var(--space-2);
     background: var(--overlay-bg); border-radius: var(--radius); box-shadow: var(--elev-raised);
-    padding: var(--space-1);
+    /* The 44px buttons fill the card's height; vertical padding would make it 52px. */
+    padding: 0 var(--space-1);
   }
   /* Playing, the corner row IS the replay bar and spans the map; the window
      button and the key stand down rather than share the width. .map-play--open
@@ -952,7 +958,7 @@ html:has(> body.embed) { block-size: 100%; }
     background-image: none; background-color: var(--bg); box-shadow: var(--elev-raised);
     border-radius: var(--radius); color: var(--fg); padding: 0; text-align: center; line-height: 44px;
   }
-  .maplibregl-ctrl-bottom-right .maplibregl-ctrl-attrib-button::before { content: 'ⓘ'; font-size: 1.25rem; }
+  .maplibregl-ctrl-bottom-right .maplibregl-ctrl-attrib-button::before { content: '©'; font-size: 1.25rem; }
   /* Task 7c: closed card was fit-content sizing plus tap-target padding
      stacking (see task-7c-report.md); icon-only now, above .map-locate. */
   .map-wind-label {
@@ -990,22 +996,21 @@ html:has(> body.embed) { block-size: 100%; }
      .map-play__btn too, so only the scrubber, clock and note fold away. */
   .map-play { padding-inline: var(--space-1); flex-wrap: nowrap; }
   .map-play:not(.map-play--open) > :not(.map-play__btn) { display: none; }
-  /* Task 7c: idle row was 48px, doubling the card to 56px; 36px keeps the
-     shared card at 44px. Open bar (below) is unchanged. */
-  .map-play:not(.map-play--open) { block-size: 36px; }
+  /* Idle row is one 44px button, so the card stays 44px. Open bar (below) is unchanged. */
+  .map-play:not(.map-play--open) { block-size: 44px; }
   .map-play--open { block-size: 48px; flex: 1 1 auto; min-inline-size: 0; }
   .map-play--open .map-play__scrub { flex: 1 1 auto; inline-size: auto; min-inline-size: 0; }
   .map-play__note { max-inline-size: none; }
-  /* 36px, not the 44px tap-target floor: the card's own space-1 padding
-     already brings the tap band up to 44px without the button growing. */
-  .map-play__btn, .map-window__btn { block-size: 36px; min-block-size: 36px; }
+  /* The buttons themselves are the 44px tap targets (A04). */
+  .map-play__btn, .map-window__btn { inline-size: 44px; block-size: 44px; min-block-size: 44px; }
   .map-window__btn { inline-size: auto; min-inline-size: 44px; }
+  .map-play__speed { inline-size: auto; min-inline-size: 44px; }
   .data-refresh__auto, .data-refresh__btn--icon { inline-size: 44px; block-size: 44px; }
 
   /* Hero: title stays (h1), tagline restates the masthead and goes. */
   .page-head--compact { padding-block: var(--space-2); }
   .page-head--compact h1 { font-size: var(--text-sub); margin: 0; }
-  .page-head--compact p { display: none; }
+  .page-head .t-sub { font-size: var(--text-compact); line-height: 1.25rem; }
   .page-head:not(.page-head--compact) { padding-block: var(--space-2) var(--space-1); }
   .page-head:not(.page-head--compact) h1 { font-size: var(--text-sub); margin: 0; }
   h1 { font-size: var(--text-sub); }
@@ -1057,8 +1062,8 @@ html:has(> body.embed) { block-size: 100%; }
    of height and the shell collapses to 0. Height-led instead, chrome on top. */
 @media (orientation: landscape) and (max-height: 520px) and (hover: none) {
   .map-shell:has(.map--hero) { max-inline-size: none; block-size: auto; max-block-size: none; }
-  /* 5.75rem is the measured 92px of chrome above the map; 20px is the pull tab. */
-  .map--hero { aspect-ratio: auto; block-size: calc(100svh - 5.75rem - 20px); min-block-size: 12rem; }
+  /* 7rem: the measured 92px of chrome above the map plus the 20px subtitle line; 20px is the pull tab. */
+  .map--hero { aspect-ratio: auto; block-size: calc(100svh - 7rem - 20px); min-block-size: 12rem; }
   /* 7rem: measured 6rem of chrome above the map left the pull tab on the fold; 20px is the pull tab. */
   .map--wide { block-size: calc(100svh - 7rem - 20px); min-block-size: 12rem; }
 
@@ -1071,7 +1076,7 @@ html:has(> body.embed) { block-size: 100%; }
   .frame:has(> .page-head--compact) { display: flex; align-items: center; gap: var(--space-3); }
   .page-head--compact { padding-block: 0; flex: none; }
   .page-head--compact h1 { font-size: var(--text-body); margin: 0; }
-  .page-head--compact p { display: none; }
+  .page-head .t-sub { font-size: var(--text-caption); }
   .frame:has(> .page-head--compact) .toolbar { flex: 1 1 auto; padding-block-end: 0; }
   /* Restated: the 672px block's one-row toolbar rules do not fire at 844px
      wide, and the finder's visible label alone was tall enough to push the
