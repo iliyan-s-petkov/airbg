@@ -23,12 +23,24 @@ func TestSocialURLsComeFromTheEnvironment(t *testing.T) {
 }
 
 func TestSocialURLsMustBeHTTPS(t *testing.T) {
-	for _, bad := range []string{"javascript:alert(1)", "http://www.facebook.com/airbg", "facebook.com/airbg", "https://"} {
+	for _, bad := range []string{"javascript:alert(1)", "http://www.facebook.com/airbg", "facebook.com/airbg", "https://", "https://user:pw@www.facebook.com/airbg"} {
 		cfg := good(t)
 		cfg.Social.FacebookURL = bad
 		err := cfg.Validate()
 		if err == nil || !strings.Contains(err.Error(), "social.facebook_url") {
 			t.Errorf("Validate(%q) = %v, want a social.facebook_url problem", bad, err)
+		}
+	}
+}
+
+func TestSocialProblemsAreReportedInFixedOrder(t *testing.T) {
+	cfg := good(t)
+	cfg.Social.FacebookURL = "http://a"
+	cfg.Social.LinkedInURL = "http://b"
+	for i := 0; i < 20; i++ {
+		msg := cfg.Validate().Error()
+		if strings.Index(msg, "social.facebook_url") > strings.Index(msg, "social.linkedin_url") {
+			t.Fatalf("social problems out of order: %s", msg)
 		}
 	}
 }

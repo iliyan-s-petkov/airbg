@@ -99,16 +99,16 @@
       <p class="footer__tagline">{{.T "footer.brand.tagline"}}</p>
       <p class="footer__disclaimer">{{.T "footer.brand.disclaimer"}}</p>
     </div>
-    <nav class="footer__col" aria-label="{{.T "footer.explore"}}">
-      <h2 class="footer__heading">{{.T "footer.explore"}}</h2>
+    <nav class="footer__col" aria-labelledby="footer-explore-h">
+      <h2 class="footer__heading" id="footer-explore-h">{{.T "footer.explore"}}</h2>
       <ul>
         <li><a href="{{.Path "/"}}">{{.T "nav.map"}}</a></li>
         {{range .FooterAreas}}<li><a href="{{$.Path (printf "/area/%s" .Slug)}}">{{.Name}}</a></li>
         {{end}}<li><a href="{{.Path "/areas"}}">{{.T "footer.all_areas"}}</a></li>
       </ul>
     </nav>
-    <nav class="footer__col" aria-label="{{.T "footer.sources"}}">
-      <h2 class="footer__heading">{{.T "footer.sources"}}</h2>
+    <nav class="footer__col" aria-labelledby="footer-sources-h">
+      <h2 class="footer__heading" id="footer-sources-h">{{.T "footer.sources"}}</h2>
       {{/* Same tab, opener severed. The licence tag beside each source is the
            minimal attribution; the full terms are on the Licences page. */}}
       <ul>
@@ -116,18 +116,16 @@
         <li><a href="{{.AttributionURL "eea"}}" rel="noopener noreferrer">ИАОС / EEA<span aria-hidden="true"> ↗</span></a></li>
         <li><a href="{{.AttributionURL "open-meteo"}}" rel="noopener noreferrer">{{.T "footer.src.wind"}}<span aria-hidden="true"> ↗</span></a> <span class="footer__lic">CC BY 4.0</span></li>
         <li><a href="https://www.openstreetmap.org/copyright" rel="noopener noreferrer">{{.T "footer.src.osm"}}<span aria-hidden="true"> ↗</span></a> <span class="footer__lic">ODbL</span></li>
-        <li><a href="{{.Path "/licences"}}">{{.T "footer.licences"}}</a></li>
       </ul>
     </nav>
-    <nav class="footer__col" aria-label="{{.T "footer.project"}}">
-      <h2 class="footer__heading">{{.T "footer.project"}}</h2>
+    <nav class="footer__col" aria-labelledby="footer-project-h">
+      <h2 class="footer__heading" id="footer-project-h">{{.T "footer.project"}}</h2>
       <ul>
         <li><a href="{{.Path "/about"}}">{{.T "nav.about"}}</a></li>
         <li><a href="{{.Path "/about-the-data"}}">{{.T "footer.about_data"}}</a></li>
         <li><a href="{{.SourceRepoURL}}" rel="noopener noreferrer">{{.T "footer.source"}}<span aria-hidden="true"> ↗</span></a></li>
         <li><a href="{{.SourceIssuesURL}}" rel="noopener noreferrer">{{.T "footer.contact"}}<span aria-hidden="true"> ↗</span></a></li>
         <li><a href="https://airbg.info/" rel="noopener noreferrer">{{.T "footer.station"}}<span aria-hidden="true"> ↗</span></a></li>
-        <li><a href="{{.Path "/licences"}}">{{.T "footer.licences"}}</a></li>
       </ul>
     </nav>
     {{/* Icons only: each link is named by aria-label. GitHub always shows; the

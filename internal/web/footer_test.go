@@ -64,11 +64,20 @@ func footerOf(t *testing.T, body string) string {
 
 func TestFooterHasThreeLabelledNavsEachWithAHeading(t *testing.T) {
 	rr := renderer(t, cityFixture(t))
-	navRe := regexp.MustCompile(`<nav [^>]*aria-label="[^"]+">\s*<h2 `)
+	// Each nav is named by its own h2 (aria-labelledby), not by a duplicate aria-label.
+	navRe := regexp.MustCompile(`<nav [^>]*aria-labelledby="(footer-[a-z]+-h)">\s*<h2 [^>]*id="footer-[a-z]+-h"`)
 	for _, path := range []string{"/", "/en/", "/about"} {
 		foot := footerOf(t, fetch(t, rr, path).Body.String())
 		if n := len(navRe.FindAllString(foot, -1)); n != 3 {
 			t.Errorf("%s: footer has %d labelled navs with an h2, want 3", path, n)
+		}
+		for _, m := range navRe.FindAllStringSubmatch(foot, -1) {
+			if !strings.Contains(m[0], `id="`+m[1]+`"`) {
+				t.Errorf("%s: nav labelledby %s does not point at its h2", path, m[1])
+			}
+		}
+		if strings.Contains(foot, "<nav class=\"footer__col\" aria-label=") {
+			t.Errorf("%s: a footer nav duplicates its h2 in aria-label", path)
 		}
 		if strings.Count(foot, "<nav") != 3 {
 			t.Errorf("%s: footer has %d navs, want 3", path, strings.Count(foot, "<nav"))
@@ -214,8 +223,8 @@ func TestFooterBottomBar(t *testing.T) {
 			t.Errorf("bottom bar lacks %q", want)
 		}
 	}
-	if strings.Count(foot, `href="/en/licences"`) < 2 {
-		t.Error("Licences must be linked from the Project column and the bottom bar")
+	if n := strings.Count(foot, `href="/en/licences"`); n != 1 {
+		t.Errorf("Licences is linked %d times in the footer, want once, in the bottom bar", n)
 	}
 }
 
@@ -283,7 +292,17 @@ func TestPrivacyPageStatesOnlyWhatTheCodeDoes(t *testing.T) {
 				t.Errorf("%s does not list storage key %s", path, key[1])
 			}
 		}
-		for _, want := range []string{"tile.openstreetmap.org", "Cloudflare", `data-island="clearsettings"`} {
+		// The raster basemap is the whole map's ground at every zoom, over Bulgaria too.
+		for _, bad := range []string{"outside Bulgaria", "извън България"} {
+			if strings.Contains(body, bad) {
+				t.Errorf("%s says the OSM tiles load only %q; the raster is the ground everywhere", path, bad)
+			}
+		}
+		view := "the part of the map you are viewing"
+		if path == "/privacy" {
+			view = "частта от картата, която разглеждате"
+		}
+		for _, want := range []string{"tile.openstreetmap.org", "Cloudflare", `data-island="clearsettings"`, view} {
 			if !strings.Contains(body, want) {
 				t.Errorf("%s lacks %q", path, want)
 			}
@@ -343,8 +362,24 @@ func TestAirbgInfoIsLinkedFromTheFooterAndAboutAsIndependent(t *testing.T) {
 				t.Errorf("%s lacks the %s link", tc.path, href)
 			}
 		}
+		if i, j := strings.Index(body, `id="station"`), strings.Index(body, `id="more"`); i < 0 || j < i || strings.Contains(body[i:j], "sensor.community") {
+			t.Errorf("%s: the station section must not tie airbg.info to sensor.community", tc.path)
+		}
 		if !strings.Contains(body, `id="station"`) || !strings.Contains(body, tc.note) {
 			t.Errorf("%s lacks the station section or its independence note %q", tc.path, tc.note)
+		}
+	}
+}
+
+// The title and description may only claim what stays true: OSM tile servers see the IP.
+func TestPrivacyMetaDoesNotClaimNoIPAddresses(t *testing.T) {
+	for _, path := range []string{"/privacy", "/en/privacy"} {
+		body := fetch(t, renderer(t, cityFixture(t)), path).Body.String()
+		head := body[:strings.Index(body, "</head>")]
+		for _, bad := range []string{"IP addresses", "IP адреси"} {
+			if strings.Contains(head, bad) {
+				t.Errorf("%s: title or description claims %q", path, bad)
+			}
 		}
 	}
 }

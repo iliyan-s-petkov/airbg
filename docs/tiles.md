@@ -156,9 +156,10 @@ The attribution is a licence obligation, not presentation: the data is
 OpenStreetMap under ODbL, and that is the whole of the obligation. Credit no one
 else — planetiler processed the data, it did not contribute any, and an
 attribution line naming a party with no claim misstates provenance rather than
-erring on the generous side. The page footer carries the same credit
-(`footer.basemap` in `internal/i18n/*.json`), pinned by
-`internal/web/render_test.go`'s `TestBasemapAttribution`.
+erring on the generous side. The page footer carries the same credit in its
+Data sources column (`footer.src.osm` in `internal/i18n/*.json`, linked to
+openstreetmap.org/copyright), pinned by `internal/web/render_test.go`'s
+`TestBasemapAttribution`.
 
 ## 5. Install
 
