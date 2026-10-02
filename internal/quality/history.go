@@ -1,6 +1,9 @@
 package quality
 
-import "sync"
+import (
+	"math"
+	"sync"
+)
 
 // exemptStuckValues are readings that legitimately repeat forever. Flagging them
 // would mark healthy sensors as broken (spec §6.2).
@@ -10,10 +13,9 @@ var exemptStuckValues = map[string][]float64{
 	"P2":       {0},
 }
 
+// seriesState holds the most recent `depth` values of one series, oldest first.
 type seriesState struct {
-	last  float64
-	runs  int
-	valid bool
+	vals []float64
 }
 
 // historyMaxTrackedSensors bounds tracked sensors against an unbounded leak;
@@ -28,9 +30,9 @@ func SetHistoryMaxTrackedSensorsForTesting(n int) (restore func()) {
 	return func() { historyMaxTrackedSensors = prev }
 }
 
-// History tracks consecutive identical readings per (sensor, metric); an
-// in-memory, restart-empty cache, so stuck detection warms up over `depth`
-// cycles after every restart — see README.md#historys-tracked-sensor-cap.
+// History keeps the last `depth` readings per (sensor, metric). It starts
+// empty; the store seeds it from the reading table at startup — see
+// README.md#historys-tracked-sensor-cap.
 type History struct {
 	mu    sync.Mutex
 	depth int
@@ -64,30 +66,55 @@ func (h *History) Observe(sensorID int64, metric string, value float64) {
 	}
 	s, ok := byMetric[metric]
 	if !ok {
-		byMetric[metric] = &seriesState{last: value, runs: 1, valid: true}
-		return
+		s = &seriesState{}
+		byMetric[metric] = s
 	}
-	if s.valid && s.last == value {
-		s.runs++
-		return
+	s.vals = append(s.vals, value)
+	if len(s.vals) > h.depth {
+		s.vals = s.vals[len(s.vals)-h.depth:]
 	}
-	s.last = value
-	s.runs = 1
-	s.valid = true
 }
 
+// IsStuck reports a full window of exactly equal values, except values that
+// legitimately repeat.
 func (h *History) IsStuck(sensorID int64, metric string) bool {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-
-	s, ok := h.state[sensorID][metric]
-	if !ok || s.runs < h.depth {
+	v, ok := h.Constant(sensorID, metric)
+	if !ok {
 		return false
 	}
 	for _, exempt := range exemptStuckValues[metric] {
-		if s.last == exempt {
+		if v == exempt {
 			return false
 		}
 	}
 	return true
+}
+
+// Constant returns the value and true when the full window is exactly one value.
+func (h *History) Constant(sensorID int64, metric string) (float64, bool) {
+	return h.window(sensorID, metric, 0)
+}
+
+// Frozen reports a full window whose spread (max - min) is within tolerance.
+func (h *History) Frozen(sensorID int64, metric string, tolerance float64) bool {
+	_, ok := h.window(sensorID, metric, tolerance)
+	return ok
+}
+
+// window returns the latest value and true if the window is full and its spread
+// is within tolerance.
+func (h *History) window(sensorID int64, metric string, tolerance float64) (float64, bool) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	s, ok := h.state[sensorID][metric]
+	if !ok || len(s.vals) < h.depth {
+		return 0, false
+	}
+	lo, hi := s.vals[0], s.vals[0]
+	for _, v := range s.vals {
+		lo, hi = math.Min(lo, v), math.Max(hi, v)
+	}
+	// The epsilon absorbs float error: 20.01-20.00 is 0.0100000000000016.
+	return s.vals[len(s.vals)-1], hi-lo <= tolerance+1e-9
 }

@@ -56,6 +56,15 @@ func (s *Scorer) Score(readings []upstream.Reading, hist *History) []Scored {
 		reference[metric] = valid
 	}
 
+	// Observe every in-range reading before judging any, so a rule that needs a
+	// sibling metric (humidity vs temperature) sees this poll's value of it.
+	// Clamped and out-of-range readings never enter the history.
+	for _, r := range readings {
+		if !s.IsClamped(r.Metric, r.Value) && s.InRange(r.Metric, r.Value) {
+			hist.Observe(r.SensorID, r.Metric, r.Value)
+		}
+	}
+
 	out := make([]Scored, 0, len(readings))
 	for _, r := range readings {
 		out = append(out, Scored{Reading: r, Flag: s.scoreOne(r, reference[r.Metric], hist)})
@@ -72,8 +81,7 @@ func (s *Scorer) scoreOne(r upstream.Reading, population []upstream.Reading, his
 		return FlagOutOfRange
 	}
 
-	hist.Observe(r.SensorID, r.Metric, r.Value)
-	if hist.IsStuck(r.SensorID, r.Metric) {
+	if hist.IsStuck(r.SensorID, r.Metric) || s.failureSignature(r, hist) {
 		return FlagStuck
 	}
 
@@ -101,4 +109,26 @@ func (s *Scorer) haversineMetres(lon1, lat1, lon2, lat2 float64) float64 {
 	a := math.Sin(Δφ/2)*math.Sin(Δφ/2) +
 		math.Cos(φ1)*math.Cos(φ2)*math.Sin(Δλ/2)*math.Sin(Δλ/2)
 	return 2 * s.cfg.EarthRadiusMetres * math.Atan2(math.Sqrt(a), math.Sqrt(1-a))
+}
+
+// failureSignature matches BME280/DHT22 failure shapes over a full history
+// window: temperature frozen within tolerance; humidity exactly 0; humidity
+// exactly 100 while temperature is also frozen (fog alone moves temperature).
+func (s *Scorer) failureSignature(r upstream.Reading, hist *History) bool {
+	tol := s.cfg.TemperatureFrozenTolerance
+	switch r.Metric {
+	case "temperature":
+		return hist.Frozen(r.SensorID, "temperature", tol)
+	case "humidity":
+		v, ok := hist.Constant(r.SensorID, "humidity")
+		switch {
+		case !ok:
+			return false
+		case v == 0:
+			return true
+		case v == 100:
+			return hist.Frozen(r.SensorID, "temperature", tol)
+		}
+	}
+	return false
 }

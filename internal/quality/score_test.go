@@ -17,14 +17,15 @@ func testScorer() *Scorer { return NewScorer(testQuality()) }
 // vary ONE threshold and leave the rest as shipped.
 func testQuality() config.Quality {
 	return config.Quality{
-		MinNeighbours:         3,
-		MADScale:              1.4826,
-		MADThreshold:          3.5,
-		NeighbourRadiusMetres: 15000.0,
-		EarthRadiusMetres:     6371000.0,
-		HistoryDepth:          12,
-		PMRatioThreshold:      5.0,
-		PMAbsoluteThreshold:   150.0,
+		MinNeighbours:              3,
+		MADScale:                   1.4826,
+		MADThreshold:               3.5,
+		NeighbourRadiusMetres:      15000.0,
+		EarthRadiusMetres:          6371000.0,
+		HistoryDepth:               12,
+		TemperatureFrozenTolerance: 0.01,
+		PMRatioThreshold:           5.0,
+		PMAbsoluteThreshold:        150.0,
 		SmoothFieldFloors: map[string]float64{
 			"temperature": 1.5,
 			"humidity":    8,

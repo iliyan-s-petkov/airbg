@@ -50,6 +50,8 @@ func TestValidateRejects(t *testing.T) {
 		{"metrics addr all interfaces IPv4", func(c *Config) { c.Listen.MetricsAddr = "0.0.0.0:9090" }, "must be loopback"},
 		{"metrics addr all interfaces IPv6", func(c *Config) { c.Listen.MetricsAddr = "[::]:9090" }, "must be loopback"},
 		{"metrics addr private network", func(c *Config) { c.Listen.MetricsAddr = "10.0.0.5:9090" }, "must be loopback"},
+		{"zero temperature frozen tolerance", func(c *Config) { c.Quality.TemperatureFrozenTolerance = 0 }, "quality.temperature_frozen_tolerance"},
+		{"zero history seed window", func(c *Config) { c.Quality.HistorySeedWindow = 0 }, "quality.history_seed_window"},
 		{"zero max_conns", func(c *Config) { c.Listen.MaxConns = 0 }, "listen.max_conns"},
 		{"unsafe-inline in csp", func(c *Config) { c.Listen.CSP += "; script-src 'unsafe-inline'" }, "unsafe-inline"},
 		{"unsafe-eval in csp", func(c *Config) { c.Listen.CSP += "; script-src 'unsafe-eval'" }, "unsafe-eval"},

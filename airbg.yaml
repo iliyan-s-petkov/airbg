@@ -303,6 +303,12 @@ quality:
   earth_radius_metres: 6371000.0
   # Readings kept per sensor for the rejection-rate history.
   history_depth: 12
+  # Largest spread in degrees C across the history window still called a frozen
+  # temperature (BME280 resolution is 0.01). Drives the temperature rule and the
+  # humidity-at-100 rule. See internal/quality/README.md.
+  temperature_frozen_tolerance: 0.01
+  # How far back startup reads the reading table to seed the stuck history.
+  history_seed_window: 3h
   # The PM guard. A PM reading must exceed BOTH of these to be flagged: many
   # times the neighbourhood median AND high in absolute terms. That catches a
   # sensor stuck at 900 on a street reading 30 while leaving a genuine

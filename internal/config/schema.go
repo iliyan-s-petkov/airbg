@@ -190,17 +190,20 @@ type rawPeriod struct {
 }
 
 type rawQuality struct {
-	MinNeighbours         *int       `yaml:"min_neighbours"`
-	MADScale              *float64   `yaml:"mad_scale"`
-	MADThreshold          *float64   `yaml:"mad_threshold"`
-	NeighbourRadiusMetres *float64   `yaml:"neighbour_radius_metres"`
-	EarthRadiusMetres     *float64   `yaml:"earth_radius_metres"`
-	HistoryDepth          *int       `yaml:"history_depth"`
-	PMRatioThreshold      *float64   `yaml:"pm_ratio_threshold"`
-	PMAbsoluteThreshold   *float64   `yaml:"pm_absolute_threshold"`
-	SmoothFieldFloors     *rawFloors `yaml:"smooth_field_floors"`
-	Ranges                *rawRanges `yaml:"ranges"`
-	ClampSentinels        *rawClamps `yaml:"clamp_sentinels"`
+	MinNeighbours         *int     `yaml:"min_neighbours"`
+	MADScale              *float64 `yaml:"mad_scale"`
+	MADThreshold          *float64 `yaml:"mad_threshold"`
+	NeighbourRadiusMetres *float64 `yaml:"neighbour_radius_metres"`
+	EarthRadiusMetres     *float64 `yaml:"earth_radius_metres"`
+	HistoryDepth          *int     `yaml:"history_depth"`
+	// TemperatureFrozenTolerance and HistorySeedWindow: see airbg.yaml quality.
+	TemperatureFrozenTolerance *float64   `yaml:"temperature_frozen_tolerance"`
+	HistorySeedWindow          *Duration  `yaml:"history_seed_window"`
+	PMRatioThreshold           *float64   `yaml:"pm_ratio_threshold"`
+	PMAbsoluteThreshold        *float64   `yaml:"pm_absolute_threshold"`
+	SmoothFieldFloors          *rawFloors `yaml:"smooth_field_floors"`
+	Ranges                     *rawRanges `yaml:"ranges"`
+	ClampSentinels             *rawClamps `yaml:"clamp_sentinels"`
 }
 
 // rawClamps is a fixed struct for the same reason rawRanges is: only the PM

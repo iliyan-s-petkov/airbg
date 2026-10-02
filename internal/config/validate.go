@@ -485,6 +485,10 @@ func (c Config) validateQuality(p *problems) {
 	if q.HistoryDepth < 1 {
 		p.addf("quality.history_depth = %d, must be at least 1", q.HistoryDepth)
 	}
+	// Zero tolerance would silently turn the frozen-temperature rule back into
+	// an exact-repeat check; a zero window would seed nothing.
+	p.positiveFloat("quality.temperature_frozen_tolerance", q.TemperatureFrozenTolerance)
+	p.positive("quality.history_seed_window", q.HistorySeedWindow)
 	// Both PM guards must be positive: a zero ratio or a zero absolute floor
 	// turns "flag only what is both relatively and absolutely extreme" into
 	// "flag every reading above the median", which discards the point-source

@@ -114,7 +114,8 @@ func main() {
 			go cloudflare.NewCollector(cfg.Cloudflare, os.Getenv(cloudflare.TokenEnv), cfStore).Loop(ctx)
 		}
 		client := upstream.New(cfg.Upstream)
-		ing := ingest.New(client, store.New(pool, cfg.Store, cfg.Database.StatementTimeouts.Series), quality.NewHistory(cfg.Quality.HistoryDepth), quality.NewScorer(cfg.Quality), cfg.Database.StatementTimeouts.Assign, cfg.Upstream.Countries)
+		collectStore := store.New(pool, cfg.Store, cfg.Database.StatementTimeouts.Series)
+		ing := ingest.New(client, collectStore, seededHistory(ctx, collectStore, cfg.Quality), quality.NewScorer(cfg.Quality), cfg.Database.StatementTimeouts.Assign, cfg.Upstream.Countries)
 		ing.Loop(ctx, cfg.Upstream.PollInterval)
 
 	case "backfill":
@@ -262,6 +263,19 @@ func main() {
 // serveCommand owns the two pools' lifetimes. Separate from runServe so the
 // deferred Close calls actually run: main's error paths call os.Exit, which
 // skips defers.
+// seededHistory builds the stuck-check history and seeds it from the reading
+// table. A failed seed is logged and the history starts empty, as it used to.
+func seededHistory(ctx context.Context, st *store.Store, q config.Quality) *quality.History {
+	h := quality.NewHistory(q.HistoryDepth)
+	n, err := st.SeedHistory(ctx, h, q.HistorySeedWindow, q.HistoryDepth)
+	if err != nil {
+		slog.Warn("could not seed stuck history; starting empty", "err", err)
+		return h
+	}
+	slog.Info("stuck history seeded", "readings", n)
+	return h
+}
+
 func serveCommand(ctx context.Context, cfg config.Config) error {
 	apiPool, collectorPool, err := db.OpenPair(ctx, cfg.Database)
 	if err != nil {
@@ -342,7 +356,7 @@ func runServe(ctx context.Context, cfg config.Config, apiPool, collectorPool *pg
 	ing := ingest.New(
 		upstream.New(cfg.Upstream),
 		collectorStore,
-		quality.NewHistory(cfg.Quality.HistoryDepth),
+		seededHistory(ctx, collectorStore, cfg.Quality),
 		quality.NewScorer(cfg.Quality),
 		cfg.Database.StatementTimeouts.Assign,
 		cfg.Upstream.Countries,
