@@ -83,7 +83,8 @@ for (const vp of VIEWPORTS) {
       const context = await browser.newContext(opts)
       const page = await context.newPage()
       await page.goto(path)
-      await expect(page.locator('[data-island="panel"] .sensor-panel .gauges')).toBeVisible({ timeout: 15000 })
+      // Docked over the map from 1024px, under it below that; either way the one set of gauges.
+      await expect(page.locator('.gauges')).toBeVisible({ timeout: 15000 })
 
       await page.locator('.map__full').click()
       await expect.poll(() => fullFrame(page)).toBe(true)

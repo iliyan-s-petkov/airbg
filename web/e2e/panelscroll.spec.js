@@ -176,7 +176,7 @@ for (const vp of PHONES) {
   })
 }
 
-test(`${DESKTOP.name}: a tapped sensor does not scroll the page on desktop`, async ({ browser }, testInfo) => {
+test(`${DESKTOP.name}: a tapped sensor docks over the map and does not scroll the page`, async ({ browser }, testInfo) => {
   testInfo.setTimeout(60000)
   const { name, ...opts } = DESKTOP
   const context = await browser.newContext(opts)
@@ -184,7 +184,19 @@ test(`${DESKTOP.name}: a tapped sensor does not scroll the page on desktop`, asy
   await prepareMap(page, '/area/sofia')
   const before = await settled(page)
   await tapSensor(page)
-  await expect(page.locator('[data-island="panel"] .sensor-panel h2')).toBeVisible()
+  await expect(page.locator('.map-dock h2')).toBeVisible()
   expect(await settled(page)).toBe(before)
+  await context.close()
+})
+
+test('900x600: a tapped sensor scrolls the card under the map into view', async ({ browser }, testInfo) => {
+  testInfo.setTimeout(60000)
+  const context = await browser.newContext({ viewport: { width: 900, height: 600 } })
+  const page = await context.newPage()
+  await prepareMap(page, '/area/sofia')
+  const before = await settled(page)
+  await tapSensor(page)
+  await expect(page.locator('[data-island="panel"] .sensor-panel h2')).toBeVisible()
+  expect(await settled(page)).toBeGreaterThan(before + 50)
   await context.close()
 })
