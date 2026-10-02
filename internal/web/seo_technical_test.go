@@ -115,8 +115,8 @@ func TestSitemapLastModOnlyWhereDataSupportsIt(t *testing.T) {
 func TestAreasPageHasItsOwnH1(t *testing.T) {
 	rr := renderer(t, fixture(t))
 	for path, h1 := range map[string]string{
-		"/areas":    "Всички области и градове",
-		"/en/areas": "All areas and cities",
+		"/areas":    "Области и градове",
+		"/en/areas": "Areas and cities",
 		"/":         "Моят въздух",
 		"/en/":      "My Air",
 	} {
