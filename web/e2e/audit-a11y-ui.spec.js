@@ -244,3 +244,34 @@ test.describe('U04: the metric button keeps a visible space after its legend', (
     expect(gap).toBeGreaterThanOrEqual(3)
   })
 })
+
+test.describe('U03: the legend no-data row keeps its inline-end padding', () => {
+  test('the label ends inside the open legend panel, not on its edge', async ({ ctx }) => {
+    const page = await ctx.newPage()
+    await page.setViewportSize({ width: 1280, height: 800 })
+    await page.addInitScript(() => localStorage.setItem('airbg:legend-open', 'true'))
+    await page.goto('/en')
+    await expect(page.locator('.scale--onmap .scale__none .legend__label')).toBeVisible()
+    const room = await page.evaluate(() => {
+      const panel = document.querySelector('.scale--onmap').getBoundingClientRect()
+      const l = document.querySelector('.scale--onmap .scale__none .legend__label').getBoundingClientRect()
+      return panel.right - l.right
+    })
+    expect(room).toBeGreaterThanOrEqual(8)
+    await page.close()
+  })
+})
+
+test.describe('U06: the area breadcrumb is not flush under the masthead', () => {
+  test('the desktop breadcrumb has top spacing', async ({ ctx }) => {
+    const page = await ctx.newPage()
+    await page.setViewportSize({ width: 1280, height: 800 })
+    await page.goto('/en/area/sofia')
+    const gap = await page.evaluate(() => {
+      const bar = document.querySelector('header').getBoundingClientRect()
+      return document.querySelector('.breadcrumb').getBoundingClientRect().top - bar.bottom
+    })
+    expect(gap).toBeGreaterThanOrEqual(16)
+    await page.close()
+  })
+})
