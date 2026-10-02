@@ -48,10 +48,10 @@ depend on which check ran first. The database enum value is added by migration
 
 ## History's tracked-sensor cap
 
-`History` is in-memory and empty after a restart, so stuck detection needs
-`depth` cycles (about one hour at a five-minute cadence) to warm back up.
-That is acceptable: a stuck sensor stays stuck, so it is detected on the
-next warm window rather than missed.
+`History` is in-memory, but `store.SeedHistory` refills it at startup from the
+last `history_depth` non-clamped, in-range rows per (sensor, metric) within
+`quality.history_seed_window`, so a frozen sensor is flagged on the first poll
+after a deploy. A failed seed is logged and the history starts empty.
 
 `History.Observe` adds state and never removes it on its own, so without a
 cap the map leaks for the life of the process as the upstream device
@@ -61,3 +61,13 @@ is append-only, never reordered on later Observe calls) — not LRU. A
 continuously-reporting sensor can therefore be evicted while still active,
 costing it `depth` cycles to rebuild stuck-detection state. That is
 acceptable: the cap only exists to bound growth, and the recovery is short.
+
+## Failure signatures
+
+Beyond exact repeats, over a full history window: temperature within
+`quality.temperature_frozen_tolerance` (0.01 C) is stuck; humidity exactly 0 is
+stuck; humidity exactly 100 is stuck only while temperature is also frozen,
+because fog holds humidity at 99-100 for hours but still moves temperature.
+Every in-range reading is observed before any is judged, so the humidity rule
+sees the same poll's temperature. No sensor sentinels are matched: none could
+be cited, and 85 C and -150 C are already out of range.

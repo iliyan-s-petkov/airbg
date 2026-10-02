@@ -9,10 +9,14 @@ import (
 	"time"
 
 	"airbg.org/internal/area"
+	"airbg.org/internal/metrics"
 	"airbg.org/internal/quality"
 	"airbg.org/internal/store"
 	"airbg.org/internal/upstream"
 )
+
+// readingsFlagged counts scored readings by quality flag, across cycles.
+var readingsFlagged = metrics.CounterVec("airbg_readings_flagged_total", "Scored readings by quality flag.", "flag")
 
 const (
 	// maxBucketsPerTick bounds how many hourly buckets a single RunOnce call
@@ -270,6 +274,7 @@ func (i *Ingester) RunOnce(ctx context.Context) (Stats, error) {
 			scored = i.scorer.Score(accepted, i.history)
 			for _, s := range scored {
 				stats.Flagged[s.Flag]++
+				readingsFlagged.With(string(s.Flag)).Inc()
 			}
 
 			// Drop community readings whose upstream id reaches into the range
@@ -336,6 +341,8 @@ func (i *Ingester) RunOnce(ctx context.Context) (Stats, error) {
 		"out_of_range", stats.Flagged[quality.FlagOutOfRange],
 		"stuck", stats.Flagged[quality.FlagStuck],
 		"spatial_outlier", stats.Flagged[quality.FlagSpatialOutlier],
+		"no_neighbours", stats.Flagged[quality.FlagNoNeighbours],
+		"ok", stats.Flagged[quality.FlagOK],
 	)
 
 	i.publishSnapshot(ctx)

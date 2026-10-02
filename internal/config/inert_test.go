@@ -125,6 +125,8 @@ func TestShippedValuesMatchPhase2Behaviour(t *testing.T) {
 			{"quality.neighbour_radius_metres", cfg.Quality.NeighbourRadiusMetres, 15000},
 			{"quality.earth_radius_metres", cfg.Quality.EarthRadiusMetres, 6371000},
 			{"quality.history_depth", float64(cfg.Quality.HistoryDepth), 12},
+			{"quality.temperature_frozen_tolerance", cfg.Quality.TemperatureFrozenTolerance, 0.01},
+			{"quality.history_seed_window_hours", cfg.Quality.HistorySeedWindow.Hours(), 3},
 			// quality/spatial.go's pmRatioThreshold and pmAbsoluteThreshold.
 			{"quality.pm_ratio_threshold", cfg.Quality.PMRatioThreshold, 5.0},
 			{"quality.pm_absolute_threshold", cfg.Quality.PMAbsoluteThreshold, 150.0},

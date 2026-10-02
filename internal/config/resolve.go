@@ -228,6 +228,11 @@ type Quality struct {
 	NeighbourRadiusMetres float64
 	EarthRadiusMetres     float64
 	HistoryDepth          int
+	// TemperatureFrozenTolerance is the largest spread (degrees C) across the
+	// history window still treated as a frozen temperature.
+	TemperatureFrozenTolerance float64
+	// HistorySeedWindow bounds how far back startup reads to seed the stuck history.
+	HistorySeedWindow time.Duration
 	// PMRatioThreshold and PMAbsoluteThreshold are the PM guard: a reading must
 	// exceed BOTH — many times the neighbourhood median AND high in absolute
 	// terms — before it is called an outlier.
@@ -483,14 +488,16 @@ func resolve(r *raw) Config {
 			Periods:       make(map[string]Period, len(r.Series.Periods)),
 		},
 		Quality: Quality{
-			MinNeighbours:         *r.Quality.MinNeighbours,
-			MADScale:              *r.Quality.MADScale,
-			MADThreshold:          *r.Quality.MADThreshold,
-			NeighbourRadiusMetres: *r.Quality.NeighbourRadiusMetres,
-			EarthRadiusMetres:     *r.Quality.EarthRadiusMetres,
-			HistoryDepth:          *r.Quality.HistoryDepth,
-			PMRatioThreshold:      *r.Quality.PMRatioThreshold,
-			PMAbsoluteThreshold:   *r.Quality.PMAbsoluteThreshold,
+			MinNeighbours:              *r.Quality.MinNeighbours,
+			MADScale:                   *r.Quality.MADScale,
+			MADThreshold:               *r.Quality.MADThreshold,
+			NeighbourRadiusMetres:      *r.Quality.NeighbourRadiusMetres,
+			EarthRadiusMetres:          *r.Quality.EarthRadiusMetres,
+			HistoryDepth:               *r.Quality.HistoryDepth,
+			TemperatureFrozenTolerance: *r.Quality.TemperatureFrozenTolerance,
+			HistorySeedWindow:          r.Quality.HistorySeedWindow.Std(),
+			PMRatioThreshold:           *r.Quality.PMRatioThreshold,
+			PMAbsoluteThreshold:        *r.Quality.PMAbsoluteThreshold,
 			SmoothFieldFloors: map[string]float64{
 				"temperature": *r.Quality.SmoothFieldFloors.Temperature,
 				"humidity":    *r.Quality.SmoothFieldFloors.Humidity,
