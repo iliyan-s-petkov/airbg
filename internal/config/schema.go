@@ -26,6 +26,7 @@ type raw struct {
 	Tiles      *rawTiles      `yaml:"tiles"`
 	I18n       *rawI18n       `yaml:"i18n"`
 	DesignKit  *rawDesignKit  `yaml:"design_kit"`
+	Social     *rawSocial     `yaml:"social"`
 }
 
 type rawListen struct {
@@ -295,4 +296,11 @@ type rawI18n struct {
 // for the handler never to be constructed there.
 type rawDesignKit struct {
 	Dir *string `yaml:"dir"`
+}
+
+// rawSocial holds the footer's optional social profile links. Empty means the
+// icon is not rendered; GitHub is always shown and needs no key.
+type rawSocial struct {
+	FacebookURL *string `yaml:"facebook_url"`
+	LinkedInURL *string `yaml:"linkedin_url"`
 }
