@@ -15,7 +15,7 @@
 import { safeStorage } from './storage.js'
 import contract from './contract.json'
 
-export const WINDOW_STORAGE_KEY = 'airbg:map-window'
+export const WINDOW_STORAGE_KEY = 'kanarche:map-window'
 
 // The live view, and the empty name that asks for it. Empty so the default
 // view's URL carries no parameter at all — the front page's canonical address

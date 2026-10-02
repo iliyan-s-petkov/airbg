@@ -506,5 +506,5 @@ describe('the shape swatch', () => {
 })
 
 it('keeps STORAGE_KEY namespaced like every other key this site writes', () => {
-  expect(STORAGE_KEY).toBe('airbg:map-layers')
+  expect(STORAGE_KEY).toBe('kanarche:map-layers')
 })

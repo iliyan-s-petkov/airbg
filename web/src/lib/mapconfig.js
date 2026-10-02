@@ -5,11 +5,11 @@ import { LAYER_ORDER } from './maplayers.js'
 // menu's state: the menu decides whether the key exists, this decides whether
 // it is folded, and conflating them would make turning the key back on undo a
 // fold the reader never touched.
-export const LEGEND_FOLD_KEY = 'airbg:legend-open'
+export const LEGEND_FOLD_KEY = 'kanarche:legend-open'
 
 // Remembered, like the legend fold: a reader who needs the slow speed to
 // follow a cell needs it every visit, not once.
-export const PLAY_SPEED_KEY = 'airbg:play-speed'
+export const PLAY_SPEED_KEY = 'kanarche:play-speed'
 
 // The camera's own floor, and the reason the zoom stack can be honest about it.
 // MapLibre keeps TWO minimums: the setting getMinZoom() reports (0 by default)

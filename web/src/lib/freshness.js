@@ -5,7 +5,7 @@
 // makes, and for the same reason: a rune only compiles in a .svelte.js file,
 // and the decisions are worth testing without one.
 
-export const AUTO_KEY = 'airbg:auto-refresh'
+export const AUTO_KEY = 'kanarche:auto-refresh'
 
 // Five minutes. The network's own cadence is "every few minutes" (the footer
 // says so), so anything faster asks the origin for numbers that have not

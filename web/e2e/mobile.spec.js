@@ -449,7 +449,7 @@ test.describe('phone defaults: values and wind start on', () => {
   test('844x390 landscape: legend folded by default (no open box to overlap a value)', async ({ mobileCtx }) => {
     const page = await mobileCtx.newPage()
     await new Promise((r) => setTimeout(r, 2000))
-    await page.addInitScript(() => localStorage.removeItem('airbg:legend-open'))
+    await page.addInitScript(() => localStorage.removeItem('kanarche:legend-open'))
     await mockWind(page)
     await page.setViewportSize({ width: 844, height: 390 })
     await page.goto('/en')
@@ -694,7 +694,7 @@ test.describe('landscape phone keeps the map', () => {
   test('844x390 landscape: folded legend pill clear of the freshness card and layers button', async ({ mobileCtx }) => {
     const page = await mobileCtx.newPage()
     await new Promise((r) => setTimeout(r, 2000))
-    await page.addInitScript(() => localStorage.removeItem('airbg:legend-open'))
+    await page.addInitScript(() => localStorage.removeItem('kanarche:legend-open'))
     await page.setViewportSize({ width: 844, height: 390 })
     await page.goto('/en')
     const scale = page.locator('.scale--onmap')
@@ -729,7 +729,7 @@ test.describe('landscape phone keeps the map', () => {
       test(`${vp.width}x${vp.height} landscape ${path}: open legend clears the layers button`, async ({ mobileCtx }) => {
         const page = await mobileCtx.newPage()
         await new Promise((r) => setTimeout(r, 2000))
-        await page.addInitScript(() => localStorage.removeItem('airbg:legend-open'))
+        await page.addInitScript(() => localStorage.removeItem('kanarche:legend-open'))
         await page.setViewportSize(vp)
         await page.goto(path)
         await mapSettled(page)

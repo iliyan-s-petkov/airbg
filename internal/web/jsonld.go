@@ -3,7 +3,6 @@ package web
 import (
 	"encoding/json"
 	"html/template"
-	"net/url"
 )
 
 // Structured data (OpenProject #607): schema.org JSON-LD emitted by base.gohtml.
@@ -128,10 +127,7 @@ func (ldPlace) ldNode()          {}
 
 // organization is the site itself; its name is the BaseURL host, the brand used in the masthead.
 func (p PageData) organization() ldOrganization {
-	name := p.BaseURL
-	if u, err := url.Parse(p.BaseURL); err == nil && u.Host != "" {
-		name = u.Host
-	}
+	name := p.BaseHost()
 	return ldOrganization{
 		Type:   "Organization",
 		ID:     p.BaseURL + "/#organization",

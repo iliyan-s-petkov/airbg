@@ -2,7 +2,8 @@
 // Usage: node tools/social-preview.mjs [out.png]  (reads the public API; default out is the static og:image)
 import { chromium } from '../web/node_modules/playwright/index.mjs'
 
-const BASE = 'https://airbg.org/api/v1'
+const SITE = process.env.SITE_URL || 'https://airbg.org'
+const BASE = `${SITE}/api/v1`
 const OUT = process.argv[2] || new URL('../internal/web/static/social-preview.png', import.meta.url).pathname
 const W = 1280, H = 640
 const REF_LAT = 42.75 // hex lattice reference latitude, from contract.json
@@ -44,7 +45,7 @@ const tx0 = Math.floor((MAP.x - offX) / WORLD * 2 ** TZ), tx1 = Math.floor((MAP.
 const ty0 = Math.floor((MAP.y - offY) / WORLD * 2 ** TZ), ty1 = Math.floor((MAP.y + MAP.h - offY) / WORLD * 2 ** TZ)
 let tiles = ''
 for (let ty = ty0; ty <= ty1; ty++) for (let tx = tx0; tx <= tx1; tx++) {
-  const r = await fetch(`https://tile.openstreetmap.org/${TZ}/${tx}/${ty}.png`, { headers: { 'User-Agent': 'airbg-social-preview/1.0 (https://airbg.org)' } })
+  const r = await fetch(`https://tile.openstreetmap.org/${TZ}/${tx}/${ty}.png`, { headers: { 'User-Agent': `airbg-social-preview/1.0 (${SITE})` } })
   if (!r.ok) throw new Error(`tile ${tx},${ty} ${r.status}`)
   const b64 = Buffer.from(await r.arrayBuffer()).toString('base64')
   const x = offX + (tx / 2 ** TZ) * WORLD, y = offY + (ty / 2 ** TZ) * WORLD

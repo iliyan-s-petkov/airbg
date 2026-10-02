@@ -1,5 +1,13 @@
 {
   "localStorage": [
+    "kanarche:theme",
+    "kanarche:map-layers",
+    "kanarche:legend-open",
+    "kanarche:play-speed",
+    "kanarche:map-window",
+    "kanarche:auto-refresh"
+  ],
+  "legacy": [
     "airbg:theme",
     "airbg:map-layers",
     "airbg:legend-open",

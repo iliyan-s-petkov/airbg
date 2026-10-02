@@ -8,6 +8,7 @@ import { describe, expect, it } from 'vitest'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { legacyKey } from '../lib/storage.js'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 const srcDir = path.resolve(here, '..')
@@ -67,5 +68,14 @@ describe('localStorage allow-list (#584)', () => {
       }
     }
     expect(problems).toEqual([])
+  })
+
+  it('publishes kanarche:* keys and lists their airbg:* predecessors as legacy', () => {
+    const local = allowList.localStorage ?? []
+    expect(local.length).toBeGreaterThan(0)
+    for (const key of local) expect(key).toMatch(/^kanarche:/)
+    // Legacy keys are read and cleared, never written, so they are not in `allowed`.
+    expect(allowList.legacy).toEqual(local.map((k) => legacyKey(k)))
+    for (const key of allowList.legacy) expect(allowed.has(key)).toBe(false)
   })
 })

@@ -7,9 +7,45 @@
 // broken page. The same contract theme.js states for the theme.
 export function safeStorage() {
   try {
-    return globalThis.localStorage ?? null
+    return withLegacyFallback(globalThis.localStorage ?? null)
   } catch {
     return null
+  }
+}
+
+const KEY_PREFIX = 'kanarche:'
+const LEGACY_PREFIX = 'airbg:'
+
+// The pre-rename key for a kanarche:* key, or null for any other key.
+export function legacyKey(key) {
+  return key.startsWith(KEY_PREFIX) ? LEGACY_PREFIX + key.slice(KEY_PREFIX.length) : null
+}
+
+// Wraps a storage so kanarche:* keys fall back to their old airbg:* value on
+// read, and a write or removal also drops the old key. Other keys pass through.
+export function withLegacyFallback(storage) {
+  if (!storage) return storage
+  return {
+    getItem(key) {
+      const value = storage.getItem(key)
+      const old = legacyKey(key)
+      return value != null || old === null ? value : storage.getItem(old)
+    },
+    setItem(key, value) {
+      storage.setItem(key, value)
+      const old = legacyKey(key)
+      if (old === null) return
+      try {
+        storage.removeItem?.(old)
+      } catch {
+        /* the old key is only a fallback; leaving it is harmless */
+      }
+    },
+    removeItem(key) {
+      storage.removeItem(key)
+      const old = legacyKey(key)
+      if (old !== null) storage.removeItem(old)
+    },
   }
 }
 

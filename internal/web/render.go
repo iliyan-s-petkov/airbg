@@ -14,6 +14,7 @@ import (
 	"html/template"
 	"math"
 	"net/http"
+	"net/url"
 	"sort"
 	"strconv"
 	"strings"
@@ -659,6 +660,14 @@ func (p PageData) MetaDescription() string {
 // be redundant on every share card.
 func (p PageData) OGTitle() string {
 	return strings.TrimSuffix(p.Title, titleBrandSep+p.T("seo.title_brand"))
+}
+
+// BaseHost is the host of BaseURL, or BaseURL itself when it does not parse.
+func (p PageData) BaseHost() string {
+	if u, err := url.Parse(p.BaseURL); err == nil && u.Host != "" {
+		return u.Host
+	}
+	return p.BaseURL
 }
 
 // OGImageURL is the absolute URL of the static share-card image, built from

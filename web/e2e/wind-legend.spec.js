@@ -25,7 +25,7 @@ test('the legend wind row appears with the wind layer and goes with it', async (
       localStorage.clear()
       sessionStorage.setItem('wind-legend-spec', '1')
     }
-    localStorage.setItem('airbg:legend-open', 'true')
+    localStorage.setItem('kanarche:legend-open', 'true')
   })
   await page.goto('/en')
 

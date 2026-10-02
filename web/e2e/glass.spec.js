@@ -17,10 +17,10 @@ const VIEWPORTS = [
 const THEMES = ['light', 'dark']
 
 const withTheme = (page, theme) =>
-  page.addInitScript((v) => localStorage.setItem('airbg:theme', v), theme)
+  page.addInitScript((v) => localStorage.setItem('kanarche:theme', v), theme)
 
 const withLegend = (page, open) =>
-  page.addInitScript((v) => localStorage.setItem('airbg:legend-open', v), String(open))
+  page.addInitScript((v) => localStorage.setItem('kanarche:legend-open', v), String(open))
 
 const openLayers = async (page) => {
   await page.locator('.map__layers .colmenu__btn').click()

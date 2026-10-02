@@ -10,11 +10,13 @@
 // Applying the stored choice is NOT this island's job: /static/theme-init.js
 // does it before the first paint. This island only offers the choice.
 
+import { safeStorage } from '../lib/storage.js'
+
 // The three states, in the order the kit's mockup lists them. "auto" is the
 // absence of an override, so it stores nothing — see theme-init.js.
 export const THEMES = ['auto', 'light', 'dark']
 
-export const STORAGE_KEY = 'airbg:theme'
+export const STORAGE_KEY = 'kanarche:theme'
 
 // readTheme and writeTheme are the whole storage contract, in one place so the
 // island and theme-init.js cannot disagree about what "auto" looks like on
@@ -53,14 +55,6 @@ export function writeTheme(theme, root = document.documentElement, store = safeS
     store?.setItem(STORAGE_KEY, theme)
   } catch {
     // as above — the choice holds for this page, just not the next one
-  }
-}
-
-function safeStorage() {
-  try {
-    return globalThis.localStorage ?? null
-  } catch {
-    return null
   }
 }
 
