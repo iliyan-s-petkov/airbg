@@ -453,6 +453,83 @@ describe('mountChrome() opens the key by default on every viewport', () => {
     expect(shell.querySelector('details.scale').open).toBe(true)
   })
 
+  // The embed is a small frame: on a phone the key starts folded there.
+  it('mounts folded on a phone embed with no stored flag', () => {
+    document.body.classList.add('embed')
+    try {
+      const { shell, el } = chromeFrame()
+      mountChrome(el, readConfig(el))
+      expect(shell.querySelector('details.scale').open).toBe(false)
+    } finally { document.body.classList.remove('embed') }
+  })
+
+  it('a phone embed still opens when a reader stored true', () => {
+    document.body.classList.add('embed')
+    store.set(LEGEND_FOLD_KEY, 'true')
+    try {
+      const { shell, el } = chromeFrame()
+      mountChrome(el, readConfig(el))
+      expect(shell.querySelector('details.scale').open).toBe(true)
+    } finally { document.body.classList.remove('embed') }
+  })
+
+  it('a desktop embed (no phone query) stays open', () => {
+    document.body.classList.add('embed')
+    vi.stubGlobal('matchMedia', (query) => ({ matches: false, media: query, addEventListener() {}, removeEventListener() {} }))
+    try {
+      const { shell, el } = chromeFrame()
+      mountChrome(el, readConfig(el))
+      expect(shell.querySelector('details.scale').open).toBe(true)
+    } finally { document.body.classList.remove('embed') }
+  })
+
+  // The open attribution card covers the key's corner on a phone.
+  const openAttribution = async (el) => {
+    const attrib = document.createElement('div')
+    attrib.className = 'maplibregl-ctrl-attrib'
+    const button = document.createElement('button')
+    button.className = 'maplibregl-ctrl-attrib-button'
+    attrib.appendChild(button)
+    el.appendChild(attrib)
+    // MapLibre's own handler opens the card, then the click bubbles to the chrome.
+    button.addEventListener('click', () => attrib.classList.add('maplibregl-compact-show'))
+    button.click()
+    await new Promise((r) => setTimeout(r, 0))
+    return attrib
+  }
+
+  // MapLibre opens the card by itself on load; that must not fold the key.
+  it('the card opening on its own (no click) leaves the key open', async () => {
+    const { shell, el } = chromeFrame()
+    mountChrome(el, readConfig(el))
+    const attrib = document.createElement('div')
+    attrib.className = 'maplibregl-ctrl-attrib maplibregl-compact-show'
+    el.appendChild(attrib)
+    await new Promise((r) => setTimeout(r, 0))
+    expect(shell.querySelector('details.scale').open).toBe(true)
+  })
+
+  it('opening the attribution card folds the key on a phone without persisting', async () => {
+    store.set(LEGEND_FOLD_KEY, 'true')
+    const { shell, el } = chromeFrame()
+    mountChrome(el, readConfig(el))
+    const legend = shell.querySelector('details.scale')
+    expect(legend.open).toBe(true)
+
+    await openAttribution(el)
+
+    expect(legend.open).toBe(false)
+    expect(store.get(LEGEND_FOLD_KEY)).toBe('true')
+  })
+
+  it('opening the attribution card leaves the key open on desktop', async () => {
+    vi.stubGlobal('matchMedia', (query) => ({ matches: false, media: query, addEventListener() {}, removeEventListener() {} }))
+    const { shell, el } = chromeFrame()
+    mountChrome(el, readConfig(el))
+    await openAttribution(el)
+    expect(shell.querySelector('details.scale').open).toBe(true)
+  })
+
   // The map itself dispatches movestart; chrome only exposes closeLegend for
   // whoever holds the map instance (see islands/map.js).
   it('closeLegend closes an open key without writing the fold flag', () => {

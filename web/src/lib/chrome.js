@@ -101,8 +101,8 @@ export function mountChrome(el, cfg) {
   const phone = isPhoneViewport()
   const legend = document.createElement('details')
   legend.className = LEGEND_CLASSES
-  // Open by default everywhere; a stored choice still wins.
-  legend.open = readFlag(LEGEND_FOLD_KEY, true)
+  // Open by default, folded on a phone embed (a small frame); a stored choice wins.
+  legend.open = readFlag(LEGEND_FOLD_KEY, !(phone && document.body.classList.contains('embed')))
   // #579: true while the layers list is the reason the legend is folded, so
   // closing the list can restore it — but only that fold, never a reader's own.
   let legendFoldedForLayers = false
@@ -271,6 +271,15 @@ export function mountChrome(el, cfg) {
     if (!refreshBox || !freshBox) return
     if (e.matches) windowMenu.footer.appendChild(refreshBox)
     else freshBox.prepend(refreshBox)
+  }, { signal: live.signal })
+
+  // The open attribution card covers the key's corner on a phone: fold it then.
+  // A click on its (i), not a class watch: MapLibre opens the card itself on load.
+  el.addEventListener('click', (e) => {
+    if (!e.target.closest?.('.maplibregl-ctrl-attrib-button')) return
+    queueMicrotask(() => {
+      if (el.querySelector('.maplibregl-ctrl-attrib.maplibregl-compact-show')) closeLegend()
+    })
   }, { signal: live.signal })
 
   // Third in the bottom-left cluster: refresh, then which window, then play.

@@ -39,10 +39,13 @@ async function tapBox(cue) {
   })
 }
 
-async function openLegend(page) {
-  const toggle = page.locator('.scale__toggle')
-  await toggle.click()
-  await expect(page.locator('details.scale--onmap')).toHaveAttribute('open', '')
+// The key starts open; put it in the requested state.
+async function setLegend(page, open) {
+  const legend = page.locator('details.scale--onmap')
+  await expect(legend).toBeAttached()
+  if ((await legend.evaluate((el) => el.open)) !== open) await page.locator('.scale__toggle').click()
+  if (open) await expect(legend).toHaveAttribute('open', '')
+  else await expect(legend).not.toHaveAttribute('open', '')
 }
 
 for (const vp of VIEWPORTS) {
@@ -66,7 +69,7 @@ for (const vp of VIEWPORTS) {
           }).toBe(true)
           await page.evaluate(() => document.querySelector('.map-shell').scrollIntoView({ block: 'start', behavior: 'instant' }))
         }
-        if (legendState === 'open') await openLegend(page)
+        await setLegend(page, legendState === 'open')
 
         const cue = page.locator('a.scroll-cue')
         await expect(cue).toBeVisible()
@@ -112,6 +115,7 @@ test('the full 64x44 tap target is hit-testable, not just the visual tab', async
   const page = await ctx.newPage()
   await page.goto('/')
   await mapSettled(page)
+  await setLegend(page, false)
   const cue = page.locator('a.scroll-cue')
   await expect(cue).toBeVisible()
   const box = await cue.boundingBox()

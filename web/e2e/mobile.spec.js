@@ -148,9 +148,6 @@ test.describe('phone layout does not widen the viewport', () => {
     // Retrying poll rather than a single boundingBox() read: a debounced
     // repaint (moveend, once the opening jumpTo settles) can replace the
     // legend's children between two separate round trips to the browser.
-    await expect.poll(async () => (await toggle.boundingBox())?.height ?? 0)
-      .toBeGreaterThanOrEqual(44)
-
     await expect.poll(async () => (await scale.boundingBox())?.width ?? 0)
       .toBeGreaterThanOrEqual(250)
     await expect.poll(async () => (await page.locator('.scale__bands--vertical').boundingBox())?.width ?? 0)
@@ -164,6 +161,8 @@ test.describe('phone layout does not widen the viewport', () => {
 
     await toggle.click()
     await expect(scale).not.toHaveAttribute('open', '')
+    await expect.poll(async () => (await toggle.boundingBox())?.height ?? 0)
+      .toBeGreaterThanOrEqual(44)
     await page.close()
   })
 
