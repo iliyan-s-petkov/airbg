@@ -251,6 +251,9 @@ strong, b { font-weight: var(--weight-emphasis); }
   inline-size: 12px; block-size: 14px; flex: none;
   clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
 }
+/* Wind row: a rule above it separates it from the colour bands. */
+.scale__wind { margin-block: var(--space-3) 0; padding-block-start: var(--space-2); border-block-start: 1px solid var(--border); }
+.legend-wind-glyph { inline-size: 24px; block-size: 16px; flex: none; color: var(--wind-glyph); }
 /* Two corrections to the kit's .scale--progressive, both of which follow from
    the same difference: the kit places its numbers by VALUE on a piecewise axis
    and so hides the per-row ones, while this key's bands are equal rows and the

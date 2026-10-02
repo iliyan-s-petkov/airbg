@@ -118,6 +118,7 @@ export function readConfig(el) {
       // icon-only control still has to be announced as something.
       legendToggle: d.tLegendToggle || '',
       legendNoData: d.tLegendNoData || '',
+      legendWind: d.tLegendWind || '',
       // The (i) beside the key and what its dialog says: the name of the
       // button, the name of the outbound link, and the standing indicative-data
       // disclaimer, which belongs anywhere the bands are explained.
