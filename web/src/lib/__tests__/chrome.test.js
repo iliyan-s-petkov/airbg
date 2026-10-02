@@ -76,10 +76,9 @@ describe('the basemap toggle', () => {
   })
 })
 
-// Both views (cellValues here; wind is mapload.js's, driven by the same
-// chrome.phoneDefaults) must start ON for a phone reader and OFF for desktop,
-// with a stored choice always winning. See isPhoneViewport in chrome.js.
-describe('mountChrome() defaults cellValues by viewport, storage wins', () => {
+// cellValues starts ON on every viewport (wind is mapload.js's, covered in
+// map.test.js); a stored choice always wins.
+describe('mountChrome() defaults cellValues on, storage wins', () => {
   const stubMatchMedia = (matchesPhone) => {
     vi.stubGlobal('matchMedia', (query) => ({
       matches: matchesPhone && (query.includes('672px') || query === PHONE_LANDSCAPE_QUERY),
@@ -97,7 +96,7 @@ describe('mountChrome() defaults cellValues by viewport, storage wins', () => {
     const el = document.createElement('div')
     el.id = 'map'
     document.body.appendChild(el)
-    const { layerViews, phoneDefaults } = mountChrome(el, readConfig(el))
+    const { layerViews } = mountChrome(el, readConfig(el))
     const cellValues = layerViews.find((v) => v.id === 'cellValues')
 
     const ui = mountLayers(document.createElement('div'), { label: 'Layers' })
@@ -107,35 +106,34 @@ describe('mountChrome() defaults cellValues by viewport, storage wins', () => {
       setLayerZoomRange: () => {},
     }
     installLayers(map, ui, { labels: {}, caption: 'c', views: [cellValues], storage })
-    return { checked: ui.fieldset.querySelector('[data-layer-key="view:cellValues"]').checked, phoneDefaults }
+    return ui.fieldset.querySelector('[data-layer-key="view:cellValues"]').checked
   }
 
   afterEach(() => { document.body.innerHTML = '' })
 
   it('phone, no stored value: on', () => {
     stubMatchMedia(true)
-    const { checked, phoneDefaults } = cellValuesChecked(null)
-    expect(phoneDefaults).toBe(true)
-    expect(checked).toBe(true)
+    expect(cellValuesChecked(null)).toBe(true)
   })
 
   it('phone, stored off: stays off', () => {
     stubMatchMedia(true)
-    const { checked } = cellValuesChecked({ 'view:cellValues': false })
-    expect(checked).toBe(false)
+    expect(cellValuesChecked({ 'view:cellValues': false })).toBe(false)
   })
 
-  it('desktop, no stored value: off', () => {
+  it('desktop, no stored value: on', () => {
     stubMatchMedia(false)
-    const { checked, phoneDefaults } = cellValuesChecked(null)
-    expect(phoneDefaults).toBe(false)
-    expect(checked).toBe(false)
+    expect(cellValuesChecked(null)).toBe(true)
   })
 
-  it('desktop, stored on: stays on', () => {
+  it('desktop with no matchMedia at all: on', () => {
+    vi.unstubAllGlobals()
+    expect(cellValuesChecked(null)).toBe(true)
+  })
+
+  it('desktop, stored off: stays off', () => {
     stubMatchMedia(false)
-    const { checked } = cellValuesChecked({ 'view:cellValues': true })
-    expect(checked).toBe(true)
+    expect(cellValuesChecked({ 'view:cellValues': false })).toBe(false)
   })
 })
 
@@ -375,10 +373,9 @@ describe('mountChrome() remembers whether the key is folded', () => {
   })
 })
 
-// Phone-only: a stubbed matchMedia stands in for the 672px breakpoint, since
-// jsdom has none of its own — the suite above relies on that absence to prove
-// desktop is untouched.
-describe('mountChrome() folds the key by default on a phone', () => {
+// A stubbed matchMedia stands in for the 672px breakpoint, since jsdom has
+// none of its own. The key starts open on phone and desktop alike.
+describe('mountChrome() opens the key by default on every viewport', () => {
   const chromeFrame = () => {
     const shell = document.createElement('div')
     shell.className = 'map-shell'
@@ -403,7 +400,26 @@ describe('mountChrome() folds the key by default on a phone', () => {
     }))
   })
 
-  it('mounts closed with no stored flag', () => {
+  it('mounts open on a phone with no stored flag', () => {
+    const { shell, el } = chromeFrame()
+    mountChrome(el, readConfig(el))
+    expect(shell.querySelector('details.scale').open).toBe(true)
+  })
+
+  it('mounts open on desktop (no matchMedia) with no stored flag', () => {
+    vi.unstubAllGlobals()
+    vi.stubGlobal('localStorage', {
+      getItem: (k) => (store.has(k) ? store.get(k) : null),
+      setItem: (k, v) => store.set(k, String(v)),
+      removeItem: (k) => store.delete(k),
+    })
+    const { shell, el } = chromeFrame()
+    mountChrome(el, readConfig(el))
+    expect(shell.querySelector('details.scale').open).toBe(true)
+  })
+
+  it('mounts folded on a phone when a reader stored false', () => {
+    store.set(LEGEND_FOLD_KEY, 'false')
     const { shell, el } = chromeFrame()
     mountChrome(el, readConfig(el))
     expect(shell.querySelector('details.scale').open).toBe(false)
@@ -416,16 +432,14 @@ describe('mountChrome() folds the key by default on a phone', () => {
     expect(shell.querySelector('details.scale').open).toBe(true)
   })
 
-  // Landscape phone shares the same fold default as portrait (isPhoneViewport),
-  // even though it fails the portrait width query used by the beforeEach stub.
-  it('mounts closed on a landscape phone with no stored flag', () => {
+  it('mounts open on a landscape phone with no stored flag', () => {
     vi.stubGlobal('matchMedia', (query) => ({
       matches: query === PHONE_LANDSCAPE_QUERY, media: query,
       addEventListener() {}, removeEventListener() {},
     }))
     const { shell, el } = chromeFrame()
     mountChrome(el, readConfig(el))
-    expect(shell.querySelector('details.scale').open).toBe(false)
+    expect(shell.querySelector('details.scale').open).toBe(true)
   })
 
   it('still opens on a landscape phone when a reader stored true', () => {

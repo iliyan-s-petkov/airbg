@@ -116,6 +116,16 @@ vi.mock('maplibre-gl', () => {
 // returns. No harness by this name or shape existed before this task; the
 // brief assumed one without it being written, so this is built fresh, kept to
 // exactly what the two tests below need.
+// Stands in for a reader's remembered layers choice.
+function stubStoredLayers(state) {
+  const store = new Map([['kanarche:map-layers', JSON.stringify(state)]])
+  vi.stubGlobal('localStorage', {
+    getItem: (k) => (store.has(k) ? store.get(k) : null),
+    setItem: (k, v) => store.set(k, String(v)),
+    removeItem: (k) => store.delete(k),
+  })
+}
+
 function mountTestMap({ metric, styleLayers = [], dataset = {}, load = true }) {
   fakeStyle.layers = styleLayers
   resetViewStateForTests()
@@ -972,26 +982,45 @@ describe('the cell-values toggle', () => {
   const range = (map) =>
     map.setLayerZoomRange.mock.calls.filter((c) => c[0] === HEX_LABEL_LAYER_ID).at(-1)
 
-  it('offers cell values as a layers option, off until asked for', () => {
+  it('offers cell values as a layers option, on by default', () => {
     const { el } = mountTestMap({ metric: 'P2' })
     const box = el.querySelector('[data-layer-key="view:cellValues"]')
 
     expect(box, 'no cell-values option in the layers menu').not.toBe(null)
-    expect(box.checked).toBe(false)
+    expect(box.checked).toBe(true)
     expect(box.closest('.colmenu__opt').textContent).toBe('Cell values')
   })
 
-  it('leaves the labels at the point tier while it is off', () => {
+  it('prints cell values from the first paint', () => {
     const { map } = mountTestMap({ metric: 'P2' })
-    expect(range(map)[1]).toBe(POINT_TIER_MIN_ZOOM_FRACTIONAL)
+    expect(range(map)[1]).toBe(GRID_MIN_ZOOM_FRACTIONAL)
+  })
+
+  it('starts on under a phone viewport too', () => {
+    vi.stubGlobal('matchMedia', (q) => ({ matches: q.includes('672px'), media: q, addEventListener() {}, removeEventListener() {} }))
+    try {
+      const { el } = mountTestMap({ metric: 'P2' })
+      expect(el.querySelector('[data-layer-key="view:cellValues"]').checked).toBe(true)
+    } finally { vi.unstubAllGlobals() }
+  })
+
+  it('stays off when the reader stored off', () => {
+    stubStoredLayers({ 'view:cellValues': false })
+    try {
+      const { el, map } = mountTestMap({ metric: 'P2' })
+      expect(el.querySelector('[data-layer-key="view:cellValues"]').checked).toBe(false)
+      expect(range(map)[1]).toBe(POINT_TIER_MIN_ZOOM_FRACTIONAL)
+    } finally { vi.unstubAllGlobals() }
   })
 
   // The same zoom the cells themselves start at: a number that appeared at some
   // zoom of its own would print over ground that has no cell drawn under it.
-  it('prints a number in every drawn cell once it is ticked', () => {
+  it('prints a number in every drawn cell while it is ticked', () => {
     const { map, el } = mountTestMap({ metric: 'P2' })
     const box = el.querySelector('[data-layer-key="view:cellValues"]')
 
+    box.checked = false
+    box.dispatchEvent(new Event('change'))
     box.checked = true
     box.dispatchEvent(new Event('change'))
 
@@ -1002,8 +1031,6 @@ describe('the cell-values toggle', () => {
     const { map, el } = mountTestMap({ metric: 'P2' })
     const box = el.querySelector('[data-layer-key="view:cellValues"]')
 
-    box.checked = true
-    box.dispatchEvent(new Event('change'))
     box.checked = false
     box.dispatchEvent(new Event('change'))
 
@@ -1021,15 +1048,29 @@ describe('the wind toggle lives in the layers menu, not in the corner', () => {
     expect(el.querySelector('.map-wind')).toBe(null)
   })
 
-  it('offers wind as a layers option, off until it is asked for', () => {
+  it('offers wind as a layers option, on by default', () => {
     const { el } = mountTestMap({ metric: 'P2' })
     const box = el.querySelector('[data-layer-key="view:wind"]')
 
     expect(box, 'no wind option in the layers menu').not.toBe(null)
-    // Every other option starts on. This one is not part of the map the reader
-    // was shown, and turning it on costs a request.
-    expect(box.checked).toBe(false)
+    expect(box.checked).toBe(true)
     expect(box.closest('.colmenu__opt').textContent).toBe('Wind')
+  })
+
+  it('starts on under a phone viewport too', () => {
+    vi.stubGlobal('matchMedia', (q) => ({ matches: q.includes('672px'), media: q, addEventListener() {}, removeEventListener() {} }))
+    try {
+      const { el } = mountTestMap({ metric: 'P2' })
+      expect(el.querySelector('[data-layer-key="view:wind"]').checked).toBe(true)
+    } finally { vi.unstubAllGlobals() }
+  })
+
+  it('stays off when the reader stored off', () => {
+    stubStoredLayers({ 'view:wind': false })
+    try {
+      const { el } = mountTestMap({ metric: 'P2' })
+      expect(el.querySelector('[data-layer-key="view:wind"]').checked).toBe(false)
+    } finally { vi.unstubAllGlobals() }
   })
 
   it('shows the arrows when the option is ticked', async () => {

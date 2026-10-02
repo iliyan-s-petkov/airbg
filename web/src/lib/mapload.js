@@ -258,15 +258,12 @@ export function installMapLoad({ map, state, cfg, chrome, vs, windState, boundar
     // because it is the only view that needs the map's source and the fetch
     // state, both of which live in this scope.
     //
-    // defaultOff: every other option starts on because the map the reader was
-    // shown is the map they keep. This one is not part of that map, and turning
-    // it on costs a request. On a phone it starts on (chrome.phoneDefaults).
+    // On by default (no defaultOff), so a first visit fetches the forecast.
     const windView = {
       id: 'wind',
       label: cfg.t.windToggle,
       // No needsMap: the arrows are this island's own source and layer, not the
       // basemap's, so they still draw on a map served without tiles.
-      defaultOff: !chrome.phoneDefaults,
       apply: (on) => setWind(map, cfg, chrome, windState, on),
     }
 
