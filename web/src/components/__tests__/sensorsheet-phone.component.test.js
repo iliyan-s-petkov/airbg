@@ -271,6 +271,25 @@ describe('SensorChart phone controls', () => {
     items(target)[5].click()
     await vi.waitFor(() => expect(target.querySelector('[role="status"]').textContent).toContain('Embed code copied'))
     expect(writeText.mock.calls[0][0]).toMatch(/^<iframe src="http[^"]*\/embed\?metric=P2"/)
+    expect(writeText.mock.calls[0][0]).toContain('title="Kanarche"')
+  })
+
+  it('titles the embed with the masthead brand of the page language', async () => {
+    const writeText = vi.fn().mockResolvedValue()
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true })
+    const brand = document.createElement('a')
+    brand.className = 'masthead__brand'
+    brand.setAttribute('aria-label', 'Канарче')
+    document.body.append(brand)
+    try {
+      const { target } = renderChart()
+      openMenu(target)
+      items(target)[5].click()
+      await vi.waitFor(() => expect(writeText).toHaveBeenCalled())
+      expect(writeText.mock.calls[0][0]).toContain('title="Канарче"')
+    } finally {
+      brand.remove()
+    }
   })
 
   it('says so when copying fails', async () => {

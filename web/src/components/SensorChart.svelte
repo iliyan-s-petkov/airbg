@@ -158,8 +158,8 @@
   function embed() {
     const prefix = document.querySelector('[data-lang-prefix]')?.dataset.langPrefix ?? ''
     const src = `${window.location.origin}${prefix}/embed?metric=${encodeURIComponent(metrics[0] ?? '')}`
-    // Bulgarian is the unprefixed default; every other language uses the Latin name.
-    const brand = prefix ? 'Kanarche' : 'Канарче'
+    // The masthead carries the brand in the page language (seo.title_brand).
+    const brand = document.querySelector('.masthead__brand')?.getAttribute('aria-label') || 'Kanarche'
     copy(`<iframe src="${src}" width="100%" height="520" style="border:0" loading="lazy" title="${brand}"></iframe>`, embedDone)
   }
 
