@@ -21,7 +21,7 @@ for (const [name, vp] of [['1440', DESKTOP], ['390', { width: 390, height: 844 }
     const page = await ctx.newPage()
     await page.setViewportSize(vp)
     await page.goto('/en/')
-    const brand = page.locator('.masthead__brand')
+    const brand = page.locator('header.masthead .masthead__brand')
     expect((await brand.innerText()).trim()).toBe('airbg')
     await expect(brand).toHaveAttribute('aria-label', 'airbg.org')
     await page.close()
