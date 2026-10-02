@@ -1,4 +1,4 @@
-import { test, expect } from './fixtures.js'
+import { test, expect, mapSettled } from './fixtures.js'
 
 // The pull tab (OpenProject #574, plan Task 2, spike option C): a 56x20 tab
 // hanging from the map's bottom edge, 64x44 hit area via ::before.
@@ -52,6 +52,7 @@ for (const vp of VIEWPORTS) {
         const ctx = await phoneCtx(browser, vp)
         const page = await ctx.newPage()
         await page.goto(path)
+        await mapSettled(page)
         // Area chrome varies above the map; the guarantee is for the map at the
         // top, same convention the old strip spec used.
         if (path.includes('/area/')) {
@@ -110,6 +111,7 @@ test('the full 64x44 tap target is hit-testable, not just the visual tab', async
   const ctx = await phoneCtx(browser, vp)
   const page = await ctx.newPage()
   await page.goto('/')
+  await mapSettled(page)
   const cue = page.locator('a.scroll-cue')
   await expect(cue).toBeVisible()
   const box = await cue.boundingBox()
@@ -141,14 +143,22 @@ for (const vp of FOLD_VIEWPORTS) {
       const ctx = await phoneCtx(browser, vp)
       const page = await ctx.newPage()
       await page.goto(path)
+      await mapSettled(page)
       const cue = page.locator('a.scroll-cue')
       await expect(cue).toBeVisible()
-      const box = await cue.boundingBox()
-      expect(box.y + box.height).toBeLessThanOrEqual(vp.height)
+      // Polled: the chrome around the map reflows as islands hydrate, so one
+      // measurement can catch the page mid-layout.
+      await expect.poll(async () => {
+        const box = await cue.boundingBox()
+        return box.y + box.height <= vp.height
+      }).toBe(true)
       // The area summary sits below the map on touch phones.
       if (path.includes('/area/')) {
-        const summary = await page.locator('.area-summary').boundingBox()
-        expect(summary.y).toBeGreaterThan(box.y)
+        await expect.poll(async () => {
+          const box = await cue.boundingBox()
+          const summary = await page.locator('.area-summary').boundingBox()
+          return summary.y > box.y
+        }).toBe(true)
       }
       // The fixture's chrome is shorter than prod's, so also pin the area shrink rule itself,
       // made uncovered: sensor bar removed, no-coverage notice added where area.gohtml puts it.
@@ -180,6 +190,7 @@ test('the pull tab still scrolls to #below-map without changing the hash', async
   const page = await ctx.newPage()
   for (const path of PAGES) {
     await page.goto(path)
+    await mapSettled(page)
     const hash = await page.evaluate(() => location.hash)
     await page.locator('a.scroll-cue').click()
     const strict = path.includes('/area/')
@@ -197,6 +208,7 @@ test('the pull tab is hidden while the map is full screen', async ({ browser }) 
   const ctx = await phoneCtx(browser, VIEWPORTS[0])
   const page = await ctx.newPage()
   await page.goto('/')
+  await mapSettled(page)
   await expect(page.locator('a.scroll-cue')).toBeVisible()
   await page.locator('.map__full').click()
   await expect.poll(() => page.evaluate(() => {
@@ -212,6 +224,7 @@ test('the pull tab is not shown on a 1280x800 desktop', async ({ ctx }) => {
   await page.setViewportSize({ width: 1280, height: 800 })
   for (const path of PAGES) {
     await page.goto(path)
+    await mapSettled(page)
     await expect(page.locator('#map, #area-map').first()).toBeVisible()
     await expect(page.locator('a.scroll-cue')).toBeHidden()
     // On desktop the area summary stays under the title, above the map.
@@ -229,6 +242,7 @@ test('reduced motion: the chevron does not animate', async ({ browser }) => {
   const page = await ctx.newPage()
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await page.goto('/')
+  await mapSettled(page)
   const name = await page.locator('.scroll-cue__chevron')
     .evaluate((el) => getComputedStyle(el).animationName)
   expect(name).toBe('none')

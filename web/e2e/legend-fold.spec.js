@@ -1,4 +1,4 @@
-import { test, expect } from './fixtures.js'
+import { test, expect, mapSettled } from './fixtures.js'
 
 // #579/#580: the legend and the layers list are the map's two on-map
 // popovers; at most one is open at a time, and the open legend folds on a
@@ -28,6 +28,7 @@ for (const vp of VIEWPORTS) {
       const page = await context.newPage()
       await withLegend(page, true)
       await page.goto('/en')
+      await mapSettled(page)
 
       const legend = page.locator('.scale--onmap')
       await expect(legend).toHaveAttribute('open', '')
@@ -44,6 +45,7 @@ for (const vp of VIEWPORTS) {
       const page = await context.newPage()
       await withLegend(page, true)
       await page.goto('/en')
+      await mapSettled(page)
 
       const legend = page.locator('.scale--onmap')
       await expect(legend).toHaveAttribute('open', '')
@@ -65,6 +67,7 @@ for (const vp of VIEWPORTS) {
       const page = await context.newPage()
       await withLegend(page, true)
       await page.goto('/en')
+      await mapSettled(page)
 
       const legend = page.locator('.scale--onmap')
       const layersBtn = page.locator('.map__layers .colmenu__btn')
@@ -92,6 +95,7 @@ for (const vp of VIEWPORTS) {
       const page = await context.newPage()
       await withLegend(page, false)
       await page.goto('/en')
+      await mapSettled(page)
 
       const legend = page.locator('.scale--onmap')
       await expect(legend).not.toHaveAttribute('open', '')
@@ -111,6 +115,7 @@ for (const vp of VIEWPORTS) {
       const page = await context.newPage()
       await withLegend(page, false)
       await page.goto('/en')
+      await mapSettled(page)
 
       const legend = page.locator('.scale--onmap')
       const layersBtn = page.locator('.map__layers .colmenu__btn')
@@ -138,6 +143,7 @@ for (const vp of VIEWPORTS) {
       const page = await context.newPage()
       await withLegend(page, true)
       await page.goto('/en')
+      await mapSettled(page)
 
       const legend = page.locator('.scale--onmap')
       await expect(legend).toHaveAttribute('open', '')
@@ -158,6 +164,7 @@ for (const vp of VIEWPORTS) {
       const page = await context.newPage()
       await withLegend(page, true)
       await page.goto('/en')
+      await mapSettled(page)
 
       const legend = page.locator('.scale--onmap')
       const info = legend.locator('.scale__info')
@@ -177,6 +184,7 @@ for (const vp of VIEWPORTS) {
       const page = await context.newPage()
       await withLegend(page, true)
       await page.goto('/en')
+      await mapSettled(page)
 
       const legend = page.locator('.scale--onmap')
       await expect(legend).toHaveAttribute('open', '')
@@ -191,9 +199,11 @@ for (const vp of VIEWPORTS) {
       await expect(async () => {
         await toggle.focus()
         expect(await toggle.evaluate((el) => el === document.activeElement)).toBe(true)
-      }).toPass({ timeout: 5000 })
-      await page.keyboard.press('Escape')
-      await expect(legend).not.toHaveAttribute('open', '')
+        // Escape and its effect are inside the retry: a re-render between the
+        // focus check and the keypress would send Escape to the body.
+        await page.keyboard.press('Escape')
+        await expect(legend).not.toHaveAttribute('open', '', { timeout: 1000 })
+      }).toPass({ timeout: 15_000 })
 
       await context.close()
     })
