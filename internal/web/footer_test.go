@@ -1,6 +1,7 @@
 package web_test
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -281,15 +282,22 @@ func TestLicencesPageListsEverySourceAndTheCodeLicence(t *testing.T) {
 }
 
 func TestPrivacyPageStatesOnlyWhatTheCodeDoes(t *testing.T) {
-	keys, err := os.ReadFile(filepath.Join("static", "storage-keys.json"))
+	raw, err := os.ReadFile(filepath.Join("static", "storage-keys.json"))
 	if err != nil {
 		t.Fatal(err)
 	}
+	// Only the keys the app writes; "legacy" ones are read once for migration.
+	var keys struct {
+		LocalStorage []string `json:"localStorage"`
+	}
+	if err := json.Unmarshal(raw, &keys); err != nil || len(keys.LocalStorage) == 0 {
+		t.Fatalf("storage-keys.json: no localStorage keys (%v)", err)
+	}
 	for _, path := range []string{"/privacy", "/en/privacy"} {
 		body := fetch(t, renderer(t, cityFixture(t)), path).Body.String()
-		for _, key := range regexp.MustCompile(`"(airbg:[a-z-]+)"`).FindAllStringSubmatch(string(keys), -1) {
-			if !strings.Contains(body, "<code>"+key[1]+"</code>") {
-				t.Errorf("%s does not list storage key %s", path, key[1])
+		for _, key := range keys.LocalStorage {
+			if !strings.Contains(body, "<code>"+key+"</code>") {
+				t.Errorf("%s does not list storage key %s", path, key)
 			}
 		}
 		// The raster basemap is the whole map's ground at every zoom, over Bulgaria too.
