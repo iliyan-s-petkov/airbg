@@ -457,7 +457,8 @@ strong, b { font-weight: var(--weight-emphasis); }
    zoom, locate and forecast note step left of it while .map-shell--docked is on. */
 .map-dock {
   position: absolute; z-index: 4; inset-block-start: calc(var(--space-2) + 40px + var(--space-2));
-  inset-block-end: 3.5rem; inset-inline-end: var(--space-2);
+  inset-inline-end: var(--space-2);
+  max-block-size: calc(100% - var(--space-2) - 40px - var(--space-2) - 3.5rem);
   inline-size: min(400px, 34vw); overflow-y: auto; overscroll-behavior: contain;
   background: var(--bg); border-radius: var(--radius); box-shadow: var(--elev-raised);
   padding: var(--space-3) var(--space-4); color: var(--fg);
