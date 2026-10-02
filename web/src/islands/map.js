@@ -57,6 +57,7 @@ export function mount(el) {
   // there is the metric this map follows.
   const vs = getViewState({ metrics: cfg.metrics, defaultMetric: cfg.metric })
   chrome.sheet.follow(vs, findSensor)
+  chrome.dock.follow(vs, findSensor)
 
   const map = new MapLibreMap({
     container: el,

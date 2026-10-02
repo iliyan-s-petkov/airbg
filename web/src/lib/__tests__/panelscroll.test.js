@@ -1,11 +1,11 @@
 import { describe, it, expect, vi } from 'vitest'
 import { createPanelScroll } from '../panelscroll.js'
 
-function env({ phone = true, panelTop = 917, scrollY = 0, full = false, reduce = false } = {}) {
+function env({ phone = true, panelTop = 917, scrollY = 0, full = false, reduce = false, narrow = false } = {}) {
   const win = {
     scrollY, innerHeight: 873,
     matchMedia: (q) => ({
-      matches: q.includes('hover: none') ? phone : q.includes('reduced-motion') ? reduce : false,
+      matches: q.includes('hover: none') || q.includes('max-width: 1023px') ? (phone || narrow) : q.includes('reduced-motion') ? reduce : false,
     }),
     scrollTo: vi.fn(),
   }
@@ -20,6 +20,11 @@ describe('panel scroll', () => {
     s.opened({ initial: false })
     expect(e.panel.scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth', block: 'start' })
     expect(e.panel.focus).toHaveBeenCalledWith({ preventScroll: true })
+  })
+  it('scrolls on a narrow non-touch window too, where the card is not docked', () => {
+    const e = env({ phone: false, narrow: true }); const s = createPanelScroll(e)
+    s.opened({ initial: false })
+    expect(e.panel.scrollIntoView).toHaveBeenCalled()
   })
   it('scrolls a panel that sits above the viewport', () => {
     const e = env({ panelTop: -400 }); const s = createPanelScroll(e)

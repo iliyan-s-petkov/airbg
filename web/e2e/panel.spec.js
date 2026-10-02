@@ -80,7 +80,8 @@ test.describe.serial('sensor panel', () => {
     // 'stuck' is not a usable quality (store/aggregate.go's usableQuality), so
     // this station measures PM2.5 and has no number for it — the placeholder,
     // in that row's OWN value cell rather than anywhere in the panel.
-    const pm25Gauge = panel.locator('.gauge[aria-label^="PM2.5:"]')
+    // Docked over the map from 1024px, so the gauges are looked up page-wide: there is one set.
+    const pm25Gauge = page.locator('.gauge[aria-label^="PM2.5:"]')
     await expect(pm25Gauge).toHaveAttribute('aria-label', 'PM2.5: no reading')
     await expect(pm25Gauge.locator('.gauge__value')).toHaveText('no reading')
   })
@@ -92,8 +93,8 @@ test.describe.serial('sensor panel', () => {
     await page.goto('/en/area/sofia#sensor=103')
     const panel = sensorPanel()
     await expect(panel).toBeVisible({ timeout: 10000 })
-    await expect(panel.locator('.gauge[aria-label^="PM10:"]')).toHaveCount(0)
-    await expect(panel.locator('.gauge[aria-label^="PM2.5:"]')).toHaveCount(1)
+    await expect(page.locator('.gauge[aria-label^="PM10:"]')).toHaveCount(0)
+    await expect(page.locator('.gauge[aria-label^="PM2.5:"]')).toHaveCount(1)
   })
 
   test('a sensor id that is not on this map leaves the page usable', async () => {

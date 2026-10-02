@@ -1,10 +1,10 @@
-// Phone only: brings the sensor card under the map into view on open and returns to the map on close.
+// Phones and tablets (below the dock's 1024px): brings the sensor card under the map into view on open and returns to the map on close.
 // `panel` may be a getter, because the section only exists while a sensor is open.
 export function createPanelScroll({ win = window, panel, isFull = () => false }) {
   let returnY = null
   const mq = (q) => win.matchMedia?.(q).matches ?? false
   const behavior = () => (mq('(prefers-reduced-motion: reduce)') ? 'auto' : 'smooth')
-  const phone = () => mq('(hover: none)')
+  const phone = () => mq('(hover: none), (max-width: 1023px)')
 
   return {
     opened({ initial }) {

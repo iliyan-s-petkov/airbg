@@ -14,6 +14,7 @@ import { RASTER_LAYER_ID } from './mapids.js'
 import { LEGEND_FOLD_KEY } from './mapconfig.js'
 import { setCellValues } from './mappaint.js'
 import { createSensorSheet } from './sensorsheet.svelte.js'
+import { createSideDock } from './sidedock.svelte.js'
 
 // hintController owns the ONE rule about the hint banner: an error outranks the
 // routine hint, permanently.
@@ -224,12 +225,15 @@ export function mountChrome(el, cfg) {
     historyLabel: cfg.t.sheetHistory,
     exitFull: () => { if (fullButton?.getAttribute('aria-pressed') === 'true') fullButton.click() },
   })
+  // Wide screens dock the same gauges over the map instead; it stands down in fullscreen.
+  const dock = createSideDock(el, { closeLabel: cfg.t.close, moreLabel: cfg.t.sheetHistory })
   fullButton = mountFullscreen(el, {
     label: cfg.t.fullscreen,
     exitLabel: cfg.t.fullscreenExit,
     onChange: (full) => {
       (full ? el : shell).appendChild(legend)
-      sheet.setFull(full)
+      // The gauges have one home at a time: the dock lets go before the sheet takes them, and the reverse on exit.
+      if (full) { dock.setFull(true); sheet.setFull(true) } else { sheet.setFull(false); dock.setFull(false) }
     },
   })
   const zoom = mountZoom(el, {
@@ -444,6 +448,7 @@ export function mountChrome(el, cfg) {
       note.hidden = !text
     },
     showLegend,
+    dock,
     zoomButtons: zoom.buttons,
     windowMenu,
     player,

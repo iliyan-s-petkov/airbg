@@ -374,7 +374,8 @@ strong, b { font-weight: var(--weight-emphasis); }
 .map-wind-label__toggle:focus-visible { box-shadow: var(--focus-ring); border-radius: var(--radius); }
 .map-wind-label__text:not(:empty) { margin-block-start: var(--space-1); }
 /* A card under the map, in the flow — the kit's .place-host slot (see
-   components.css, which supplies the slot's own spacing).
+   components.css, which supplies the slot's own spacing). From 1024px its title
+   and gauges dock over the map instead (.map-dock below); the rest stays here.
 
    It used to float over the map, and the rules that did so named #map/#area-map
    as their containing block. They were never inside either: the island's
@@ -422,7 +423,7 @@ strong, b { font-weight: var(--weight-emphasis); }
 .sensor-panel dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
 /* Panel readings as arc gauges; scoped under .sensor-panel to avoid the readout strip's .gauge ring. */
 .gauges { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: var(--space-2) var(--space-3); margin: var(--space-2) 0; justify-items: center; }
-.sensor-panel .gauges .gauge, .map-sensor-sheet .gauges .gauge { position: static; display: block; inline-size: 100%; max-inline-size: 132px; block-size: auto; }
+.sensor-panel .gauges .gauge, .map-sensor-sheet .gauges .gauge, .map-dock .gauges .gauge { position: static; display: block; inline-size: 100%; max-inline-size: 132px; block-size: auto; }
 /* The open sensor's gauges in fullscreen (lib/sensorsheet.svelte.js): a card
    bottom-right on desktop, a bottom sheet on phones; z-index of the open key. */
 .map-sensor-sheet {
@@ -444,13 +445,45 @@ strong, b { font-weight: var(--weight-emphasis); }
 .map-sensor-sheet__close:hover { color: var(--fg); }
 .map-sensor-sheet__close:focus-visible { box-shadow: var(--focus-ring); }
 .map-sensor-sheet__close-ico { inline-size: 16px; block-size: 16px; }
-.map-sensor-sheet .gauges { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-.map-sensor-sheet .gauges .gauge { max-inline-size: 80px; }
+.map-sensor-sheet .gauges, .map-dock .gauges { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.map-sensor-sheet .gauges .gauge, .map-dock .gauges .gauge { max-inline-size: 80px; }
 .map-sensor-sheet__history {
   display: inline-block; padding: var(--space-1) 0; border: 0; background: none;
   color: var(--accent); font: inherit; text-decoration: underline; cursor: pointer;
 }
 .map-sensor-sheet__history:focus-visible { box-shadow: var(--focus-ring); }
+/* From 1024px the open sensor's title and gauges dock over the right of the map
+   (lib/sidedock.svelte.js). Below the finder row, above the bottom controls; the
+   zoom, locate and forecast note step left of it while .map-shell--docked is on. */
+.map-dock {
+  position: absolute; z-index: 4; inset-block-start: calc(var(--space-2) + 40px + var(--space-2));
+  inset-block-end: 3.5rem; inset-inline-end: var(--space-2);
+  inline-size: min(400px, 34vw); overflow-y: auto; overscroll-behavior: contain;
+  background: var(--bg); border-radius: var(--radius); box-shadow: var(--elev-raised);
+  padding: var(--space-3) var(--space-4); color: var(--fg);
+  font-size: var(--text-compact); letter-spacing: var(--track-compact);
+}
+.map-dock:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.map-dock__head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
+.map-dock__title { margin: 0; font-size: var(--text-card); font-weight: var(--weight-emphasis); line-height: 1.4; }
+.map-dock__close {
+  display: inline-flex; align-items: center; justify-content: center; flex: none;
+  inline-size: 2rem; block-size: 2rem; padding: 0; border: 0; border-radius: var(--radius-sm);
+  background: none; color: var(--fg-2); cursor: pointer;
+}
+.map-dock__close:hover { color: var(--fg); }
+.map-dock__close:focus-visible, .map-dock__more:focus-visible { box-shadow: var(--focus-ring); }
+.map-dock__close-ico { inline-size: 16px; block-size: 16px; }
+.map-dock__more {
+  display: inline-block; padding: var(--space-1) 0; border: 0; background: none;
+  color: var(--accent); font: inherit; text-decoration: underline; cursor: pointer;
+}
+.map-shell--docked .map-zoom, .map-shell--docked .map-locate, .map-shell--docked .map-wind-label {
+  inset-inline-end: calc(var(--space-2) + min(400px, 34vw) + var(--space-2));
+}
+@media (hover: none) {
+  .map-dock__close, .map-dock__more { min-block-size: 44px; min-inline-size: 44px; }
+}
 .gauge__svg { inline-size: 100%; block-size: auto; }
 .gauge__track-path, .gauge__band { fill: none; stroke-width: 10; stroke-linecap: butt; }
 /* Same neutral as the readout strip's ring track. */
