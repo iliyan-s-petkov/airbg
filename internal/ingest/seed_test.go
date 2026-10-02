@@ -3,6 +3,7 @@ package ingest_test
 import (
 	"context"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -63,14 +64,32 @@ func TestSeededHistoryFlagsFrozenSensorOnFirstPoll(t *testing.T) {
 	if got := run(false).Flagged[quality.FlagStuck]; got != 0 {
 		t.Fatalf("unseeded stuck = %d, want 0 (the restart gap this test closes)", got)
 	}
+	before := flaggedCount(t, "stuck")
 	if got := run(true).Flagged[quality.FlagStuck]; got != 1 {
 		t.Errorf("seeded stuck = %d, want 1 on the first poll", got)
 	}
 
-	// The scoring run's flag counts are also exported as a labelled counter.
+	// The counter is process-global and other tests flag stuck readings too, so
+	// assert the delta over the seeded run, not an absolute value.
+	if got := flaggedCount(t, "stuck") - before; got != 1 {
+		t.Errorf("airbg_readings_flagged_total{flag=\"stuck\"} grew by %d over the seeded run, want 1", got)
+	}
+}
+
+// flaggedCount scrapes the counter; a label not yet incremented has no line and reads 0.
+func flaggedCount(t *testing.T, flag string) int {
+	t.Helper()
 	rec := httptest.NewRecorder()
 	metrics.Handler().ServeHTTP(rec, httptest.NewRequest("GET", "/metrics", nil))
-	if !strings.Contains(rec.Body.String(), `airbg_readings_flagged_total{flag="stuck"} 1`) {
-		t.Errorf("metrics output lacks airbg_readings_flagged_total{flag=\"stuck\"} 1:\n%s", rec.Body.String())
+	prefix := `airbg_readings_flagged_total{flag="` + flag + `"} `
+	for _, line := range strings.Split(rec.Body.String(), "\n") {
+		if v, ok := strings.CutPrefix(line, prefix); ok {
+			n, err := strconv.Atoi(v)
+			if err != nil {
+				t.Fatalf("parse %q: %v", line, err)
+			}
+			return n
+		}
 	}
+	return 0
 }
