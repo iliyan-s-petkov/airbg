@@ -668,8 +668,8 @@ func TestTheSiteVhostCapsRequestBodies(t *testing.T) {
 
 // TestEncodeIsStaticOnly asserts that every `encode` line in the Caddyfile
 // has a matcher (starts with a `@` token before the algorithm names), and that
-// there is exactly one such line, in the airbg.org block, with matcher
-// `path /static/*`.
+// there is exactly one such line per app block (airbg.org and kanarche.eu),
+// with matcher `path /static/*`.
 func TestEncodeIsStaticOnly(t *testing.T) {
 	data, err := os.ReadFile("Caddyfile")
 	if err != nil {
@@ -683,23 +683,24 @@ func TestEncodeIsStaticOnly(t *testing.T) {
 		}
 	}
 
-	if len(encodeLines) != 1 {
-		t.Fatalf("Caddyfile contains %d `encode` lines, want exactly 1; found: %v", len(encodeLines), encodeLines)
+	if len(encodeLines) != 2 {
+		t.Fatalf("Caddyfile contains %d `encode` lines, want exactly 2 (airbg.org, kanarche.eu); found: %v", len(encodeLines), encodeLines)
 	}
 
-	encodeLine := encodeLines[0]
-	fields := strings.Fields(strings.TrimSpace(encodeLine))
+	for _, encodeLine := range encodeLines {
+		fields := strings.Fields(strings.TrimSpace(encodeLine))
 
-	// The matcher should be the second field (after 'encode')
-	if len(fields) < 2 {
-		t.Fatalf("encode line has too few fields: %q", encodeLine)
-	}
-	matcher := fields[1]
-	if !strings.HasPrefix(matcher, "@") {
-		t.Errorf("encode line does not start with a matcher: %q — compress APIs that already carry Content-Encoding will be re-compressed", encodeLine)
-	}
-	if matcher != "@static" {
-		t.Errorf("encode line uses matcher %q, want @static: %q", matcher, encodeLine)
+		// The matcher should be the second field (after 'encode')
+		if len(fields) < 2 {
+			t.Fatalf("encode line has too few fields: %q", encodeLine)
+		}
+		matcher := fields[1]
+		if !strings.HasPrefix(matcher, "@") {
+			t.Errorf("encode line does not start with a matcher: %q — compress APIs that already carry Content-Encoding will be re-compressed", encodeLine)
+		}
+		if matcher != "@static" {
+			t.Errorf("encode line uses matcher %q, want @static: %q", matcher, encodeLine)
+		}
 	}
 
 	// Verify the matcher is declared with path /static/*
@@ -1122,4 +1123,108 @@ func TestCaddyDoesNotWaitOnAppHealth(t *testing.T) {
 	if dep.Condition == "service_healthy" {
 		t.Error("caddy depends_on.app.condition = \"service_healthy\", want start-order only")
 	}
+}
+
+// Phase 2 of the rebrand: kanarche.eu serves the same app while airbg.org
+// stays canonical. Every proxied kanarche name reaches the origin through
+// Cloudflare, so it needs the same client certificate as airbg.org or the
+// origin is open on the new name.
+func TestKanarcheProxiedVhostsRequireCloudflaresCertificate(t *testing.T) {
+	blocks := caddyBlocks(t, "Caddyfile")
+	site := blocks["airbg.org"]
+
+	for _, name := range []string{"kanarche.eu", "www.kanarche.eu"} {
+		block, ok := blocks[name]
+		if !ok {
+			t.Fatalf("Caddyfile has no %s site block; found %v", name, keysOf(blocks))
+		}
+		for _, problem := range clientAuthProblems(name, block) {
+			t.Error(problem)
+		}
+		if got, want := trustPool(block), trustPool(site); got == "" || got != want {
+			t.Errorf("%s trust_pool = %q, want the airbg.org pool %q", name, got, want)
+		}
+		if !strings.Contains(block, "reverse_proxy app:8080") {
+			t.Errorf("%s does not proxy to the app", name)
+		}
+	}
+}
+
+func TestKanarcheSiteBlockKeepsTheAppProtections(t *testing.T) {
+	block := caddyBlocks(t, "Caddyfile")["kanarche.eu"]
+	for _, want := range []string{"max_size 64KB", "@static path /static/*", "encode @static zstd gzip"} {
+		if !strings.Contains(block, want) {
+			t.Errorf("the kanarche.eu block lacks %q, which airbg.org has", want)
+		}
+	}
+}
+
+func TestKanarcheTilesVhostIsOpenAndServesTiles(t *testing.T) {
+	blocks := caddyBlocks(t, "Caddyfile")
+	tiles, ok := blocks["tiles.kanarche.eu"]
+	if !ok {
+		t.Fatalf("Caddyfile has no tiles.kanarche.eu site block; found %v", keysOf(blocks))
+	}
+	if strings.Contains(tiles, "client_auth") {
+		t.Error("tiles.kanarche.eu requires a client certificate; it is DNS-only and browsers connect to it directly")
+	}
+	if !strings.Contains(tiles, "reverse_proxy app:8082") {
+		t.Error("tiles.kanarche.eu does not proxy to the tiles listener")
+	}
+}
+
+// Until the cutover the new names must not compete with airbg.org in search.
+// The cutover PR removes the header and inverts the first half of this test.
+func TestKanarcheIsNoindexAndAirbgIsNot(t *testing.T) {
+	blocks := caddyBlocks(t, "Caddyfile")
+	re := regexp.MustCompile(`(?i)header\s+X-Robots-Tag\s+"?noindex"?`)
+	for _, name := range []string{"kanarche.eu", "www.kanarche.eu"} {
+		if !re.MatchString(blocks[name]) {
+			t.Errorf("%s does not send X-Robots-Tag: noindex", name)
+		}
+	}
+	for _, name := range []string{"airbg.org", "www.airbg.org", "tiles.airbg.org"} {
+		if strings.Contains(strings.ToLower(blocks[name]), "x-robots-tag") {
+			t.Errorf("%s sends X-Robots-Tag; airbg.org stays canonical and indexable", name)
+		}
+	}
+}
+
+// HSTS on a new name is hard to undo, so it starts short and unscoped. No
+// preload and no includeSubDomains until the cutover.
+func TestKanarcheHSTSIsShortAndUnscoped(t *testing.T) {
+	blocks := caddyBlocks(t, "Caddyfile")
+	re := regexp.MustCompile(`Strict-Transport-Security\s+"([^"]*)"`)
+	for _, name := range []string{"kanarche.eu", "www.kanarche.eu", "tiles.kanarche.eu"} {
+		m := re.FindStringSubmatch(blocks[name])
+		if m == nil {
+			t.Errorf("%s sends no Strict-Transport-Security", name)
+			continue
+		}
+		if m[1] != "max-age=300" {
+			t.Errorf("%s HSTS = %q, want exactly %q", name, m[1], "max-age=300")
+		}
+	}
+}
+
+// airbg.org keeps its long, subdomain-wide HSTS and shares no block with a
+// kanarche name, so a kanarche-only directive cannot leak onto it.
+func TestAirbgBlocksShareNothingWithKanarche(t *testing.T) {
+	data, err := os.ReadFile("Caddyfile")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, line := range strings.Split(string(data), "\n") {
+		if strings.HasSuffix(line, " {") && strings.Contains(line, "airbg.org") && strings.Contains(line, "kanarche") {
+			t.Errorf("site header %q serves airbg.org and kanarche in one block", line)
+		}
+	}
+}
+
+func trustPool(block string) string {
+	m := regexp.MustCompile(`trust_pool\s+file\s+(\S+)`).FindStringSubmatch(block)
+	if m == nil {
+		return ""
+	}
+	return m[1]
 }

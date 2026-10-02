@@ -197,11 +197,12 @@ deploy hook; the Ansible role `home.apps.airbg` (`tasks/certificate.yml`) sets t
 A record nor port 80, which is what lets the origin stay unreachable except through
 Cloudflare.
 
-One certificate covers all three names (`airbg.org`, `www.airbg.org`, `tiles.airbg.org` as
-SANs), and it is loaded once, by the `tls` directive in the `airbg.org` block. The
-`tiles.airbg.org` block has no `tls` directive of its own: Caddy indexes loaded certificates
-by SAN and matches this one. **Dropping a name from the certbot lineage therefore breaks the
-tiles vhost, with nothing in this file mentioning it.**
+One certificate covers all six names (`airbg.org`, `www.airbg.org`, `tiles.airbg.org` and the
+same three under `kanarche.eu` as SANs). It is loaded by the `tls` directives in the
+`airbg.org` and `kanarche.eu` blocks. The two tiles blocks have no `tls` directive of their
+own: Caddy indexes loaded certificates by SAN and matches this one. **Dropping a name from the
+certbot lineage therefore breaks that vhost, with nothing in this file mentioning it.** The
+DNS token behind certbot must be scoped to both zones.
 
 Two consequences of using a publicly trusted certificate rather than an Origin CA one: it
 expires in 90 days rather than 15 years, so a stalled `certbot.timer` is an outage; and it is

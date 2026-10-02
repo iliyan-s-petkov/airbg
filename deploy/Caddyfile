@@ -62,3 +62,35 @@ tiles.airbg.org {
 	# publicly-reachable TLS endpoint whose browsers get no HSTS otherwise.
 	header Strict-Transport-Security "max-age=31536000; includeSubDomains"
 }
+
+# kanarche.eu serves the same app while airbg.org stays canonical (rebrand
+# phase 2). Own blocks, so nothing here can change an airbg.org response. The
+# certificate is the same lineage and carries these names too. noindex and the
+# short HSTS go at the cutover.
+kanarche.eu, www.kanarche.eu {
+	tls /etc/caddy/tls/origin.pem /etc/caddy/tls/origin.key {
+		client_auth {
+			mode require_and_verify
+			trust_pool file /etc/caddy/tls/cloudflare-origin-pull-ca.pem
+		}
+	}
+
+	request_body {
+		max_size 64KB
+	}
+
+	@static path /static/*
+	encode @static zstd gzip
+
+	reverse_proxy app:8080
+
+	header X-Robots-Tag "noindex"
+	header Strict-Transport-Security "max-age=300"
+}
+
+# DNS-only like tiles.airbg.org, so no client certificate.
+tiles.kanarche.eu {
+	reverse_proxy app:8082
+
+	header Strict-Transport-Security "max-age=300"
+}

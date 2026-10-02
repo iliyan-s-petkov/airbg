@@ -321,6 +321,28 @@ func TestTilesHostMustBeInConnectSrc(t *testing.T) {
 	}
 }
 
+// During the dual-host window connect-src lists both tile origins. Each
+// public_url must still match a token exactly, so a lookalike host does not
+// stand in for either.
+func TestConnectSrcMayListBothTileOrigins(t *testing.T) {
+	both := "default-src 'self'; connect-src 'self' https://tiles.airbg.org https://tiles.kanarche.eu"
+	for _, publicURL := range []string{"https://tiles.airbg.org", "https://tiles.kanarche.eu"} {
+		cfg := validConfig(t)
+		cfg.Tiles = Tiles{Addr: "127.0.0.1:8082", Dir: "/var/lib/airbg/tiles", PublicURL: publicURL, Archive: archiveName}
+		cfg.Listen.CSP = both
+		if err := cfg.Validate(); err != nil {
+			t.Errorf("Validate with public_url %s and both origins in connect-src = %v, want nil", publicURL, err)
+		}
+	}
+
+	cfg := validConfig(t)
+	cfg.Tiles = Tiles{Addr: "127.0.0.1:8082", Dir: "/var/lib/airbg/tiles", PublicURL: "https://tiles.kanarche.eu", Archive: archiveName}
+	cfg.Listen.CSP = "default-src 'self'; connect-src 'self' https://tiles.airbg.org https://not-tiles.kanarche.eu"
+	if err := cfg.Validate(); err == nil {
+		t.Error("Validate returned nil, want an error: not-tiles.kanarche.eu is not tiles.kanarche.eu")
+	}
+}
+
 // TestTilesAddrIsSeparate. Sharing a listener address with the application or
 // the metrics listener is the "three listeners simplified back to two" mistake
 // in configuration form.
