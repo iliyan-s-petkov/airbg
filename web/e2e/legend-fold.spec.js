@@ -14,7 +14,7 @@ const openLayers = async (page) => {
   await expect(page.locator('.map__layers .colmenu__panel')).toBeVisible()
 }
 
-// Forces the legend open/closed on arrival, overriding the open-by-default
+// Forces the legend open/closed on arrival, overriding the folded-by-default
 // start so every test begins from a known state.
 const withLegend = (page, open) =>
   page.addInitScript((v) => localStorage.setItem('kanarche:legend-open', v), String(open))

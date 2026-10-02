@@ -275,7 +275,7 @@ strong, b { font-weight: var(--weight-emphasis); }
   inline-size: 1px; block-size: 1px;
   overflow: hidden; clip-path: inset(50%); white-space: nowrap;
 }
-/* Named for a folded phone pill only; the desktop toggle stays icon-only. */
+/* Named for the folded pill only; the open card keeps the icon-only toggle. */
 .scale__toggle-label { display: none; }
 /* The kit hangs a menu panel from its button's END edge, which is right for the
    Колони menu — that one sits at the right end of the table's controls. The
@@ -571,17 +571,69 @@ strong, b { font-weight: var(--weight-emphasis); }
 /* Above the cluster, not beside it. Both sit in the same corner and the cluster
    wins on z-index, so a folded legend — its summary alone, 16px off the bottom —
    vanished underneath and could not be unfolded again. */
-.map-shell .scale--onmap { inset-block-end: 3.5rem; }
-/* Frosted glass (issue 578), expanded legend only; the colour bar stays opaque. */
-.scale--onmap[open] {
+.map-shell .scale--onmap {
+  inset-block-end: 3.5rem;
+  max-inline-size: calc(100% - 7rem);
+  /* Solid surface instead of the kit text halo. No --radius-md token; overlay buttons use --radius. */
+  background: var(--bg); box-shadow: var(--elev-raised);
+  border-radius: var(--radius); padding: var(--space-1) var(--space-2);
+  -webkit-text-stroke: 0;
+}
+/* Open: frosted glass (issue 578), a fixed card width (278px is what a 390px
+   phone gets) so it is never stretched across a wide map, and the vertical
+   bands row layout below. The colour bar stays opaque. */
+.map-shell .scale--onmap[open] {
+  inline-size: min(278px, calc(100% - 7rem)); z-index: 4;
   background: var(--glass-bg);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
   border: 1px solid var(--glass-border);
-  border-radius: var(--radius);
   box-shadow: var(--elev-float);
-  /* The kit's on-map key has no padding; the glass card needs it or the last row touches the border. */
-  padding-inline: var(--space-2);
+  max-block-size: calc(100% - 3.5rem - 12px - 32px - var(--space-2));
+  overflow-y: auto;
+}
+/* Row instead of column, reversed: the DOM runs high to low, and the row
+   reads low to high, left to right. */
+.scale--onmap .scale__bands--vertical {
+  display: flex; flex-direction: row-reverse; block-size: auto;
+  inline-size: 100%; padding-block-start: 16px;
+}
+.scale--onmap .scale__bands--vertical .scale__band {
+  display: flex; flex-direction: column; align-items: flex-end;
+  flex: 1 1 0; min-block-size: 0;
+}
+.scale--onmap .scale__bands--vertical .scale__band-swatch {
+  block-size: 16px; inline-size: auto; min-block-size: 0;
+}
+/* Undo the kit's absolute edge labels; each sits at its band's high (right)
+   edge, the boundary with the band that is visually next to it. */
+.scale--onmap .scale__bands--vertical .scale__band-edge {
+  position: static; inset-inline-start: auto; inset-block-start: auto;
+}
+/* Same stops as the vertical bar, laid left to right: --ramp-h runs low to
+   high already, so no reversal is needed here. */
+.scale--onmap .scale__bands--vertical .scale__bar {
+  inset-block-start: 0; inset-inline-start: 0;
+  inline-size: 100%; block-size: 16px;
+  background-image: var(--ramp-h, none);
+}
+/* Folded, the pill's own surface padding stands down: the toggle IS the pill,
+   and padding around an already-44px toggle overshot the 44px floor. */
+.scale--onmap:not([open]) { padding-block: 0; padding-inline: var(--space-1); }
+.scale--onmap:not([open]) .scale__toggle {
+  min-block-size: 44px; inline-size: auto; padding-inline: var(--space-1); margin-block-end: 0;
+}
+/* Folded, the toggle is the metric name plus a ramp swatch. */
+.scale--onmap:not([open]) .scale__toggle::after {
+  content: ''; inline-size: 60px; block-size: 8px; border-radius: var(--radius-sm);
+  background-image: var(--ramp-h, none);
+}
+.scale--onmap:not([open]) .scale__toggle-label {
+  display: inline; margin-inline: var(--space-1); font-size: var(--text-compact);
+}
+/* Touch: the kit's 24px square is too small to tap, open or folded. */
+@media (hover: none) {
+  .scale--onmap .scale__toggle { min-block-size: 44px; min-inline-size: 44px; }
 }
 .map-freshness .data-refresh {
   margin: 0; background: var(--overlay-bg); border-radius: var(--radius);
@@ -705,7 +757,6 @@ html:has(> body.embed) { block-size: 100%; }
 .embed__attribution a { color: inherit; text-decoration: none; }
 .embed__attribution a:hover { text-decoration: underline; }
 .embed__attribution a:focus-visible { box-shadow: var(--focus-ring); }
-.embed .scale--onmap { inset-block-end: 3.5rem; }
 /* Geolocation is denied by Permissions-Policy and a cross-origin frame needs
    its own allow= besides, so the button could only ever fail here. */
 .embed .map-locate { display: none; }
@@ -909,31 +960,6 @@ html:has(> body.embed) { block-size: 100%; }
     .frame:has(> .area-summary) > .map-shell { inline-size: 100%; }
   }
 
-  /* Row instead of column, reversed: the DOM runs high to low, and a phone
-     row must read low to high, left to right. */
-  .scale--onmap .scale__bands--vertical {
-    display: flex; flex-direction: row-reverse; block-size: auto;
-    inline-size: 100%; padding-block-start: 16px;
-  }
-  .scale--onmap .scale__bands--vertical .scale__band {
-    display: flex; flex-direction: column; align-items: flex-end;
-    flex: 1 1 0; min-block-size: 0;
-  }
-  .scale--onmap .scale__bands--vertical .scale__band-swatch {
-    block-size: 16px; inline-size: auto; min-block-size: 0;
-  }
-  /* Undo the kit's absolute edge labels; each sits at its band's high (right)
-     edge, the boundary with the band that is visually next to it. */
-  .scale--onmap .scale__bands--vertical .scale__band-edge {
-    position: static; inset-inline-start: auto; inset-block-start: auto;
-  }
-  /* Same stops as the vertical bar, laid left to right: --ramp-h runs low to
-     high already, so no reversal is needed here. */
-  .scale--onmap .scale__bands--vertical .scale__bar {
-    inset-block-start: 0; inset-inline-start: 0;
-    inline-size: 100%; block-size: 16px;
-    background-image: var(--ramp-h, none);
-  }
 
   /* Back on the map: an overlay again, stacked above the locate/zoom row.
      One card for both children (see below), so the offset is measured off
@@ -972,49 +998,11 @@ html:has(> body.embed) { block-size: 100%; }
     margin: 0; background: none; box-shadow: none; padding: 0;
   }
 
-  /* Overrides the desktop 3.5rem offset (line 447); both axes stated so the
-     co-anchor guard passes. */
+  /* Overrides the desktop 3.5rem offset; both axes stated so the co-anchor
+     guard passes. Surface, width and fold look are global, further up. */
   .map-shell .scale--onmap {
     position: absolute; inset-block-end: var(--space-2); inset-block-start: auto;
     inset-inline-start: var(--space-2); inset-inline-end: auto; z-index: 2;
-    max-inline-size: calc(100% - 7rem);
-    /* Phone only: solid surface instead of the kit text halo. No --radius-md token; overlay buttons use --radius. */
-    background: var(--bg); box-shadow: var(--elev-raised);
-    border-radius: var(--radius); padding: var(--space-1) var(--space-2);
-    -webkit-text-stroke: 0;
-  }
-  /* Open, the key needs a real width or it shrink-wraps to whatever content
-     happened to render (prod: 119x169). Folded stays shrink-wrapped, and
-     rides above .map-freshness rather than under it. */
-  .map-shell .scale--onmap[open] {
-    inline-size: calc(100% - 7rem); z-index: 4;
-    /* Restated to beat the solid phone pill above. */
-    background: var(--glass-bg);
-    backdrop-filter: var(--glass-blur);
-    -webkit-backdrop-filter: var(--glass-blur);
-  }
-  /* Open, the toggle is still a touch target (the kit's square is 24px). */
-  .scale--onmap[open] .scale__toggle { min-block-size: 44px; min-inline-size: 44px; }
-  /* Folded, the pill's own surface padding stands down — the toggle IS the
-     pill, and a padded surface around an already-44px toggle overshot the
-     44px floor (measured 56px on prod). */
-  .scale--onmap:not([open]) { padding-block: 0; padding-inline: var(--space-1); }
-  /* Folded, the toggle IS the pill — the 44px floor replaces the kit's 24px
-     icon square, and the kit's own margin-block-end is dropped so nothing
-     pads the pill past that floor. */
-  .scale--onmap:not([open]) .scale__toggle {
-    min-block-size: 44px; inline-size: auto; padding-inline: var(--space-1); margin-block-end: 0;
-  }
-  /* Folded, the toggle is the metric name plus a ramp swatch. */
-  .scale--onmap:not([open]) .scale__toggle::after {
-    content: ''; inline-size: 60px; block-size: 8px; border-radius: var(--radius-sm);
-    background-image: var(--ramp-h, none);
-  }
-  /* Sits between the kit's ::before triangle and the ::after ramp swatch by
-     DOM order alone; the margins are just breathing room. Small token, not
-     the inherited body size — that read oversized beside a 44px pill. */
-  .scale--onmap:not([open]) .scale__toggle-label {
-    display: inline; margin-inline: var(--space-1); font-size: var(--text-compact);
   }
 
   /* Every overlay button is a real touch target, not the kit's 32px square. */
@@ -1240,21 +1228,6 @@ html:has(> body.embed) { block-size: 100%; }
   .map-shell .scale--onmap[open] {
     max-block-size: calc(100% - var(--space-2) - 12px - 44px - var(--space-2));
     overflow-y: auto;
-  }
-  /* Open, the toggle is still a touch target (the kit's square is 24px). */
-  .scale--onmap[open] .scale__toggle { min-block-size: 44px; min-inline-size: 44px; }
-  /* Folded pill, restated from the @672px block: the width-gated query there
-     does not fire at 844px wide. */
-  .scale--onmap:not([open]) { padding-block: 0; padding-inline: var(--space-1); }
-  .scale--onmap:not([open]) .scale__toggle {
-    min-block-size: 44px; inline-size: auto; padding-inline: var(--space-1); margin-block-end: 0;
-  }
-  .scale--onmap:not([open]) .scale__toggle::after {
-    content: ''; inline-size: 60px; block-size: 8px; border-radius: var(--radius-sm);
-    background-image: var(--ramp-h, none);
-  }
-  .scale--onmap:not([open]) .scale__toggle-label {
-    display: inline; margin-inline: var(--space-1); font-size: var(--text-compact);
   }
   /* Wind note, restated from the @672px block: landscape never collapsed it
      to the icon-only form portrait shows. */

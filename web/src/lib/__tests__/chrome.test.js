@@ -309,7 +309,8 @@ describe('mountChrome() keeps the key on the map in fullscreen', () => {
 
     const legend = el.querySelector('details.scale')
     expect(legend.tagName).toBe('DETAILS')
-    expect(legend.open, 'the key came back folded shut').toBe(true)
+    legend.open = true
+    expect(legend.open, 'the key cannot be unfolded').toBe(true)
   })
 })
 
@@ -343,10 +344,10 @@ describe('mountChrome() remembers whether the key is folded', () => {
   // the later suites install, and an empty store reads exactly like the absent
   // localStorage this jsdom otherwise has.
 
-  it('opens the key on a first visit', () => {
+  it('folds the key on a first visit', () => {
     const { shell, el } = chromeFrame()
     mountChrome(el, readConfig(el))
-    expect(shell.querySelector('details.scale').open).toBe(true)
+    expect(shell.querySelector('details.scale').open).toBe(false)
   })
 
   it('records the fold when the reader closes it', () => {
@@ -374,8 +375,8 @@ describe('mountChrome() remembers whether the key is folded', () => {
 })
 
 // A stubbed matchMedia stands in for the 672px breakpoint, since jsdom has
-// none of its own. The key starts open on phone and desktop alike.
-describe('mountChrome() opens the key by default on every viewport', () => {
+// none of its own. The key starts folded on phone and desktop alike.
+describe('mountChrome() folds the key by default on every viewport', () => {
   const chromeFrame = () => {
     const shell = document.createElement('div')
     shell.className = 'map-shell'
@@ -400,13 +401,13 @@ describe('mountChrome() opens the key by default on every viewport', () => {
     }))
   })
 
-  it('mounts open on a phone with no stored flag', () => {
+  it('mounts folded on a phone with no stored flag', () => {
     const { shell, el } = chromeFrame()
     mountChrome(el, readConfig(el))
-    expect(shell.querySelector('details.scale').open).toBe(true)
+    expect(shell.querySelector('details.scale').open).toBe(false)
   })
 
-  it('mounts open on desktop (no matchMedia) with no stored flag', () => {
+  it('mounts folded on desktop (no matchMedia) with no stored flag', () => {
     vi.unstubAllGlobals()
     vi.stubGlobal('localStorage', {
       getItem: (k) => (store.has(k) ? store.get(k) : null),
@@ -415,7 +416,7 @@ describe('mountChrome() opens the key by default on every viewport', () => {
     })
     const { shell, el } = chromeFrame()
     mountChrome(el, readConfig(el))
-    expect(shell.querySelector('details.scale').open).toBe(true)
+    expect(shell.querySelector('details.scale').open).toBe(false)
   })
 
   it('mounts folded on a phone when a reader stored false', () => {
@@ -432,14 +433,14 @@ describe('mountChrome() opens the key by default on every viewport', () => {
     expect(shell.querySelector('details.scale').open).toBe(true)
   })
 
-  it('mounts open on a landscape phone with no stored flag', () => {
+  it('mounts folded on a landscape phone with no stored flag', () => {
     vi.stubGlobal('matchMedia', (query) => ({
       matches: query === PHONE_LANDSCAPE_QUERY, media: query,
       addEventListener() {}, removeEventListener() {},
     }))
     const { shell, el } = chromeFrame()
     mountChrome(el, readConfig(el))
-    expect(shell.querySelector('details.scale').open).toBe(true)
+    expect(shell.querySelector('details.scale').open).toBe(false)
   })
 
   it('still opens on a landscape phone when a reader stored true', () => {
@@ -453,33 +454,17 @@ describe('mountChrome() opens the key by default on every viewport', () => {
     expect(shell.querySelector('details.scale').open).toBe(true)
   })
 
-  // The embed is a small frame: on a phone the key starts folded there.
-  it('mounts folded on a phone embed with no stored flag', () => {
+  it('an embed folds the key like any page, and a stored true still opens it', () => {
     document.body.classList.add('embed')
     try {
-      const { shell, el } = chromeFrame()
-      mountChrome(el, readConfig(el))
-      expect(shell.querySelector('details.scale').open).toBe(false)
-    } finally { document.body.classList.remove('embed') }
-  })
-
-  it('a phone embed still opens when a reader stored true', () => {
-    document.body.classList.add('embed')
-    store.set(LEGEND_FOLD_KEY, 'true')
-    try {
-      const { shell, el } = chromeFrame()
-      mountChrome(el, readConfig(el))
-      expect(shell.querySelector('details.scale').open).toBe(true)
-    } finally { document.body.classList.remove('embed') }
-  })
-
-  it('a desktop embed (no phone query) stays open', () => {
-    document.body.classList.add('embed')
-    vi.stubGlobal('matchMedia', (query) => ({ matches: false, media: query, addEventListener() {}, removeEventListener() {} }))
-    try {
-      const { shell, el } = chromeFrame()
-      mountChrome(el, readConfig(el))
-      expect(shell.querySelector('details.scale').open).toBe(true)
+      const a = chromeFrame()
+      mountChrome(a.el, readConfig(a.el))
+      expect(a.shell.querySelector('details.scale').open).toBe(false)
+      document.body.innerHTML = ''
+      store.set(LEGEND_FOLD_KEY, 'true')
+      const b = chromeFrame()
+      mountChrome(b.el, readConfig(b.el))
+      expect(b.shell.querySelector('details.scale').open).toBe(true)
     } finally { document.body.classList.remove('embed') }
   })
 
@@ -502,6 +487,7 @@ describe('mountChrome() opens the key by default on every viewport', () => {
   it('the card opening on its own (no click) leaves the key open', async () => {
     const { shell, el } = chromeFrame()
     mountChrome(el, readConfig(el))
+    shell.querySelector('details.scale').open = true
     const attrib = document.createElement('div')
     attrib.className = 'maplibregl-ctrl-attrib maplibregl-compact-show'
     el.appendChild(attrib)
@@ -526,6 +512,7 @@ describe('mountChrome() opens the key by default on every viewport', () => {
     vi.stubGlobal('matchMedia', (query) => ({ matches: false, media: query, addEventListener() {}, removeEventListener() {} }))
     const { shell, el } = chromeFrame()
     mountChrome(el, readConfig(el))
+    shell.querySelector('details.scale').open = true
     await openAttribution(el)
     expect(shell.querySelector('details.scale').open).toBe(true)
   })
@@ -879,7 +866,7 @@ describe('mountChrome() keeps the legend and the layers list mutually exclusive'
     mountChrome(el, readConfig(el))
     const legend = shell.querySelector('details.scale')
     const layersBtn = el.querySelector('.map__layers .colmenu__btn')
-    expect(legend.open).toBe(true)
+    legend.open = true
 
     layersBtn.click()
     legend.dispatchEvent(new Event('toggle'))
@@ -893,6 +880,7 @@ describe('mountChrome() keeps the legend and the layers list mutually exclusive'
     mountChrome(el, readConfig(el))
     const legend = shell.querySelector('details.scale')
     const layersBtn = el.querySelector('.map__layers .colmenu__btn')
+    legend.open = true
 
     layersBtn.click()
     legend.dispatchEvent(new Event('toggle'))

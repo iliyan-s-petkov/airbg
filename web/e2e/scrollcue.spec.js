@@ -39,7 +39,7 @@ async function tapBox(cue) {
   })
 }
 
-// The key starts open; put it in the requested state.
+// The key starts folded; put it in the requested state.
 async function setLegend(page, open) {
   const legend = page.locator('details.scale--onmap')
   await expect(legend).toBeAttached()

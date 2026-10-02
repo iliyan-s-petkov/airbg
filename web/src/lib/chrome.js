@@ -85,9 +85,9 @@ export function mountChrome(el, cfg) {
   const shell = el.closest('.map-shell') ?? el
 
   // <details>: it owns the open state, the keyboard and the accessible name, so
-  // nothing else in the DOM has to record whether the key is folded. Open by
-  // default — a key the reader has to find and unfold does not explain the
-  // colours they are already looking at.
+  // nothing else in the DOM has to record whether the key is folded. Folded by
+  // default on every viewport: the pill names the metric and an open card
+  // covers the map.
   //
   // The fold is remembered, like every other map preference. It is a different
   // control from the layers menu's "Legend": the menu says whether there is a
@@ -101,8 +101,8 @@ export function mountChrome(el, cfg) {
   const phone = isPhoneViewport()
   const legend = document.createElement('details')
   legend.className = LEGEND_CLASSES
-  // Open by default, folded on a phone embed (a small frame); a stored choice wins.
-  legend.open = readFlag(LEGEND_FOLD_KEY, !(phone && document.body.classList.contains('embed')))
+  // Folded by default everywhere; a stored choice still wins.
+  legend.open = readFlag(LEGEND_FOLD_KEY, false)
   // #579: true while the layers list is the reason the legend is folded, so
   // closing the list can restore it — but only that fold, never a reader's own.
   let legendFoldedForLayers = false
