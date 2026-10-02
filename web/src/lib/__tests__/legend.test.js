@@ -6,7 +6,7 @@ import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, it, expect, vi } from 'vitest'
-import { LEGEND_CLASSES, legendRows, legendTitle, rampGradient, renderLegend } from '../legend.js'
+import { LEGEND_CLASSES, buildWindRow, legendRows, legendTitle, rampGradient, renderLegend, setWindRow } from '../legend.js'
 
 // Shaped like /api/v1/scales: ascending, upper INCLUSIVE, the top band open
 // (upper === null), and both label languages present — internal/api/scales.go
@@ -325,5 +325,42 @@ describe('the on-map legend and the refresh cluster', () => {
 
     expect(Number(lift[1]), 'legend still overlaps the refresh cluster')
       .toBeGreaterThan(Number(btn[1]))
+  })
+})
+
+describe('wind legend row', () => {
+  it('carries the label and a glyph, and starts hidden', () => {
+    const row = buildWindRow('Wind: direction and strength')
+    expect(row.textContent).toBe('Wind: direction and strength')
+    expect(row.hidden).toBe(true)
+    expect(row.querySelector('svg')).not.toBeNull()
+  })
+
+  it('draws 2-3 curved streaks in the streak blue in streaks mode', () => {
+    const row = buildWindRow('Wind')
+    setWindRow(row, { on: true, mode: 'streaks' })
+    const paths = row.querySelectorAll('svg path')
+    expect(paths.length).toBeGreaterThanOrEqual(2)
+    expect(paths.length).toBeLessThanOrEqual(3)
+    for (const p of paths) {
+      expect(p.getAttribute('d')).toMatch(/[QCqc]/)
+      expect(p.getAttribute('stroke')).toBe('rgb(24,58,170)')
+    }
+    expect(row.querySelector('svg').dataset.mode).toBe('streaks')
+  })
+
+  it('draws an arrow in arrows mode', () => {
+    const row = buildWindRow('Wind')
+    setWindRow(row, { on: true, mode: 'arrows' })
+    expect(row.querySelector('svg').dataset.mode).toBe('arrows')
+    expect(row.querySelectorAll('svg path')).toHaveLength(1)
+  })
+
+  it('is hidden again when wind goes off', () => {
+    const row = buildWindRow('Wind')
+    setWindRow(row, { on: true, mode: 'streaks' })
+    expect(row.hidden).toBe(false)
+    setWindRow(row, { on: false, mode: 'streaks' })
+    expect(row.hidden).toBe(true)
   })
 })

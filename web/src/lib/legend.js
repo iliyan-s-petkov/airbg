@@ -237,3 +237,54 @@ function swatch(colour, className) {
   svg.appendChild(rect)
   return svg
 }
+
+// The wind row: a static glyph and a label, shown only while the wind layer is on.
+// Streak blue is the dark end of the ramp in windstreaks.js, at its LINE_ALPHA.
+const STREAK_BLUE = 'rgb(24,58,170)'
+
+// Built once by the chrome and re-inserted after each repaint, because
+// renderLegend clears the key. Hidden until setWindRow turns it on.
+export function buildWindRow(label) {
+  const wrap = document.createElement('p')
+  wrap.className = 'scale__none scale__wind'
+  wrap.hidden = true
+  const row = document.createElement('span')
+  row.className = 'legend__row'
+  const text = document.createElement('span')
+  text.className = 'legend__label'
+  text.textContent = label
+  row.append(windGlyph('streaks'), text)
+  wrap.appendChild(row)
+  return wrap
+}
+
+// Shows or hides the row and swaps the glyph to match the active wind mode.
+export function setWindRow(row, { on, mode }) {
+  row.hidden = !on
+  const old = row.querySelector('svg')
+  if (old && old.dataset.mode !== mode) old.replaceWith(windGlyph(mode))
+}
+
+function windGlyph(mode) {
+  const NS = 'http://www.w3.org/2000/svg'
+  const svg = document.createElementNS(NS, 'svg')
+  svg.setAttribute('class', 'legend-wind-glyph')
+  svg.setAttribute('viewBox', '0 0 24 16')
+  svg.setAttribute('aria-hidden', 'true')
+  svg.dataset.mode = mode
+  const paths = mode === 'arrows'
+    ? ['M3 8H20M14 3L20 8L14 13']
+    : ['M2 4Q8 1 14 4T22 4', 'M2 8Q8 5 14 8T22 8', 'M2 12Q8 9 14 12T22 12']
+  for (const d of paths) {
+    const path = document.createElementNS(NS, 'path')
+    path.setAttribute('d', d)
+    path.setAttribute('fill', 'none')
+    path.setAttribute('stroke', STREAK_BLUE)
+    path.setAttribute('stroke-opacity', '0.65')
+    path.setAttribute('stroke-width', '1.6')
+    path.setAttribute('stroke-linecap', 'round')
+    path.setAttribute('stroke-linejoin', 'round')
+    svg.appendChild(path)
+  }
+  return svg
+}

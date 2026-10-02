@@ -205,6 +205,7 @@
   "map.legend.tier.sensors": "Всяка клетка е отделен сензор",
   "map.legend.title": "Качество на въздуха",
   "map.legend.toggle": "Легенда",
+  "map.legend.wind": "Вятър: посока и сила",
   "map.more_below": "Още под картата",
   "map.play.exit": "Обратно към текущите стойности",
   "map.play.no_history": "Все още няма достатъчно история за анимация на това измерване",
