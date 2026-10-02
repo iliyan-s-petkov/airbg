@@ -993,6 +993,8 @@ html:has(> body.embed) { block-size: 100%; }
     backdrop-filter: var(--glass-blur);
     -webkit-backdrop-filter: var(--glass-blur);
   }
+  /* Open, the toggle is still a touch target (the kit's square is 24px). */
+  .scale--onmap[open] .scale__toggle { min-block-size: 44px; min-inline-size: 44px; }
   /* Folded, the pill's own surface padding stands down — the toggle IS the
      pill, and a padded surface around an already-44px toggle overshot the
      44px floor (measured 56px on prod). */
@@ -1239,6 +1241,8 @@ html:has(> body.embed) { block-size: 100%; }
     max-block-size: calc(100% - var(--space-2) - 12px - 44px - var(--space-2));
     overflow-y: auto;
   }
+  /* Open, the toggle is still a touch target (the kit's square is 24px). */
+  .scale--onmap[open] .scale__toggle { min-block-size: 44px; min-inline-size: 44px; }
   /* Folded pill, restated from the @672px block: the width-gated query there
      does not fire at 844px wide. */
   .scale--onmap:not([open]) { padding-block: 0; padding-inline: var(--space-1); }

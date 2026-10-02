@@ -145,6 +145,9 @@ test.describe('phone layout does not widen the viewport', () => {
     await expect(scale).toHaveAttribute('open', '')
     const toggle = page.locator('.scale__toggle')
     await expect(toggle).toBeVisible()
+    // Open or folded, the toggle is a touch target.
+    await expect.poll(async () => (await toggle.boundingBox())?.height ?? 0)
+      .toBeGreaterThanOrEqual(44)
     // Retrying poll rather than a single boundingBox() read: a debounced
     // repaint (moveend, once the opening jumpTo settles) can replace the
     // legend's children between two separate round trips to the browser.

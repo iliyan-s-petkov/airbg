@@ -445,8 +445,6 @@ export function mountChrome(el, cfg) {
   return {
     ...hintCtl,
     storage,
-    // Read by mapload.js's windView, so both defaults come from the one
-    // mount-time check rather than a second matchMedia call drifting from this one.
     showNote(text) {
       note.textContent = text
       note.hidden = !text
