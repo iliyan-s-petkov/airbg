@@ -239,8 +239,7 @@ function swatch(colour, className) {
 }
 
 // The wind row: a static glyph and a label, shown only while the wind layer is on.
-// Streak blue is the dark end of the ramp in windstreaks.js, at its LINE_ALPHA.
-const STREAK_BLUE = 'rgb(24,58,170)'
+// Stroke colour comes from .legend-wind-glyph in app.css.
 
 // Built once by the chrome and re-inserted after each repaint, because
 // renderLegend clears the key. Hidden until setWindRow turns it on.
@@ -279,7 +278,7 @@ function windGlyph(mode) {
     const path = document.createElementNS(NS, 'path')
     path.setAttribute('d', d)
     path.setAttribute('fill', 'none')
-    path.setAttribute('stroke', STREAK_BLUE)
+    path.setAttribute('stroke', 'currentColor')
     path.setAttribute('stroke-opacity', '0.65')
     path.setAttribute('stroke-width', '1.6')
     path.setAttribute('stroke-linecap', 'round')

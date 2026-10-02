@@ -344,7 +344,7 @@ describe('wind legend row', () => {
     expect(paths.length).toBeLessThanOrEqual(3)
     for (const p of paths) {
       expect(p.getAttribute('d')).toMatch(/[QCqc]/)
-      expect(p.getAttribute('stroke')).toBe('rgb(24,58,170)')
+      expect(p.getAttribute('stroke')).toBe('currentColor')
     }
     expect(row.querySelector('svg').dataset.mode).toBe('streaks')
   })
