@@ -5,7 +5,7 @@ import {
   GRID_MIN_ZOOM_FRACTIONAL, POINT_TIER_MIN_ZOOM_FRACTIONAL,
 } from './hexes.js'
 import {
-  OFFICIAL_IMAGE_ID, HEX_LABEL_LAYER_ID, LAYER_ID, OFFICIAL_LAYER_ID, LABEL_LAYER_ID,
+  OFFICIAL_IMAGE_ID, HEX_LABEL_LAYER_ID, LAYER_ID, OFFICIAL_LAYER_ID, LABEL_LAYER_ID, FAULTY_LAYER_ID,
 } from './mapids.js'
 import { MAX_ZOOM_CEILING } from './mapconfig.js'
 
@@ -71,7 +71,7 @@ export function setCellValues(map, on) {
 export function applyMarkerZoomRange(map, tier) {
   lastTier = tier
   const max = markerMaxZoom(tier)
-  for (const id of [LAYER_ID, OFFICIAL_LAYER_ID, LABEL_LAYER_ID]) {
+  for (const id of [LAYER_ID, OFFICIAL_LAYER_ID, LABEL_LAYER_ID, FAULTY_LAYER_ID]) {
     if (map.getLayer?.(id)) map.setLayerZoomRange(id, 0, max)
   }
   if (map.getLayer?.(HEX_LABEL_LAYER_ID)) {
@@ -188,6 +188,20 @@ export function layerPaint(cfg) {
 // marker carries no source at all, and ['get'] on an absent property is null,
 // which is not the official one — so the areas stay where they were.
 export const NOT_OFFICIAL = ['!=', ['get', 'source'], OFFICIAL_SOURCE]
+
+// Faulty stations are drawn as a hollow ring (no fill, ink stroke): shape, not
+// colour, says "no usable reading". The main layers skip them.
+export const IS_FAULTY = ['==', ['get', 'faulty'], true]
+export const NOT_FAULTY = ['!=', ['get', 'faulty'], true]
+
+export function faultyPaint(cfg) {
+  return {
+    'circle-radius': MARKER_RADIUS,
+    'circle-opacity': 0,
+    'circle-stroke-width': 2,
+    'circle-stroke-color': cfg.labelColour,
+  }
+}
 
 const MARKER_RADIUS = ['interpolate', ['linear'], ['zoom'], 5, 5, 12, 9]
 

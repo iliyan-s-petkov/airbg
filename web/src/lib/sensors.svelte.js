@@ -1,4 +1,4 @@
-import { stationMembers, readingAt, measuresAt } from './stations.js'
+import { stationMembers, readingAt, measuresAt, flagsAt } from './stations.js'
 
 // What the map has last loaded, published for the panel to read — not
 // refetched. Refetching would double every page's request count against a
@@ -106,6 +106,8 @@ export function normaliseSensor(responseBody, id) {
     // averaging or hiding it behind the healthy device would be the panel
     // deciding not to mention it.
     flag: stationFlag(cols, members.indices),
+    // Which metrics failed; null when the payload predates the column.
+    flags: Array.isArray(cols.flags) ? flagsAt(responseBody, members.indices) : null,
     values,
     sources,
     // The station's own coordinate, taken from its first member: every device

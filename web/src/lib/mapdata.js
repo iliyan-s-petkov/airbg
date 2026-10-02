@@ -3,6 +3,7 @@ import { scaleFor } from './scaleinfo.js'
 import { getJSON } from './api.js'
 import { hasScale } from './metrics.js'
 import { getSensorStatus, filterByStatus } from './sensorfilter.svelte.js'
+import { filterSensorFeatures, getShowFaulty } from './faultyfilter.svelte.js'
 import { filterBySource, getSources } from './sourcefilter.svelte.js'
 import { setSensors, setScales } from './sensors.svelte.js'
 import { setMapAreas } from './mapareas.svelte.js'
@@ -224,7 +225,10 @@ export async function refresh(map, state, cfg, chrome, force = false, { defer = 
 
   const features = effective === 'sensors'
     ? filterBySource(
-      filterByStatus(sensorFeatures(body, cfg.metric, state.scales, cfg.noDataColour), getSensorStatus()),
+      filterSensorFeatures(
+        sensorFeatures(body, cfg.metric, state.scales, cfg.noDataColour),
+        getSensorStatus(), getShowFaulty(),
+      ),
       getSources(),
     )
     : areaFeatures(body, cfg.metric, state.scales, cfg.noDataColour)
@@ -295,9 +299,9 @@ export function mapHint(t, { fellBack, sources }) {
 export function repaintSensors(map, state, cfg) {
   if (!state.sensorBody) return
   const features = filterBySource(
-    filterByStatus(
+    filterSensorFeatures(
       sensorFeatures(state.sensorBody, cfg.metric, state.scales, cfg.noDataColour),
-      getSensorStatus(),
+      getSensorStatus(), getShowFaulty(),
     ),
     getSources(),
   )

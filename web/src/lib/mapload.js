@@ -9,6 +9,7 @@ import {
   getSources, onSourceChange, setSourceEnabled,
   CITIZEN_SOURCE, OFFICIAL_SOURCE,
 } from './sourcefilter.svelte.js'
+import { getShowFaulty, setShowFaulty, onShowFaultyChange } from './faultyfilter.svelte.js'
 import { diamondImage } from './markericon.js'
 import { chooseWindow } from './mapwindow.js'
 import { GRID_MIN_ZOOM_FRACTIONAL, POINT_TIER_MIN_ZOOM_FRACTIONAL } from './hexes.js'
@@ -23,14 +24,14 @@ import {
   selectedFilter,
 } from './boundaries.js'
 import {
-  SOURCE_ID, LAYER_ID, OFFICIAL_LAYER_ID, OFFICIAL_IMAGE_ID, LABEL_LAYER_ID,
+  SOURCE_ID, LAYER_ID, OFFICIAL_LAYER_ID, OFFICIAL_IMAGE_ID, LABEL_LAYER_ID, FAULTY_LAYER_ID,
   HEX_SOURCE_ID, HEX_LAYER_ID, HEX_OUTLINE_LAYER_ID, HEX_POINT_LAYER_ID, HEX_LABEL_LAYER_ID,
 } from './mapids.js'
 import { emptyCollection } from './mapfeatures.js'
 import {
   markerMaxZoom, hexOutlinePaint, hexFillPaint, hexPointPaint,
   hexLabelPaint, layerPaint, NOT_OFFICIAL, officialLayout, officialPaint, labelLayout,
-  hexLabelLayout, labelPaint, MARKER_PIXEL_RATIO,
+  hexLabelLayout, labelPaint, MARKER_PIXEL_RATIO, NOT_FAULTY, IS_FAULTY, faultyPaint,
 } from './mappaint.js'
 import { addBasemapOverlay } from './mapstyle.js'
 import { setWind, refreshWind } from './mapwind.js'
@@ -180,7 +181,7 @@ export function installMapLoad({ map, state, cfg, chrome, vs, windState, boundar
       // value is set per tier in refresh() (see markerMaxZoom). This is the
       // starting one, for the tier the map opens on.
       maxzoom: markerMaxZoom('country'),
-      filter: NOT_OFFICIAL,
+      filter: ['all', NOT_OFFICIAL, NOT_FAULTY],
       paint: layerPaint(cfg),
     })
 
@@ -196,9 +197,19 @@ export function installMapLoad({ map, state, cfg, chrome, vs, windState, boundar
       type: 'symbol',
       source: SOURCE_ID,
       maxzoom: markerMaxZoom('country'),
-      filter: ['==', ['get', 'source'], OFFICIAL_SOURCE],
+      filter: ['all', ['==', ['get', 'source'], OFFICIAL_SOURCE], NOT_FAULTY],
       layout: officialLayout(),
       paint: officialPaint(cfg),
+    })
+
+    // Stations flagged faulty for this layer, when the reader asked to see them.
+    map.addLayer({
+      id: FAULTY_LAYER_ID,
+      type: 'circle',
+      source: SOURCE_ID,
+      maxzoom: markerMaxZoom('country'),
+      filter: IS_FAULTY,
+      paint: faultyPaint(cfg),
     })
 
     // The reading, printed on the map. Colour alone carried three different
@@ -294,6 +305,16 @@ export function installMapLoad({ map, state, cfg, chrome, vs, windState, boundar
       },
     ]
 
+    // Off until asked for: a faulty station has no usable reading to show.
+    // The menu's own storage restores the choice, applied once at build time.
+    const faultyView = {
+      id: 'faultyStations',
+      label: cfg.t.viewFaultyStations,
+      defaultOff: true,
+      mark: 'ring',
+      apply: (on) => { setShowFaulty(on); return on },
+    }
+
     // Here and not in mountChrome: the options are the style's own groups, and
     // map.getStyle() has no layers to report until the style has loaded. A menu
     // built any earlier is a menu of nothing, which is why it stays hidden
@@ -301,7 +322,7 @@ export function installMapLoad({ map, state, cfg, chrome, vs, windState, boundar
     installLayers(map, chrome.layersUI, {
       labels: cfg.t.layers,
       caption: cfg.t.layersCaption,
-      views: [...chrome.layerViews, ...sourceViews, windView, boundaryView],
+      views: [...chrome.layerViews, ...sourceViews, faultyView, windView, boundaryView],
     })
 
     setSourceViewAvailability(chrome, cfg.metric, cfg.t, state.coverage)
@@ -351,6 +372,8 @@ export function installMapLoad({ map, state, cfg, chrome, vs, windState, boundar
       // the fetch when the URL has not moved, so this is a repaint, not a call.
       refreshHexes(map, state, cfg)
     })
+
+    subs.unfilterFaulty = onShowFaultyChange(() => repaintSensors(map, state, cfg))
 
     subs.unfilterSource = onSourceChange(() => {
       repaintSensors(map, state, cfg)

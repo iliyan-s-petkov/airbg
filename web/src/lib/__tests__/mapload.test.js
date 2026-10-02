@@ -18,8 +18,8 @@ const assigned = [...load.matchAll(/\bsubs\.(\w+)\s*=/g)].map((m) => m[1]).sort(
 const released = [...island.matchAll(/\bsubs\.(\w+)\?\.\(\)/g)].map((m) => m[1]).sort()
 
 describe('the load handler\'s teardown handles', () => {
-  it('assigns the four the island knows about', () => {
-    expect(assigned).toEqual(['unfilter', 'unfilterSource', 'unprovide', 'unsubscribe'])
+  it('assigns the five the island knows about', () => {
+    expect(assigned).toEqual(['unfilter', 'unfilterFaulty', 'unfilterSource', 'unprovide', 'unsubscribe'])
   })
 
   // Both directions matter. An assignment with no release leaks; a release with

@@ -164,6 +164,7 @@ export function readConfig(el) {
       viewBoundaries: d.tViewBoundaries || '',
       viewCommunitySensors: d.tViewCommunitySensors || '',
       viewOfficialStations: d.tViewOfficialStations || '',
+      viewFaultyStations: d.tViewFaultyStations || '',
       notMeasured: d.tNotMeasured || '',
       communitySensors: d.tViewCommunitySensors || '',
       officialStations: d.tViewOfficialStations || '',

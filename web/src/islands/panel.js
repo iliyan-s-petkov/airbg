@@ -32,7 +32,7 @@ import { watchPanelScroll } from '../lib/panelwatch.svelte.js'
 // names as normaliseSensor's home.
 export { normaliseSensor }
 
-// Only 'out_of_range', 'stuck', 'spatial_outlier' and 'source_invalid' have
+// Only 'out_of_range', 'stuck', 'clamped', 'spatial_outlier' and 'source_invalid' have
 // catalogue entries (panel.flag.*, internal/i18n/{bg,en}.json) — 'ok' and 'no_neighbours'
 // deliberately do not, because neither is a failure. flagTextFor's lookup
 // miss (any flag not a key of `catalogue`, including those two, and
@@ -56,7 +56,23 @@ export function flagCatalogueFrom(d) {
     stuck: d.tFlagStuck || '',
     spatial_outlier: d.tFlagSpatialOutlier || '',
     source_invalid: d.tFlagSourceInvalid || '',
+    clamped: d.tFlagClamped || '',
   }
+}
+
+// flagTextForSensor names the failed metrics: "Temperature, Humidity: <text>",
+// one sentence per distinct flag. A payload without the flags column falls back
+// to the worst-flag text with no metric named.
+export function flagTextForSensor(sensor, catalogue, labels = {}) {
+  if (!sensor) return ''
+  if (!sensor.flags) return flagTextFor(sensor.flag, catalogue)
+  const byFlag = new Map()
+  for (const [metric, flag] of Object.entries(sensor.flags)) {
+    if (!flagTextFor(flag, catalogue)) continue
+    if (!byFlag.has(flag)) byFlag.set(flag, [])
+    byFlag.get(flag).push(labels[metric] || metric)
+  }
+  return [...byFlag].map(([flag, names]) => `${names.join(', ')}: ${catalogue[flag]}`).join(' ')
 }
 
 export function mount(el) {
@@ -66,6 +82,7 @@ export function mount(el) {
   const vs = getViewState({ metrics, defaultMetric: d.metric })
 
   const flagCatalogue = flagCatalogueFrom(d)
+  const metricLabels = Object.fromEntries(options.map((o) => [o.metric, o.label]))
 
   // Memoised by sensor id: `chart` below is read on EVERY reactive
   // re-evaluation of the props object (a pan that brings in new sensors, a
@@ -127,7 +144,7 @@ export function mount(el) {
       },
       get flagText() {
         const sensor = findSensor(vs.sensorId)
-        return sensor ? flagTextFor(sensor.flag, flagCatalogue) : ''
+        return flagTextForSensor(sensor, flagCatalogue, metricLabels)
       },
       closeLabel: d.tClose || '',
       noValue: d.tNoValue || '',

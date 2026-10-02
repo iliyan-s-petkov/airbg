@@ -53,6 +53,7 @@ const PANEL_ATTR_FIXTURES = {
   tNoValue: 'no reading',
   tFlagOutOfRange: 'This reading is out of the expected range.',
   tFlagStuck: 'This reading has not changed in a while.',
+  tFlagClamped: 'The sensor is saturated.',
   tFlagSpatialOutlier: 'This reading disagrees with nearby sensors.',
   tFlagSourceInvalid: 'The newest reading was rejected by its source; this is the last accepted one.',
   tChartTime: 'Time',
@@ -199,6 +200,7 @@ describe('normaliseSensor', () => {
     expect(normaliseSensor(body, 42)).toEqual({
       id: 42,
       flag: 'ok',
+      flags: null,
       values: { P1: 30, P2: 12 },
       // One device standing alone is a station of one, and every reading at
       // that station came from it.
@@ -401,6 +403,7 @@ describe('flagCatalogueFrom', () => {
       stuck: '',
       spatial_outlier: '',
       source_invalid: '',
+      clamped: '',
     })
   })
 })

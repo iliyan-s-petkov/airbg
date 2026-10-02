@@ -321,6 +321,8 @@ strong, b { font-weight: var(--weight-emphasis); }
 }
 .colmenu__mark--circle { border-radius: 50%; }
 .colmenu__mark--diamond { transform: rotate(45deg); }
+/* Hollow, as the map draws a station with no usable reading. */
+.colmenu__mark--ring { border-radius: 50%; background: none; border: 2px solid var(--fg-2); }
 /* What a dot aggregates at this zoom, under the map rather than in the key —
    it answers a different question than the colours do, and the key is now an
    overlay with no room for a paragraph. Colour and type come from the kit's

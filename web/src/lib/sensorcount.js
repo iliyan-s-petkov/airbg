@@ -1,4 +1,4 @@
-import { stationsOf, readingAt } from './stations.js'
+import { stationsOf, readingAt, isFaultyAt } from './stations.js'
 
 // How many sensors the map is drawing, and how many of them are silent.
 //
@@ -14,23 +14,28 @@ import { stationsOf, readingAt } from './stations.js'
 // `value === null` is the test for silence, as in lib/sensorfilter.js — 0 µg/m³
 // is a reading, and the cleanest sensor in the area is exactly the one a falsy
 // test would misfile.
-export function countSensors(responseBody, metric) {
+export function countSensors(responseBody, metric, { showFaulty = true } = {}) {
   // Stations, not devices — the same unit the map draws (lib/stations.js).
   // Counting devices would say 44 under a map showing 27 dots, and the reader
   // would be right to trust the map.
+  // Hidden faulty stations are not drawn, so they are not counted either.
   const stations = stationsOf(responseBody)
+    .filter(({ indices }) => showFaulty || !isFaultyAt(responseBody, indices, metric))
   const total = stations.length
 
   // The metric column can be absent entirely — an area where no sensor reports
   // this metric at all. Every sensor is then silent FOR THIS METRIC, which is
   // what the map paints, so that is what the line must say.
-  if (!Array.isArray(responseBody?.sensors?.[metric])) return { total, active: 0, silent: total }
+  if (!Array.isArray(responseBody?.sensors?.[metric])) return { total, active: 0, silent: total, faulty: 0 }
 
   let active = 0
+  let faulty = 0
   for (const { indices } of stations) {
     if (readingAt(responseBody, indices, metric).value !== null) active++
+    else if (isFaultyAt(responseBody, indices, metric)) faulty++
   }
-  return { total, active, silent: total - active }
+  // faulty counts only stations still in `total`, i.e. drawn as rings.
+  return { total, active, silent: total - active, faulty }
 }
 
 // The count line, composed from the catalogue's parts — the same idiom as
@@ -42,7 +47,8 @@ export function countSensors(responseBody, metric) {
 // status: it is the coverage fact, and it does not stop being true when the
 // reader hides the silent sensors.
 export function sensorCountLine(texts, counts, status) {
+  // Drawn faulty rings show under every status, so they count as shown.
   const shown =
-    status === 'active' ? counts.active : status === 'inactive' ? counts.silent : counts.total
+    status === 'active' ? counts.active + (counts.faulty ?? 0) : status === 'inactive' ? counts.silent : counts.total
   return `${texts.shown} ${shown} ${texts.of} ${counts.total} ${texts.sensors} — ${counts.silent} ${texts.silent}`
 }
