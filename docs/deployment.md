@@ -281,7 +281,7 @@ Run every item below. Do not announce the site until all of them pass.
 Nothing is built on the host or on your workstation. Every push to `master`
 runs `.github/workflows/publish.yml`, which builds the image, scans it with
 Trivy, signs it with cosign (keyless, GitHub OIDC) only when the scan passes,
-and pushes it to `ghcr.io/iliyan-s-petkov/airbg:<short-sha>`. The Ansible
+and pushes it to `ghcr.io/iliyan-s-petkov/kanarche:<short-sha>`. The Ansible
 `airbg` role is the normal release path: it verifies the signature on the
 target, pulls by the signed digest, tags the result `airbg:<short-sha>`, writes
 `AIRBG_IMAGE_TAG`, runs `migrate`, and brings the stack up. See
@@ -293,11 +293,11 @@ Done by hand, the same sequence is:
 TAG=$(git rev-parse --short=7 HEAD)
 ssh airbg "DIGEST=\$(cosign verify \
     --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
-    --certificate-identity-regexp='^https://github\.com/iliyan-s-petkov/airbg/\.github/workflows/publish\.yml@refs/(heads/master|tags/v.*)$' \
-    --output=json ghcr.io/iliyan-s-petkov/airbg:$TAG \
+    --certificate-identity-regexp='^https://github\.com/iliyan-s-petkov/kanarche/\.github/workflows/publish\.yml@refs/(heads/master|tags/v.*)$' \
+    --output=json ghcr.io/iliyan-s-petkov/kanarche:$TAG \
     | jq -r '.[0].critical.image[\"docker-manifest-digest\"]') \
-  && docker pull ghcr.io/iliyan-s-petkov/airbg@\$DIGEST \
-  && docker tag ghcr.io/iliyan-s-petkov/airbg@\$DIGEST airbg:$TAG \
+  && docker pull ghcr.io/iliyan-s-petkov/kanarche@\$DIGEST \
+  && docker tag ghcr.io/iliyan-s-petkov/kanarche@\$DIGEST airbg:$TAG \
   && sed -i 's/^AIRBG_IMAGE_TAG=.*/AIRBG_IMAGE_TAG=$TAG/' /srv/airbg/.env \
   && cd /srv/airbg \
   && docker compose -f docker-compose.prod.yml run --rm app migrate \

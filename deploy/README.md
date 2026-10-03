@@ -108,7 +108,7 @@ itself.
 The Ansible role no longer builds `airbg` on the target host. Every push to
 `master` runs `.github/workflows/publish.yml`, which builds the image, scans it
 with Trivy, and only if the scan passes signs it keylessly with cosign via
-GitHub OIDC and pushes it to `ghcr.io/iliyan-s-petkov/airbg:<short-sha>`. The
+GitHub OIDC and pushes it to `ghcr.io/iliyan-s-petkov/kanarche:<short-sha>`. The
 `airbg` role's `tasks/image.yml` then runs `cosign verify` against that tag on
 the target itself, so the host fetches its own Rekor and Fulcio trust material,
 extracts the signed digest from the verification output, and pulls and tags the
@@ -118,7 +118,7 @@ publish workflow's Actions run.
 
 The GHCR package must be public for the anonymous pull to work. It came out
 public on the first publish (the repository is public); confirm with an
-anonymous `GET https://ghcr.io/v2/iliyan-s-petkov/airbg/tags/list` if a pull
+anonymous `GET https://ghcr.io/v2/iliyan-s-petkov/kanarche/tags/list` if a pull
 ever starts failing with 401.
 
 ## Why there is no collect job
