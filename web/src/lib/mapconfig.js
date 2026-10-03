@@ -141,6 +141,11 @@ export function readConfig(el) {
       fullscreenExit: d.tFullscreenExit || '',
       // The fullscreen sensor sheet's link down to the panel; absent on the embed.
       sheetHistory: d.tSheetHistory || '',
+      // The bottom panel's link down to the card, its short folded form, and the fold button's two names.
+      panelHistory: d.tPanelHistory || '',
+      panelHistoryShort: d.tPanelHistoryShort || '',
+      panelFold: d.tPanelFold || '',
+      panelExpand: d.tPanelExpand || '',
       zoomIn: d.tZoomIn || '',
       zoomOut: d.tZoomOut || '',
       zoomReset: d.tZoomReset || '',

@@ -223,8 +223,14 @@ export function mountChrome(el, cfg) {
     historyLabel: cfg.t.sheetHistory,
     exitFull: () => { if (fullButton?.getAttribute('aria-pressed') === 'true') fullButton.click() },
   })
-  // Wide screens dock the same gauges over the map instead; it stands down in fullscreen.
-  const dock = createSideDock(el, { closeLabel: cfg.t.close, moreLabel: cfg.t.sheetHistory })
+  // Wide screens open the same card as a panel along the map's bottom instead; it stands down in fullscreen.
+  const dock = createSideDock(el, {
+    closeLabel: cfg.t.close,
+    moreLabel: cfg.t.panelHistory,
+    moreShortLabel: cfg.t.panelHistoryShort,
+    foldLabel: cfg.t.panelFold,
+    expandLabel: cfg.t.panelExpand,
+  })
   fullButton = mountFullscreen(el, {
     label: cfg.t.fullscreen,
     exitLabel: cfg.t.fullscreenExit,

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// The desktop side dock: mountChrome, the real panel island and the shared view state,
+// The desktop bottom panel (OpenProject #684): mountChrome, the real panel island and the shared view state,
 // wired as islands/map.js wires them, with a matchMedia whose width the test controls.
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
@@ -42,6 +42,8 @@ function page() {
   Object.assign(el.dataset, {
     metric: 'P2', metrics: 'P1,P2,temperature,humidity',
     tClose: 'Close', tSheetHistory: 'Full history below',
+    tPanelHistory: 'Full history & nearby sensors', tPanelHistoryShort: 'Full history',
+    tPanelFold: 'Fold', tPanelExpand: 'Expand',
   })
   const canvas = document.createElement('canvas')
   canvas.tabIndex = 0
@@ -53,7 +55,8 @@ function page() {
   Object.assign(host.dataset, {
     metrics: 'P1,P2,temperature,humidity',
     metricLabels: 'PM10,PM2.5,Temperature,Humidity',
-    metric: 'P2', period: '24h', tTitle: 'Sensor', tClose: 'Close', tNoValue: 'no data',
+    metric: 'P2', period: '24h', periods: '24h,7d,30d,1y', periodLabels: '24 hours,7 days,30 days,1 year',
+    periodShortLabels: '24h,7d,30d,1y', tTitle: 'Sensor', tClose: 'Close', tNoValue: 'no data',
   })
   document.body.append(shell, host)
 
@@ -62,16 +65,22 @@ function page() {
   const vs = getViewState({ metrics: ['P1', 'P2', 'temperature', 'humidity'], defaultMetric: 'P2' })
   const stop = chrome.dock.follow(vs, findSensor)
   const stopSheet = chrome.sheet.follow(vs, findSensor)
-  return { shell, el, host, canvas, vs, stop: () => { stop(); stopSheet() }, full: el.querySelector('.map__full') }
+  return { shell, el, host, canvas, vs, dock: chrome.dock, stop: () => { stop(); stopSheet() }, full: el.querySelector('.map__full') }
 }
 
 const settle = async () => { await tick(); await tick(); await Promise.resolve() }
 
-describe('the desktop side dock', () => {
+describe('the desktop bottom panel', () => {
   let ctx
   let vp
   beforeEach(() => {
     vi.stubGlobal('fetch', vi.fn(() => new Promise(() => {})))
+    const store = new Map()
+    vi.stubGlobal('localStorage', {
+      getItem: (k) => (store.has(k) ? store.get(k) : null),
+      setItem: (k, v) => store.set(k, String(v)),
+      removeItem: (k) => store.delete(k),
+    })
     Element.prototype.scrollIntoView = vi.fn()
     resetViewStateForTests()
     history.replaceState(null, '', '/')
@@ -149,6 +158,7 @@ describe('the desktop side dock', () => {
     expect(ctx.el.querySelector('.map-dock h2').textContent).toBe('Sensor 102')
     expect(ctx.el.querySelectorAll('.map-dock .gauge')).toHaveLength(4)
     expect(document.querySelectorAll('.gauges')).toHaveLength(1)
+    expect(ctx.el.querySelectorAll('.panel-chart__dock'), 'the old sensor chart was left in the panel').toHaveLength(1)
   })
 
   it('goes away when the sensor closes', async () => {
@@ -206,15 +216,117 @@ describe('the desktop side dock', () => {
     expect(document.activeElement).toBe(ctx.canvas)
   })
 
-  it('the more link scrolls the card under the map into view', async () => {
+  it('the history button scrolls the card under the map into view', async () => {
     vp = stubViewport(true)
     ctx = page()
     ctx.vs.openSensor(101)
     await settle()
     const more = ctx.el.querySelector('.map-dock__more')
-    expect(more.textContent).toBe('Full history below')
+    expect(more.textContent).toBe('Full history & nearby sensors')
+    expect(more.querySelector('svg'), 'no icon on the button').toBeTruthy()
     more.click()
     expect(Element.prototype.scrollIntoView).toHaveBeenCalled()
     expect(ctx.vs.sensorId).toBe(101)
+  })
+
+  it('moves a second chart into the panel and leaves the one under the map', async () => {
+    vp = stubViewport(true)
+    ctx = page()
+    ctx.vs.openSensor(101)
+    await settle()
+    const dock = ctx.el.querySelector('.map-dock')
+    expect(dock.querySelectorAll('.panel-chart__dock .chart-frame')).toHaveLength(1)
+    expect(ctx.host.querySelectorAll('.panel-chart__dock'), 'the panel chart was copied, not moved').toHaveLength(0)
+    expect(ctx.host.querySelectorAll('.chart-frame'), 'the section under the map lost its chart').toHaveLength(1)
+    expect(dock.querySelectorAll('select, .chart-field'), 'chart controls leaked into the panel').toHaveLength(0)
+  })
+
+  it('charts the metric of the selected gauge', async () => {
+    vp = stubViewport(true)
+    ctx = page()
+    ctx.vs.openSensor(101)
+    await settle()
+    const plot = ctx.el.querySelector('.panel-chart__dock')
+    expect(plot.dataset.metric).toBe('P2')
+    const other = [...ctx.el.querySelectorAll('.map-dock .gauge')].find((g) => g.getAttribute('aria-pressed') === 'false')
+    other.click()
+    await settle()
+    expect(plot.dataset.metric).not.toBe('P2')
+    expect(ctx.el.querySelectorAll('.map-dock .gauge[aria-pressed="true"]')).toHaveLength(1)
+  })
+
+  it('period chips set the period', async () => {
+    vp = stubViewport(true)
+    ctx = page()
+    ctx.vs.openSensor(101)
+    await settle()
+    const plot = ctx.el.querySelector('.panel-chart__dock')
+    expect(plot.dataset.period).toBe('24h')
+    ctx.el.querySelector('.panel-chart__dock [data-period="7d"]').click()
+    await settle()
+    expect(plot.dataset.period).toBe('7d')
+    expect(ctx.el.querySelector('.panel-chart__dock [data-period="7d"]').getAttribute('aria-pressed')).toBe('true')
+  })
+
+  it('narrowing leaves exactly one chart, under the map', async () => {
+    vp = stubViewport(true)
+    ctx = page()
+    ctx.vs.openSensor(101)
+    await settle()
+    vp.set(false)
+    await settle()
+    expect(document.querySelectorAll('.panel-chart__dock')).toHaveLength(0)
+    expect(document.querySelectorAll('.chart-frame')).toHaveLength(1)
+    expect(ctx.host.querySelectorAll('.chart-frame')).toHaveLength(1)
+  })
+
+  it('folds and expands, names the button for what it will do, and remembers the choice', async () => {
+    vp = stubViewport(true)
+    ctx = page()
+    ctx.vs.openSensor(101)
+    await settle()
+    const dock = ctx.el.querySelector('.map-dock')
+    const fold = dock.querySelector('.map-dock__fold')
+    expect(fold.getAttribute('aria-label')).toBe('Fold')
+    expect(dock.classList.contains('map-dock--folded')).toBe(false)
+    fold.click()
+    await settle()
+    expect(dock.classList.contains('map-dock--folded')).toBe(true)
+    expect(fold.getAttribute('aria-label')).toBe('Expand')
+    expect(dock.querySelector('.map-dock__more').textContent).toBe('Full history')
+    expect(localStorage.getItem('kanarche:panel-folded')).toBe('true')
+    expect(dock.querySelectorAll('.gauge')).toHaveLength(4)
+    fold.click()
+    expect(fold.getAttribute('aria-label')).toBe('Fold')
+    expect(dock.querySelector('.map-dock__more').textContent).toBe('Full history & nearby sensors')
+    expect(localStorage.getItem('kanarche:panel-folded')).toBe('false')
+  })
+
+  it('opens folded when the folded choice was saved', async () => {
+    localStorage.setItem('kanarche:panel-folded', 'true')
+    vp = stubViewport(true)
+    ctx = page()
+    ctx.vs.openSensor(101)
+    await settle()
+    expect(ctx.el.querySelector('.map-dock').classList.contains('map-dock--folded')).toBe(true)
+    expect(ctx.el.querySelector('.map-dock__fold').getAttribute('aria-label')).toBe('Expand')
+  })
+
+  it('reports the height it covers, and 0 once it is gone', async () => {
+    vp = stubViewport(true)
+    ctx = page()
+    const seen = []
+    ctx.dock.onLayout((h) => seen.push(h))
+    const rect = (top, bottom) => () => ({ top, bottom, left: 0, right: 0, width: 0, height: bottom - top })
+    ctx.el.getBoundingClientRect = rect(0, 600)
+    ctx.vs.openSensor(101)
+    await settle()
+    const dock = ctx.el.querySelector('.map-dock')
+    dock.getBoundingClientRect = rect(400, 592)
+    ctx.dock.measure()
+    expect(seen.at(-1)).toBe(200)
+    ctx.vs.closeSensor()
+    await settle()
+    expect(seen.at(-1)).toBe(0)
   })
 })

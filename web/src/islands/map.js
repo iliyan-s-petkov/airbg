@@ -26,6 +26,7 @@ import { openDeepLinkedSensor, locateMe } from '../lib/placement.js'
 import { trackLastView } from '../lib/lastview.js'
 import { installLocateHint } from '../lib/locatehint.js'
 import { mountChrome } from '../lib/chrome.js'
+import { installPanelPadding } from '../lib/panelpadding.js'
 import { installMapLoad } from '../lib/mapload.js'
 import { findSensor } from '../lib/sensors.svelte.js'
 
@@ -94,6 +95,7 @@ export function mount(el) {
   // here, to the camera it drives. `home` is the view the server rendered this
   // page at — the country fit on /, the area's own centre on /area/{slug} — so
   // reset needs no branch on which page it is standing in.
+  installPanelPadding(map, chrome.dock, vs)
   installZoom(map, chrome.zoomButtons, { centre: [cfg.lon, cfg.lat], zoom: cfg.zoom })
 
   // On /area/{slug} the slug is fixed, one area, ever. On / it starts empty and
