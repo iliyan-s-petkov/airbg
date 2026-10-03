@@ -23,6 +23,8 @@
 {{end}}<meta name="twitter:card" content="summary_large_image">
 {{with .JSONLD}}<script type="application/ld+json">{{.}}</script>
 {{end}}{{end}}<link rel="icon" href="{{.Static "favicon.svg"}}" type="image/svg+xml">
+<link rel="icon" href="{{.Static "favicon-32.png"}}" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="{{.Static "apple-touch-icon.png"}}" sizes="180x180">
 {{with .Assets.Style "theme"}}<link rel="stylesheet" href="{{.}}">
 {{else}}<link rel="stylesheet" href="{{.Static "theme.css"}}">
 {{end}}<link rel="stylesheet" href="{{.Static "app.css"}}">
@@ -34,7 +36,7 @@
 {{/* The masthead brand is the lowercase wordmark of the active language
      (brand.wordmark); the aria-label carries the capitalised product name. */}}
 <header class="masthead">
-  <a class="masthead__brand" href="{{.Path "/"}}" aria-label="{{.T "seo.title_brand"}}"><img src="{{.Static "favicon.svg"}}" width="20" height="20" alt="">{{.T "brand.wordmark"}}</a>
+  <a class="masthead__brand" href="{{.Path "/"}}" aria-label="{{.T "seo.title_brand"}}"><img src="{{.Static "favicon.svg"}}" data-logo="kanarche-1b" width="22" height="22" alt="">{{.T "brand.wordmark"}}</a>
   <nav class="masthead__nav" aria-label="{{.T "nav.map"}}">
     <a class="masthead__link" href="{{.Path "/"}}"{{if .OnPath "/"}} aria-current="page"{{end}}>{{.T "nav.map"}}</a>
     <a class="masthead__link" href="{{.Path "/areas"}}"{{if .OnPath "/areas"}} aria-current="page"{{end}}>{{.T "nav.areas"}}</a>
@@ -93,7 +95,7 @@
        every number the site shows. The language picker lives in the masthead. */}}
   <div class="frame footer__grid">
     <div class="footer__brand">
-      <p class="masthead__brand footer__wordmark"><img src="{{.Static "favicon.svg"}}" width="20" height="20" alt="">{{.T "brand.wordmark"}}</p>
+      <p class="masthead__brand footer__wordmark"><img src="{{.Static "favicon.svg"}}" data-logo="kanarche-1b" width="22" height="22" alt="">{{.T "brand.wordmark"}}</p>
       <p class="footer__tagline">{{.T "footer.brand.tagline"}}</p>
       <p class="footer__disclaimer">{{.T "footer.brand.disclaimer"}}</p>
     </div>
