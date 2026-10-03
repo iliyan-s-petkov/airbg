@@ -42,3 +42,15 @@ test('localStorage after moving the home map holds only allow-listed keys', asyn
 
   await page.close()
 })
+
+test('localStorage after the first-visit locate tip holds only allow-listed keys', async ({ ctx }) => {
+  const page = await ctx.newPage()
+  await page.goto('/en/')
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('kanarche:locate-hint-seen'))).toBe('1')
+
+  const keys = await page.evaluate(() => Object.keys(localStorage))
+  const unexpected = keys.filter((k) => !allowed.has(k))
+  expect(unexpected, `unlisted localStorage keys: ${unexpected.join(', ')}`).toEqual([])
+
+  await page.close()
+})

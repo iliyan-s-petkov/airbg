@@ -24,6 +24,7 @@ import {
 } from '../lib/mapdata.js'
 import { openDeepLinkedSensor, locateMe } from '../lib/placement.js'
 import { trackLastView } from '../lib/lastview.js'
+import { installLocateHint } from '../lib/locatehint.js'
 import { mountChrome } from '../lib/chrome.js'
 import { installMapLoad } from '../lib/mapload.js'
 import { findSensor } from '../lib/sensors.svelte.js'
@@ -143,6 +144,10 @@ export function mount(el) {
   const boundaryState = { on: false, body: null, loading: false }
 
   chrome.locateButton.addEventListener('click', () => locateMe(map, state, cfg, chrome))
+  installLocateHint(map, chrome.locateButton, cfg, {
+    text: cfg.t.locateHint,
+    onActivate: () => locateMe(map, state, cfg, chrome),
+  })
 
   // The finder island is beside this one, not inside it: it names an area and
   // this map is what moves. Registered here, where the camera is.
