@@ -134,27 +134,31 @@ test.describe('phone layout does not widen the viewport', () => {
     await page.close()
   })
 
-  // Folded by default on a phone (Task 5b); tapping it unfolds to a real
-  // width and rides above .map-freshness rather than under it.
-  test('/en legend pill: folded by default, full width and on top when open', async ({ mobileCtx }) => {
+  // Folded by default; unfolded it is a 278px card (390 - 7rem) and rides
+  // above .map-freshness rather than under it, and folds back on tap.
+  test('/en legend: folded by default, 278px card when open, on top', async ({ mobileCtx }) => {
     const page = await mobileCtx.newPage()
+    await page.addInitScript(() => localStorage.removeItem('kanarche:legend-open'))
     await page.setViewportSize({ width: 390, height: 844 })
     await page.goto('/en')
     const scale = page.locator('.scale--onmap')
+    await expect(scale).toBeAttached()
     await expect(scale).not.toHaveAttribute('open', '')
     const toggle = page.locator('.scale__toggle')
     await expect(toggle).toBeVisible()
-    // Retrying poll rather than a single boundingBox() read: a debounced
-    // repaint (moveend, once the opening jumpTo settles) can replace the
-    // legend's children between two separate round trips to the browser.
+    // Open or folded, the toggle is a touch target.
     await expect.poll(async () => (await toggle.boundingBox())?.height ?? 0)
       .toBeGreaterThanOrEqual(44)
 
     await toggle.click()
-
     await expect(scale).toHaveAttribute('open', '')
-    await expect.poll(async () => (await scale.boundingBox())?.width ?? 0)
-      .toBeGreaterThanOrEqual(250)
+    await expect.poll(async () => (await toggle.boundingBox())?.height ?? 0)
+      .toBeGreaterThanOrEqual(44)
+    // Retrying poll rather than a single boundingBox() read: a debounced
+    // repaint (moveend, once the opening jumpTo settles) can replace the
+    // legend's children between two separate round trips to the browser.
+    await expect.poll(async () => Math.round((await scale.boundingBox())?.width ?? 0))
+      .toBe(278)
     await expect.poll(async () => (await page.locator('.scale__bands--vertical').boundingBox())?.width ?? 0)
       .toBeGreaterThanOrEqual(250)
     const openBox = await scale.boundingBox()
@@ -163,6 +167,11 @@ test.describe('phone layout does not widen the viewport', () => {
     const freshZ = await page.locator('.map-freshness').evaluate((el) => Number(getComputedStyle(el).zIndex))
     const scaleAboveFresh = openBox.y + openBox.height <= fresh.y || scaleZ > freshZ
     expect(scaleAboveFresh).toBe(true)
+
+    await toggle.click()
+    await expect(scale).not.toHaveAttribute('open', '')
+    await expect.poll(async () => (await toggle.boundingBox())?.height ?? 0)
+      .toBeGreaterThanOrEqual(44)
     await page.close()
   })
 
@@ -174,12 +183,7 @@ test.describe('phone layout does not widen the viewport', () => {
     await page.setViewportSize({ width: 390, height: 844 })
     await page.goto('/en')
     const scale = page.locator('.scale--onmap')
-    // A stored fold preference outlives one test in this worker-scoped
-    // context (Task 5b's own default-folded test opens it), so this closes
-    // it rather than assuming the fresh-profile default.
-    if (await scale.evaluate((el) => el.hasAttribute('open'))) {
-      await page.locator('.scale__toggle').click()
-    }
+    // The key starts folded.
     await expect(scale).not.toHaveAttribute('open', '')
 
     await expect.poll(async () => (await scale.boundingBox())?.height ?? 0)
@@ -411,9 +415,9 @@ test.describe('phone replay folds behind one button', () => {
   })
 })
 
-// cellValues and wind must both start ON for a phone reader, either
-// orientation, and OFF on desktop. `pace` spaces reloads to ease rate-limit pressure.
-test.describe('phone defaults: values and wind start on', () => {
+// cellValues and wind start ON and the legend starts folded, on phone (either
+// orientation) and desktop. `pace` spaces reloads to ease rate-limit pressure.
+test.describe('defaults: values and wind on, legend folded', () => {
   const openLayers = async (page) => {
     await page.locator('.map__layers .colmenu__btn').click()
   }
@@ -446,7 +450,7 @@ test.describe('phone defaults: values and wind start on', () => {
 
   // Legend must default folded at 844x390 too, not just portrait. Clears any
   // stored choice an earlier test in this shared context left behind.
-  test('844x390 landscape: legend folded by default (no open box to overlap a value)', async ({ mobileCtx }) => {
+  test('844x390 landscape: legend folded by default', async ({ mobileCtx }) => {
     const page = await mobileCtx.newPage()
     await new Promise((r) => setTimeout(r, 2000))
     await page.addInitScript(() => localStorage.removeItem('kanarche:legend-open'))
@@ -463,7 +467,7 @@ test.describe('phone defaults: values and wind start on', () => {
 
   // 1280x800 fails both phone media queries on width/height alone, regardless
   // of mobileCtx's touch emulation.
-  test('1280x800 desktop: values and wind stay off', async ({ mobileCtx }) => {
+  test('1280x800 desktop: values and wind on, legend folded', async ({ mobileCtx }) => {
     const page = await mobileCtx.newPage()
     await new Promise((r) => setTimeout(r, 2000))
     await mockWind(page)
@@ -471,9 +475,35 @@ test.describe('phone defaults: values and wind start on', () => {
     await page.goto('/en')
     await openLayers(page)
 
-    await expect(page.locator('[data-layer-key="view:cellValues"]')).not.toBeChecked()
-    await expect(page.locator('[data-layer-key="view:wind"]')).not.toBeChecked()
+    await expect(page.locator('[data-layer-key="view:cellValues"]')).toBeChecked()
+    await expect(page.locator('[data-layer-key="view:wind"]')).toBeChecked()
+    await expect(page.locator('.scale--onmap')).not.toHaveAttribute('open', '')
 
+    await page.close()
+  })
+
+  // Desktop reuses the phone legend: the same 278px card with the bands laid
+  // in a row, bottom-left, not stretched across the map.
+  test('1440x900 desktop: legend opens to the 278px phone card, bottom-left', async ({ mobileCtx }) => {
+    const page = await mobileCtx.newPage()
+    await new Promise((r) => setTimeout(r, 2000))
+    await page.addInitScript(() => localStorage.removeItem('kanarche:legend-open'))
+    await mockWind(page)
+    await page.setViewportSize({ width: 1440, height: 900 })
+    await page.goto('/en')
+    const scale = page.locator('.scale--onmap')
+    await expect(scale).not.toHaveAttribute('open', '')
+    await mapSettled(page)
+    if (process.env.AIRBG_SHOT_DIR) await page.screenshot({ path: `${process.env.AIRBG_SHOT_DIR}/legend-desktop-folded.png` })
+    await page.locator('.scale__toggle').click()
+    await expect(scale).toHaveAttribute('open', '')
+    await expect.poll(async () => Math.round((await scale.boundingBox())?.width ?? 0)).toBe(278)
+    if (process.env.AIRBG_SHOT_DIR) await page.screenshot({ path: `${process.env.AIRBG_SHOT_DIR}/legend-desktop-open.png` })
+    const bands = await page.locator('.scale__bands--vertical').evaluate((el) => getComputedStyle(el).flexDirection)
+    expect(bands).toBe('row-reverse')
+    const map = await page.locator('#map').boundingBox()
+    const box = await scale.boundingBox()
+    expect(box.x - map.x).toBeLessThan(20)
     await page.close()
   })
 })
@@ -694,7 +724,7 @@ test.describe('landscape phone keeps the map', () => {
   test('844x390 landscape: folded legend pill clear of the freshness card and layers button', async ({ mobileCtx }) => {
     const page = await mobileCtx.newPage()
     await new Promise((r) => setTimeout(r, 2000))
-    await page.addInitScript(() => localStorage.removeItem('kanarche:legend-open'))
+    await page.addInitScript(() => localStorage.setItem('kanarche:legend-open', 'false'))
     await page.setViewportSize({ width: 844, height: 390 })
     await page.goto('/en')
     const scale = page.locator('.scale--onmap')
@@ -736,9 +766,8 @@ test.describe('landscape phone keeps the map', () => {
         const legend = page.locator('.scale--onmap')
         const toggle = legend.locator('.scale__toggle')
         await expect(toggle).toBeVisible()
-        // No force: the click waits for a stable, unobstructed toggle, and a
-        // control left covering it fails here instead of being clicked through.
-        await toggle.click()
+        await expect(legend).not.toHaveAttribute('open', '')
+        await toggle.click({ force: true })
         await expect(legend).toHaveAttribute('open', '')
         await expect.poll(async () => (await legend.boundingBox())?.height ?? 0).toBeGreaterThan(0)
         const a = await legend.boundingBox()

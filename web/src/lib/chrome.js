@@ -85,26 +85,24 @@ export function mountChrome(el, cfg) {
   const shell = el.closest('.map-shell') ?? el
 
   // <details>: it owns the open state, the keyboard and the accessible name, so
-  // nothing else in the DOM has to record whether the key is folded. Open by
-  // default — a key the reader has to find and unfold does not explain the
-  // colours they are already looking at.
+  // nothing else in the DOM has to record whether the key is folded. Folded by
+  // default on every viewport: the pill names the metric and an open card
+  // covers the map.
   //
   // The fold is remembered, like every other map preference. It is a different
   // control from the layers menu's "Legend": the menu says whether there is a
   // key at all, the triangle says whether it is unrolled, and a reader who
   // folds the key on a small screen wants it folded on the next page too.
-  // matchMedia is missing under jsdom — absent means "not a phone" so the
-  // desktop-default tests below run unmocked and unchanged.
+  // matchMedia is missing under jsdom — absent means "not a phone".
   // Portrait-only: the rotation listener below only tracks the 672px breakpoint.
   const phoneQuery = typeof matchMedia === 'function' ? matchMedia('(max-width: 672px)') : null
 
-  // Shared phone check for the legend fold and the cellValues/wind defaults below.
+  // Phone check for the legend auto-close and the refresh controls' placement.
   const phone = isPhoneViewport()
-  const phoneDefaults = phone
   const legend = document.createElement('details')
   legend.className = LEGEND_CLASSES
-  // Phones default folded (a stored choice still wins); desktop still defaults open.
-  legend.open = readFlag(LEGEND_FOLD_KEY, !phone)
+  // Folded by default everywhere; a stored choice still wins.
+  legend.open = readFlag(LEGEND_FOLD_KEY, false)
   // #579: true while the layers list is the reason the legend is folded, so
   // closing the list can restore it — but only that fold, never a reader's own.
   let legendFoldedForLayers = false
@@ -275,6 +273,15 @@ export function mountChrome(el, cfg) {
     else freshBox.prepend(refreshBox)
   }, { signal: live.signal })
 
+  // The open attribution card covers the key's corner on a phone: fold it then.
+  // A click on its (i), not a class watch: MapLibre opens the card itself on load.
+  el.addEventListener('click', (e) => {
+    if (!e.target.closest?.('.maplibregl-ctrl-attrib-button')) return
+    queueMicrotask(() => {
+      if (el.querySelector('.maplibregl-ctrl-attrib.maplibregl-compact-show')) closeLegend()
+    })
+  }, { signal: live.signal })
+
   // Third in the bottom-left cluster: refresh, then which window, then play.
   const player = mountPlayer(el, {
     label: cfg.t.timeLabel,
@@ -308,9 +315,7 @@ export function mountChrome(el, cfg) {
       label: cfg.t.viewCellValues,
       // No needsMap: the cells are this island's own layer and are drawn on a
       // map served without tiles like any other.
-      // On by default on a phone (see phoneDefaults above), off on desktop; a
-      // stored choice still wins either way.
-      defaultOff: !phoneDefaults,
+      // On by default (no defaultOff); a stored choice still wins.
       apply: (on, map) => setCellValues(map, on),
     },
     {
@@ -440,9 +445,6 @@ export function mountChrome(el, cfg) {
   return {
     ...hintCtl,
     storage,
-    // Read by mapload.js's windView, so both defaults come from the one
-    // mount-time check rather than a second matchMedia call drifting from this one.
-    phoneDefaults,
     showNote(text) {
       note.textContent = text
       note.hidden = !text
