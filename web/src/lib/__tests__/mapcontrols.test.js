@@ -234,7 +234,21 @@ describe('installZoom', () => {
     wire(map).reset.click()
     // `center`, MapLibre's spelling, out of `centre`, ours. The two sit one
     // property apart and a map handed the wrong key flies to null island.
-    expect(map.flyTo).toHaveBeenCalledWith({ center: [25.4858, 42.7339], zoom: 7 }, { userInitiated: true })
+    expect(map.flyTo).toHaveBeenCalledWith(
+      { center: [25.4858, 42.7339], zoom: 7, pitch: 0, bearing: 0 },
+      { userInitiated: true },
+    )
+  })
+
+  it('reset flattens a tilted, rotated camera in one flight', () => {
+    const map = fakeMap()
+    map.pitch = 45
+    map.bearing = 30
+    // Apply the target the way MapLibre would, so the assertion is on the end state.
+    map.flyTo = vi.fn((o) => { map.pitch = o.pitch; map.bearing = o.bearing; map.zoom = o.zoom })
+    wire(map).reset.click()
+    expect(map.flyTo).toHaveBeenCalledOnce()
+    expect([map.pitch, map.bearing, map.zoom]).toEqual([0, 0, 7])
   })
 
   it('disables a button at the limit it reports, not at a limit written here', () => {
