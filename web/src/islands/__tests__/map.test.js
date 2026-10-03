@@ -60,6 +60,9 @@ vi.mock('maplibre-gl', () => {
       // a map this island can mount.
       this.getMinZoom = vi.fn(() => 5)
       this.getMaxZoom = vi.fn(() => 18)
+      this.getMaxPitch = vi.fn(() => 60)
+      this.getBearing = vi.fn(() => 0)
+      this.getPitch = vi.fn(() => 0)
       this.zoomIn = vi.fn()
       this.zoomOut = vi.fn()
       this.flyTo = vi.fn()
