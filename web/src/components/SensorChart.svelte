@@ -11,6 +11,7 @@
   import { getScales, getSensorArea } from '../lib/sensors.svelte.js'
   import { nearbyOptions, nearbySources } from '../lib/nearby.js'
   import { CUSTOM, periodQuery } from '../lib/period.js'
+  import { panelDock } from '../lib/paneldock.svelte.js'
 
   // The panel's chart and its controls: which metrics (several at once), which
   // window, and a reset back to the view the panel opened on.
@@ -175,6 +176,33 @@
     { key: 'embed', label: embedLabel, run: embed },
   ])
 </script>
+
+<!-- The panel over the map (lib/sidedock.svelte.js) moves this node out while it is open. It reads the
+     metric and period the controls below own, so it needs no state of its own and no second fetch:
+     getJSON answers the same URLs from its cache. A lone root node, so Svelte can remove it from anywhere. -->
+{#if panelDock.on}
+  <div class="panel-chart__dock" data-metric={metrics.join(',')} data-period={period}>
+    <div class="period-seg" role="group" aria-label={periodLegend}>
+      {#each periods as p, i (p)}
+        <button
+          type="button"
+          data-period={p}
+          aria-pressed={period === p}
+          onclick={() => { period = p; from = ''; to = '' }}
+        >{shortLabel(p, i)}</button>
+      {/each}
+    </div>
+    <div class="panel-chart__dockplot">
+      {#if period === CUSTOM && !query}
+        <p class="chart-message">{rangeInvalid}</p>
+      {:else if chartSources.length}
+        {#key resetToken}
+          <Chart sources={chartSources} {timeLabel} {empty} {unavailable} fill title="" />
+        {/key}
+      {/if}
+    </div>
+  </div>
+{/if}
 
 <div class="panel-chart">
   <div class="panel-chart__phone">

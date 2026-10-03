@@ -103,6 +103,9 @@
   --locate-hint-lift: 3.2rem;
   --locate-hint-arrow-inset: 9px;
 
+  /* What the sensor panel covers at the map's bottom; the dock sets it on .map-shell, 0 with none open. */
+  --map-panel-h: 0px;
+
   /* Wind legend glyph; the streak blue. This fallback has no dark theme. */
   --wind-glyph: rgb(24, 58, 170);
 }
