@@ -426,6 +426,16 @@ strong, b { font-weight: var(--weight-emphasis); }
 }
 .panel-close { display: inline-flex; align-items: center; gap: var(--space-2); flex: none; }
 .panel-close__ico { flex: none; }
+/* Favourite star: sits next to the close button wherever the card is. */
+.panel-star {
+  display: inline-flex; align-items: center; justify-content: center; flex: none;
+  min-inline-size: 2rem; min-block-size: 2rem; padding: 0; font-size: 1.25rem; line-height: 1;
+  color: var(--muted); background: none; border: 1px solid transparent; border-radius: 999px; cursor: pointer;
+}
+.panel-star:hover { color: var(--fg); background: var(--surface-2); }
+.panel-star[aria-pressed="true"] { color: var(--fg); }
+.panel-star:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.map-dock__title, .map-sensor-sheet__title { flex: 1 1 auto; min-inline-size: 0; }
 /* Phones: card scrolls in under the masthead; title row stays pinned. */
 @media (hover: none) {
   .sensor-panel { scroll-margin-block-start: calc(var(--masthead-h) + var(--space-2)); }
@@ -434,6 +444,7 @@ strong, b { font-weight: var(--weight-emphasis); }
     background: var(--bg); border-block-end: 1px solid var(--border-faint);
     padding-block: var(--space-2); margin-inline: calc(-1 * var(--space-4)); padding-inline: var(--space-4);
   }
+  .panel-star { min-block-size: 44px; min-inline-size: 44px; }
   .panel-close {
     min-block-size: 44px; min-inline-size: 44px; padding-inline: var(--space-3);
     border: 1px solid var(--border); border-radius: 999px; background: var(--surface-2); color: var(--fg);

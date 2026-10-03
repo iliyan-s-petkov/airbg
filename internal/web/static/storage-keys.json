@@ -7,7 +7,8 @@
     "kanarche:map-window",
     "kanarche:auto-refresh",
     "kanarche:map-view",
-    "kanarche:locate-hint-seen"
+    "kanarche:locate-hint-seen",
+    "kanarche:favourite-sensor"
   ],
   "legacy": [
     "airbg:theme",
@@ -17,7 +18,8 @@
     "airbg:map-window",
     "airbg:auto-refresh",
     "airbg:map-view",
-    "airbg:locate-hint-seen"
+    "airbg:locate-hint-seen",
+    "airbg:favourite-sensor"
   ],
   "sessionStorage": []
 }

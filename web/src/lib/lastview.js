@@ -58,10 +58,10 @@ export function hasExplicitView(hash, search) {
   return false
 }
 
-// The one place the opening-view precedence lives: explicit > saved > default.
-// A favourite sensor slots in above `saved` here.
-export function resolveOpeningView({ hash, search, saved }) {
+// The one place the opening-view precedence lives: explicit > favourite > saved > default.
+export function resolveOpeningView({ hash, search, saved, favourite = null }) {
   if (hasExplicitView(hash, search)) return { source: 'explicit', view: null }
+  if (favourite !== null) return { source: 'favourite', view: null, sensorId: favourite }
   if (saved) return { source: 'saved', view: saved }
   return { source: 'default', view: null }
 }

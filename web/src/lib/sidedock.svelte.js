@@ -1,6 +1,7 @@
 // The open sensor's title and gauges docked over the right of the map on wide screens.
 // The panel's own .gauges node is moved in and put back, the same move-not-duplicate idiom as sensorsheet.
 import { tick } from 'svelte'
+import { createStarSlot } from './panelstar.js'
 
 const WIDE = '(min-width: 1024px)'
 const TITLE_ID = 'map-dock-title'
@@ -17,6 +18,7 @@ export function createSideDock(frame, { closeLabel = '', moreLabel = '' } = {}) 
   let marker = null
   let returnTo = null
   let onClose = () => {}
+  const starSlot = createStarSlot(doc)
 
   const el = doc.createElement('div')
   el.className = 'map-dock'
@@ -71,6 +73,7 @@ export function createSideDock(frame, { closeLabel = '', moreLabel = '' } = {}) 
   function unmount() {
     if (!mounted()) return
     restoreGauges()
+    starSlot.release()
     el.remove()
     shell?.classList.remove('map-shell--docked')
     const back = returnTo
@@ -96,6 +99,7 @@ export function createSideDock(frame, { closeLabel = '', moreLabel = '' } = {}) 
       gauges = next
       body.appendChild(next)
     }
+    starSlot.take(p, head, close)
     if (!mounted()) {
       returnTo = doc.activeElement
       frame.appendChild(el)
