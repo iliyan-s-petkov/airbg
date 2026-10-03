@@ -55,6 +55,7 @@ h1 { font-size: var(--text-page); font-weight: var(--weight-display); line-heigh
 h2 { font-size: var(--text-section); font-weight: var(--weight-body); line-height: 1.25; }
 h3 { font-size: var(--text-sub); font-weight: var(--weight-body); line-height: 1.33; }
 a { color: var(--accent); }
+.about-mascot { display: block; inline-size: min(200px, 60%); block-size: auto; margin-block-end: var(--space-3); }
 .page-head .t-sub { font-size: var(--text-card); font-weight: var(--weight-body); line-height: 1.25; margin: 0; color: var(--muted); }
 :focus-visible { outline: none; box-shadow: var(--focus-ring); }
 
