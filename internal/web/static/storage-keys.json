@@ -6,7 +6,9 @@
     "kanarche:play-speed",
     "kanarche:map-window",
     "kanarche:auto-refresh",
-    "kanarche:map-view"
+    "kanarche:map-view",
+    "kanarche:locate-hint-seen",
+    "kanarche:favourite-sensor"
   ],
   "legacy": [
     "airbg:theme",
@@ -15,7 +17,9 @@
     "airbg:play-speed",
     "airbg:map-window",
     "airbg:auto-refresh",
-    "airbg:map-view"
+    "airbg:map-view",
+    "airbg:locate-hint-seen",
+    "airbg:favourite-sensor"
   ],
   "sessionStorage": []
 }
