@@ -945,7 +945,6 @@ html:has(> body.embed) { block-size: 100%; }
 }
 /* The transient map note drops under the controls row instead of sharing it. */
 .map-shell:has(.map-controls) .map-note { inset-inline-start: 12px; top: calc(var(--space-2) + 40px + var(--space-2)); }
-.map-shell:has(.map:fullscreen, .map--faux-full) .map-controls { display: none; }
 @media (min-width: 672px) {
   .map-shell:has(> .map--hero) { max-inline-size: none; block-size: auto; max-block-size: none; }
   .map--hero { aspect-ratio: auto; block-size: calc(100svh - var(--masthead-h)); min-block-size: 22rem; max-block-size: none; }
