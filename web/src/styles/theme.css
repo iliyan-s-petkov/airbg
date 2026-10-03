@@ -54,4 +54,7 @@
   --glass-border: rgba(0, 0, 0, 0.12);
   --glass-border: color-mix(in srgb, var(--fg) 20%, transparent);
   --glass-blur: blur(12px) saturate(160%);
+  /* Locate hint: bubble lift above the button, arrow inset from the corner. Phone overrides in app.css. */
+  --locate-hint-lift: 3.2rem;
+  --locate-hint-arrow-inset: 9px;
 }

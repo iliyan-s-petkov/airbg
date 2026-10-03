@@ -183,6 +183,7 @@ export function readConfig(el) {
       unavailable: d.tUnavailable || '',
       unscaled: d.tUnscaled || '',
       locateButton: d.tLocateButton || '',
+      locateHint: d.tLocateHint || '',
       locateDenied: d.tLocateDenied || '',
       locateFailed: d.tLocateFailed || '',
       windToggle: d.tWindToggle || '',
