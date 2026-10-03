@@ -332,3 +332,62 @@ test('1440: opening, folding and expanding the panel never scrolls the page', as
   expect(deep).toBe(0)
   await context.close()
 })
+
+// Master's orientation button and wind note share the map with the panel.
+const mockWind = (page) => page.route('**/api/v1/wind', (route) => route.fulfill({
+  status: 200,
+  contentType: 'application/json',
+  body: JSON.stringify({
+    generated_at: new Date().toISOString(),
+    valid_at: new Date().toISOString(),
+    model: 'Test Model',
+    model_resolution_deg: 0.25,
+    resolution_km: 25,
+    forecast: true,
+    vectors: [{ lon: 23.3, lat: 42.68, speed_ms: 3.2, direction_deg: 180 }],
+  }),
+}))
+
+// True when the element's centre is painted by the element itself, not by something over it.
+const hittable = (locator) => locator.evaluate((el) => {
+  const r = el.getBoundingClientRect()
+  const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2)
+  return !!hit && el.contains(hit)
+})
+
+test('1440: the orientation control and wind note stay clear of the panel, open or folded', async ({ browser }, testInfo) => {
+  testInfo.setTimeout(90000)
+  const context = await browser.newContext({ viewport: WIDE })
+  const page = await context.newPage()
+  await mockWind(page)
+  await prepareMap(page)
+  await expect.poll(() => page.locator('.map-wind-label').evaluate((el) => el.hidden)).toBe(false)
+  await tapHex(page)
+  await expect(page.locator(PANEL)).toBeVisible()
+  const check = async (when) => {
+    await page.waitForTimeout(700)
+    const p = await box(page.locator(PANEL))
+    for (const sel of ['.map-orient__btn', '.map-wind-label', '.map-wind-label__toggle', '.map-locate']) {
+      const c = page.locator(sel).first()
+      expect(overlaps(p, await box(c)), `${sel} sits under the panel (${when})`).toBe(false)
+      expect(await hittable(c), `${sel} is covered (${when})`).toBe(true)
+    }
+    const button = page.locator('.map-orient__btn')
+    await button.click()
+    const pop = page.locator('.map-orient__panel')
+    await expect(pop).toBeVisible()
+    expect(overlaps(p, await box(pop)), `the popover sits under the panel (${when})`).toBe(false)
+    expect(await hittable(page.locator('.map-orient__tilt')), `the tilt slider is covered (${when})`).toBe(true)
+    await page.locator('.map-orient__tilt').fill('40')
+    await expect.poll(() => page.evaluate(() => document.querySelector('[data-island="map"]').__map.getPitch())).toBe(40)
+    await page.locator('.map-orient__north-btn').click()
+    await expect.poll(() => page.evaluate(() => document.querySelector('[data-island="map"]').__map.getPitch()), { timeout: 15000 }).toBe(0)
+    await button.click()
+    await expect(pop).toBeHidden()
+  }
+  await check('open')
+  await page.locator(PANEL).getByRole('button', { name: 'Fold' }).click()
+  await expect(page.locator(PANEL).getByRole('button', { name: 'Expand' })).toBeVisible()
+  await check('folded')
+  await context.close()
+})
