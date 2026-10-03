@@ -37,7 +37,7 @@ export const MOVE_DEBOUNCE_MS = 250
 // listens to is how e2e/redraw.spec.js counts the draws a reader sees.
 export function paintSource(map, sourceId, features) {
   map.getSource(sourceId)?.setData({ type: 'FeatureCollection', features })
-  map.getContainer?.()?.dispatchEvent?.(new CustomEvent('airbg:paint', { detail: { source: sourceId } }))
+  map.getContainer?.()?.dispatchEvent?.(new CustomEvent('airbg:paint', { detail: { source: sourceId, features } }))
 }
 
 // onMetricChange is what runs on every metric switch (and once, explicitly,

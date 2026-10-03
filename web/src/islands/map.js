@@ -11,7 +11,7 @@ import { getViewState } from '../lib/viewstate.svelte.js'
 import { readWindow } from '../lib/mapwindow.js'
 import { provideAreaSelect } from '../lib/mapareas.svelte.js'
 import { BOUNDARY_FILL_LAYER_ID, boundsOf, findBoundary } from '../lib/boundaries.js'
-import { LAYER_ID, FAULTY_LAYER_ID, HEX_LAYER_ID, HEX_POINT_LAYER_ID, HEX_SOURCE_ID } from '../lib/mapids.js'
+import { LAYER_ID, FAULTY_LAYER_ID, HEX_LAYER_ID, HEX_EXTRUSION_LAYER_ID, HEX_POINT_LAYER_ID, HEX_SOURCE_ID } from '../lib/mapids.js'
 import { MIN_ZOOM, readConfig } from '../lib/mapconfig.js'
 import { POINT_TIER_MIN_ZOOM } from '../lib/hexes.js'
 import { registerProtocols, mapStyle, installErrorHandler } from '../lib/mapstyle.js'
@@ -28,6 +28,9 @@ import { installLocateHint } from '../lib/locatehint.js'
 import { mountChrome } from '../lib/chrome.js'
 import { installMapLoad } from '../lib/mapload.js'
 import { findSensor } from '../lib/sensors.svelte.js'
+
+// The flat cells and their tilted columns: one feature, two ways of drawing it.
+const HEX_CELL_LAYERS = [HEX_LAYER_ID, HEX_EXTRUSION_LAYER_ID]
 
 
 // Mean of a polygon ring's vertices, dropping the closing vertex GeoJSON
@@ -217,7 +220,8 @@ export function mount(el) {
   // The cells inherit that click wherever the markers have stepped aside.
   // A cell naming one station opens the panel; a bin of several has none to
   // name, so it selects the area its centre falls nearest instead.
-  map.on('click', HEX_LAYER_ID, (e) => {
+  // Both cell layers in one listener: a tilted click lands on the column, a flat one on the fill.
+  map.on('click', HEX_CELL_LAYERS, (e) => {
     const id = e.features?.[0]?.properties?.sensorId
     if (id !== undefined && id !== null) {
       vs.openSensor(Number(id))
@@ -244,11 +248,15 @@ export function mount(el) {
     if (slug) refresh(map, state, cfg, chrome)
   })
 
+  // MapLibre fires click only for a click, not the end of a drag, so a pan
+  // leaves the wind note open. Runs alongside the marker and cell handlers.
+  map.on('click', () => chrome.foldWind())
+
   // A click that opens neither a marker nor a named cell closes the open panel.
   // Registered after the layer handlers, which claim clicks that open something.
   map.on('click', (e) => {
     if (vs.sensorId == null) return
-    const feats = hit(map, e.point, [LAYER_ID, HEX_LAYER_ID])
+    const feats = hit(map, e.point, [LAYER_ID, ...HEX_CELL_LAYERS])
     if (feats.some((f) => f.properties?.id != null || f.properties?.sensorId != null)) return
     vs.closeSensor()
   })
@@ -269,8 +277,9 @@ export function mount(el) {
     hoveredHexId = id
     map.setFeatureState({ source: HEX_SOURCE_ID, id }, { hover: true })
   }
-  // Both layers: a feature is a polygon or a point, never both.
-  for (const id of [HEX_LAYER_ID, HEX_POINT_LAYER_ID]) {
+  // Both layers: a feature is a polygon or a point, never both. The cell layers share one
+  // listener so moving from a ground footprint onto its column is not a leave.
+  for (const id of [HEX_CELL_LAYERS, HEX_POINT_LAYER_ID]) {
     map.on('mousemove', id, hoverHex)
     map.on('mouseenter', id, () => { map.getCanvas().style.cursor = 'pointer' })
     map.on('mouseleave', id, () => {
@@ -294,7 +303,7 @@ export function mount(el) {
   // what the ground between them means.
   map.on('click', (e) => {
     if (!boundaryState.on) return
-    if (hit(map, e.point, [LAYER_ID, HEX_LAYER_ID]).length) return
+    if (hit(map, e.point, [LAYER_ID, ...HEX_CELL_LAYERS]).length) return
     const slug = boundaryChoice(state, hit(map, e.point, [BOUNDARY_FILL_LAYER_ID])[0])
     if (!slug) return
     state.slug = slug

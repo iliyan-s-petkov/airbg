@@ -14,3 +14,6 @@ export const HEX_LAYER_ID = 'airbg-hex-fill'
 export const HEX_OUTLINE_LAYER_ID = 'airbg-hex-outline'
 export const HEX_POINT_LAYER_ID = 'airbg-hex-point'
 export const HEX_LABEL_LAYER_ID = 'airbg-hex-labels'
+// The tilted view's columns: a copy of the hex cells, filled only while the map is pitched.
+export const HEX_COLUMN_SOURCE_ID = 'airbg-hex-columns'
+export const HEX_EXTRUSION_LAYER_ID = 'airbg-hex-extrusion'

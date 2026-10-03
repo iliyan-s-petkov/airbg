@@ -184,10 +184,14 @@ func TestFaviconIsServedAndDeclared(t *testing.T) {
 	if got := rec.Header().Get("Content-Type"); !strings.Contains(got, "image/svg+xml") {
 		t.Errorf("Content-Type = %q, want image/svg+xml", got)
 	}
-	// The mark follows the system's geometry (DESIGN.md 4.3). It is a separate
-	// document that never sees theme.css, so only a test keeps it in step.
-	if !strings.Contains(rec.Body.String(), `rx="7"`) {
-		t.Error("favicon.svg has no rx: the mark is square while every other corner in the system is rounded")
+	// The 1B compact mark carries its accessible name in the file.
+	if !strings.Contains(rec.Body.String(), `aria-label="Kanarche"`) {
+		t.Error("favicon.svg is not the Kanarche compact mark")
+	}
+	for _, f := range []string{"favicon-32.png", "apple-touch-icon.png"} {
+		if r := fetch(t, rr, "/static/"+f); r.Code != http.StatusOK {
+			t.Errorf("GET /static/%s: status = %d, want 200", f, r.Code)
+		}
 	}
 
 	// The about page, not "/": the home page needs a warm snapshot and answers

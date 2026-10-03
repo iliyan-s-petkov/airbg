@@ -210,6 +210,74 @@ describe('the wind disclosure', () => {
     c.showWind(true, 'Wind forecast · valid now')
     expect(note.open).toBe(false)
   })
+
+  // An opened note, its parts, and the toggle that mirrors it.
+  const opened = () => {
+    const c = chrome()
+    c.showWind(true, 'Wind forecast · valid now')
+    const note = c.el.querySelector('.map-wind-label')
+    const summary = note.querySelector('summary')
+    note.open = true
+    // A browser fires toggle after open changes; jsdom's is queued, so send it.
+    note.dispatchEvent(new Event('toggle'))
+    return { c, note, summary, body: note.querySelector('.map-wind-label__text') }
+  }
+  const click = (target) => target.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+
+  it('folds on a click on its body', () => {
+    const { note, body, summary } = opened()
+    click(body)
+    expect(note.open).toBe(false)
+    expect(summary.getAttribute('aria-expanded')).toBe('false')
+  })
+
+  it('keeps the summary toggling: jsdom toggles on click, so two clicks fold then reopen', () => {
+    const { note, summary } = opened()
+    click(summary)
+    expect(note.open).toBe(false)
+    click(summary)
+    expect(note.open).toBe(true)
+  })
+
+  it('lets a link in the body navigate while folding', () => {
+    const { note, body } = opened()
+    const link = document.createElement('a')
+    link.href = 'https://open-meteo.com/'
+    body.appendChild(link)
+    const ev = new MouseEvent('click', { bubbles: true, cancelable: true })
+    link.dispatchEvent(ev)
+    expect(ev.defaultPrevented).toBe(false)
+    expect(note.open).toBe(false)
+  })
+
+  it('folds when the map reports a click', () => {
+    const { c, note } = opened()
+    c.foldWind()
+    expect(note.open).toBe(false)
+  })
+
+  it('folds on Escape and returns focus to the summary', () => {
+    const { note, summary } = opened()
+    document.body.focus()
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+    expect(note.open).toBe(false)
+    expect(document.activeElement).toBe(summary)
+  })
+
+  it('leaves Escape alone while folded', () => {
+    const { note, summary } = opened()
+    note.open = false
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+    expect(document.activeElement).not.toBe(summary)
+  })
+
+  it('keeps aria-expanded in step with the open state', () => {
+    const { note, summary } = opened()
+    expect(summary.getAttribute('aria-expanded')).toBe('true')
+    note.open = false
+    note.dispatchEvent(new Event('toggle'))
+    expect(summary.getAttribute('aria-expanded')).toBe('false')
+  })
 })
 
 // A sensor that has stopped reporting still has a cell on the grid, drawn in
