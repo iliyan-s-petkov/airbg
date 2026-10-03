@@ -19,6 +19,7 @@ import { panelRows, detailRows, stationMeta, networkText, lastUpdated } from '..
 import { createPanelLink } from '../lib/panellink.svelte.js'
 import { parseMetricList, zipLabels } from '../lib/metrics.js'
 import { getViewState } from '../lib/viewstate.svelte.js'
+import { getFavourite } from '../lib/favourite.svelte.js'
 import { findSensor, getScales, normaliseSensor } from '../lib/sensors.svelte.js'
 import { gaugeModel } from '../lib/gauge.js'
 import { createPanelScroll } from '../lib/panelscroll.js'
@@ -80,6 +81,9 @@ export function mount(el) {
   const metrics = parseMetricList(d.metrics)
   const options = zipLabels(metrics, parseMetricList(d.metricLabels))
   const vs = getViewState({ metrics, defaultMetric: d.metric })
+  const favourite = getFavourite()
+  // The embed is a third-party frame: it neither saves nor shows a favourite.
+  const canStar = !document.body.classList.contains('embed')
 
   const flagCatalogue = flagCatalogueFrom(d)
   const metricLabels = Object.fromEntries(options.map((o) => [o.metric, o.label]))
@@ -147,6 +151,10 @@ export function mount(el) {
         return flagTextForSensor(sensor, flagCatalogue, metricLabels)
       },
       closeLabel: d.tClose || '',
+      favSave: d.tFavSave || '',
+      favRemove: d.tFavRemove || '',
+      get favourite() { return vs.sensorId !== null && favourite.id === vs.sensorId },
+      onstar: canStar ? () => { if (vs.sensorId !== null) favourite.toggle(vs.sensorId) } : null,
       noValue: d.tNoValue || '',
       detailsLabel: d.tDetails || '',
       get details() {

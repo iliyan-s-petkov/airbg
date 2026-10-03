@@ -50,6 +50,8 @@ const PANEL_ATTR_FIXTURES = {
   compareColour: '#8a3ffc',
   tTitle: 'Sensor',
   tClose: 'Close this panel',
+  tFavSave: 'Save as my sensor',
+  tFavRemove: 'Remove my sensor',
   tNoValue: 'no reading',
   tFlagOutOfRange: 'This reading is out of the expected range.',
   tFlagStuck: 'This reading has not changed in a while.',

@@ -39,6 +39,7 @@
     rows, title, flagText, closeLabel, noValue, onclose,
     details = [], detailsLabel = '', chart = null, open = true,
     meta = [], network = '',
+    favourite = false, favSave = '', favRemove = '', onstar = null,
     source = '', updated = null, now = null, locale = undefined,
     link = createPanelLink(),
   } = $props()
@@ -80,6 +81,17 @@
       {#if subline}<p class="panel-sub">{subline}</p>{/if}
     </div>
     <div class="panel-actions">
+      <!-- Moved (not copied) into the map dock or fullscreen sheet header while the card is there. -->
+      {#if onstar}
+        <button
+          type="button"
+          class="panel-star"
+          aria-pressed={favourite}
+          aria-label={favourite ? favRemove : favSave}
+          title={favourite ? favRemove : favSave}
+          onclick={onstar}
+        ><span aria-hidden="true">{favourite ? '\u2605' : '\u2606'}</span></button>
+      {/if}
       <button type="button" class="panel-info" aria-label={detailsLabel} onclick={() => { link.aboutOpen = true }}>
         <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true">
           <circle cx="8" cy="8" r="6.3" /><path d="M8 7.2v4M8 4.8v.1" stroke-linecap="round" />
