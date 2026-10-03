@@ -40,8 +40,15 @@ for (const size of sizes) {
 
     // A point on the map clear of the note, the controls and the panels.
     const emptySpot = async (page) => {
+      // The map can be taller than the viewport; aim inside the part on screen.
       const box = await page.locator('#map').boundingBox()
-      return { x: box.x + box.width * 0.5, y: box.y + box.height * 0.35 }
+      const view = page.viewportSize()
+      const top = Math.max(box.y, 0)
+      const bottom = Math.min(box.y + box.height, view.height)
+      const p = { x: box.x + box.width * 0.5, y: top + (bottom - top) * 0.35 }
+      const hit = await page.evaluate(([x, y]) => document.elementFromPoint(x, y)?.closest('.maplibregl-canvas') !== null, [p.x, p.y])
+      expect(hit, 'the click point must land on the map canvas').toBe(true)
+      return p
     }
 
     test('a click on the note folds it', async ({ ctx }) => {
