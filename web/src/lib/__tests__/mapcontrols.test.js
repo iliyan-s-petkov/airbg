@@ -8,7 +8,7 @@ import { describe, it, expect, vi } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { mountFullscreen, mountZoom, mountLocate, installZoom } from '../mapcontrols.js'
+import { mountFullscreen, mountZoom, mountLocate, installZoom, mountOrientation, installOrientation } from '../mapcontrols.js'
 
 const frame = () => {
   const el = document.createElement('div')
@@ -306,4 +306,99 @@ it('writes only classes the kit defines', () => {
     if (c === 'map-zoom__ico') continue
     expect(css, `${c} missing from components.css`).toContain(`.${c}`)
   }
+})
+
+describe('orientation control', () => {
+  const labels = {
+    label: 'Orientation', tip: 'tip', tiltLabel: 'Tilt', headingLabel: 'Heading',
+    northLabel: 'Reset to north', closeLabel: 'Close',
+  }
+  const fakeMap = () => {
+    const listeners = {}
+    return {
+      bearing: 0,
+      pitch: 0,
+      setPitch: vi.fn(),
+      setBearing: vi.fn(),
+      easeTo: vi.fn(),
+      getBearing() { return this.bearing },
+      getPitch() { return this.pitch },
+      getMaxPitch: () => 60,
+      on: (name, fn) => { listeners[name] = fn },
+      fire: (name) => listeners[name]?.(),
+    }
+  }
+  const wire = (map = fakeMap()) => {
+    const parts = mountOrientation(frame(), labels)
+    installOrientation(map, parts)
+    return { map, parts }
+  }
+
+  it('is a labelled button that starts collapsed, with the needle north-up', () => {
+    const { parts } = wire()
+    expect(parts.button.getAttribute('aria-label')).toBe('Orientation')
+    expect(parts.button.getAttribute('aria-expanded')).toBe('false')
+    expect(parts.panel.hidden).toBe(true)
+    expect(parts.needle.getAttribute('transform')).toBe('rotate(0 8 8)')
+    expect(parts.close.getAttribute('aria-label')).toBe('Close')
+  })
+
+  it('turns the needle against the bearing and syncs the sliders on rotate', () => {
+    const { map, parts } = wire()
+    map.bearing = 30
+    map.pitch = 40
+    map.fire('rotate')
+    expect(parts.needle.getAttribute('transform')).toBe('rotate(-30 8 8)')
+    expect(parts.heading.input.value).toBe('30')
+    expect(parts.heading.out.textContent).toBe('30\u00b0')
+    map.pitch = 20
+    map.fire('pitch')
+    expect(parts.tilt.input.value).toBe('20')
+  })
+
+  it('sizes the tilt slider from the map max pitch', () => {
+    expect(wire().parts.tilt.input.max).toBe('60')
+  })
+
+  it('sends slider values to the map as the visitor\'s own moves', () => {
+    const { map, parts } = wire()
+    parts.tilt.input.value = '45'
+    parts.tilt.input.dispatchEvent(new Event('input'))
+    parts.heading.input.value = '-90'
+    parts.heading.input.dispatchEvent(new Event('input'))
+    expect(map.setPitch).toHaveBeenCalledWith(45, { userInitiated: true })
+    expect(map.setBearing).toHaveBeenCalledWith(-90, { userInitiated: true })
+  })
+
+  it('eases to north-up flat without naming a centre or zoom', () => {
+    const { map, parts } = wire()
+    parts.north.click()
+    expect(map.easeTo).toHaveBeenCalledWith({ pitch: 0, bearing: 0 }, { userInitiated: true })
+  })
+
+  it('opens on click, and Escape closes it and returns focus to the button', () => {
+    const { parts } = wire()
+    document.body.append(parts.el)
+    parts.button.click()
+    expect(parts.panel.hidden).toBe(false)
+    expect(parts.button.getAttribute('aria-expanded')).toBe('true')
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
+    expect(parts.panel.hidden).toBe(true)
+    expect(parts.button.getAttribute('aria-expanded')).toBe('false')
+    expect(document.activeElement).toBe(parts.button)
+  })
+
+  it('closes on the X and on a click outside, but not on a click inside', () => {
+    const { parts } = wire()
+    document.body.append(parts.el)
+    parts.button.click()
+    parts.panel.dispatchEvent(new Event('pointerdown', { bubbles: true }))
+    expect(parts.panel.hidden).toBe(false)
+    parts.close.click()
+    expect(parts.panel.hidden).toBe(true)
+    expect(document.activeElement).toBe(parts.button)
+    parts.button.click()
+    document.body.dispatchEvent(new Event('pointerdown', { bubbles: true }))
+    expect(parts.panel.hidden).toBe(true)
+  })
 })
