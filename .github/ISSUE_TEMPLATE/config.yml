@@ -1,8 +1,8 @@
 blank_issues_enabled: false
 contact_links:
   - name: Kanarche
-    url: https://airbg.org
+    url: https://kanarche.eu
     about: Visit the live site
   - name: Report a security vulnerability
-    url: https://github.com/iliyan-s-petkov/airbg/security/advisories/new
+    url: https://github.com/iliyan-s-petkov/kanarche/security/advisories/new
     about: Please report vulnerabilities privately, not as a public issue

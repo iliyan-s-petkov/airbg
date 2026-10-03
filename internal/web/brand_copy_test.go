@@ -16,7 +16,7 @@ var (
 	brandStyleRe  = regexp.MustCompile(`(?s)<style\b.*?</style>`)
 	// URL-valued attributes carry hosts and repo paths, not copy.
 	brandURLAttrRe = regexp.MustCompile(`\s(?:href|src|action|srcset|data-[a-z-]*(?:url|href))="[^"]*"`)
-	brandRepoURLRe = regexp.MustCompile(`https://github\.com/iliyan-s-petkov/airbg\S*?"`)
+	brandRepoURLRe = regexp.MustCompile(`https://github\.com/iliyan-s-petkov/kanarche\S*?"`)
 	// The clear-settings button lists the pre-rename storage keys it must wipe.
 	brandKeysAttrRe = regexp.MustCompile(`\sdata-keys="[^"]*"`)
 	// The one reference that stays: the other project's own name.

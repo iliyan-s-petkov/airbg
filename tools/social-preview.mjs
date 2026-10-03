@@ -1,8 +1,8 @@
-// Renders the 1280x640 GitHub social-preview card from live airbg.org data.
+// Renders the 1280x640 GitHub social-preview card from live kanarche.eu data.
 // Usage: node tools/social-preview.mjs [out.png]  (reads the public API; default out is the static og:image)
 import { chromium } from '../web/node_modules/playwright/index.mjs'
 
-const SITE = process.env.SITE_URL || 'https://airbg.org'
+const SITE = process.env.SITE_URL || 'https://kanarche.eu'
 const BASE = `${SITE}/api/v1`
 const OUT = process.argv[2] || new URL('../internal/web/static/social-preview.png', import.meta.url).pathname
 const W = 1280, H = 640

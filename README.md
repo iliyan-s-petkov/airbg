@@ -6,13 +6,13 @@
 
 **Real-time air quality in Bulgaria, from citizen sensors and official stations on one map.**
 
-[Live map](https://airbg.org) · [Embed](docs/embedding.md) · [Docs](#documentation) · [Contributing](CONTRIBUTING.md)
+[Live map](https://kanarche.eu) · [Embed](docs/embedding.md) · [Docs](#documentation) · [Contributing](CONTRIBUTING.md)
 
 </div>
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/hero-dark.png">
-  <img src="docs/images/hero-light.png" alt="The Kanarche map of Bulgaria: coloured hexagons showing PM2.5 medians by area,">
+  <img src="docs/images/hero-light.png" alt="The Kanarche map of Bulgaria in a desktop browser and on a phone: coloured hexagons showing PM2.5 medians by area, with wind streaks over the map.">
 </picture>
 
 ## What and why
