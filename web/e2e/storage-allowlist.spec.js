@@ -42,3 +42,16 @@ test('localStorage after moving the home map holds only allow-listed keys', asyn
 
   await page.close()
 })
+
+test('localStorage after starring a sensor holds only allow-listed keys', async ({ ctx }) => {
+  const page = await ctx.newPage()
+  await page.goto('/en/#sensor=101')
+  await page.locator('.panel-star:visible').click({ timeout: 20000 })
+
+  const keys = await page.evaluate(() => Object.keys(localStorage))
+  expect(keys).toContain('kanarche:favourite-sensor')
+  const unexpected = keys.filter((k) => !allowed.has(k))
+  expect(unexpected, `unlisted localStorage keys: ${unexpected.join(', ')}`).toEqual([])
+
+  await page.close()
+})

@@ -2,6 +2,7 @@
 // panel under the map cannot be seen. The panel's own .gauges node is moved in
 // and put back on exit, the same move-not-duplicate idiom as the legend.
 import { tick } from 'svelte'
+import { createStarSlot } from './panelstar.js'
 
 const TITLE_ID = 'map-sensor-sheet-title'
 
@@ -13,6 +14,7 @@ export function createSensorSheet(frame, { closeLabel = '', historyLabel = '', e
   let returnTo = null
   let scrollOnExit = false
   let onClose = () => {}
+  const starSlot = createStarSlot(doc)
 
   const el = doc.createElement('div')
   el.className = 'map-sensor-sheet'
@@ -72,6 +74,7 @@ export function createSensorSheet(frame, { closeLabel = '', historyLabel = '', e
   function unmount({ focus = true } = {}) {
     if (!mounted()) return
     restoreGauges()
+    starSlot.release()
     el.remove()
     const back = returnTo
     returnTo = null
@@ -96,6 +99,7 @@ export function createSensorSheet(frame, { closeLabel = '', historyLabel = '', e
       gauges = next
       body.appendChild(next)
     }
+    starSlot.take(p, head, close)
     if (!mounted()) {
       returnTo = doc.activeElement
       frame.appendChild(el)

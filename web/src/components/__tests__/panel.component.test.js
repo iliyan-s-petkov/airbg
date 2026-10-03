@@ -139,3 +139,40 @@ describe('SensorPanel.svelte', () => {
     expect(target.textContent).not.toContain('background')
   })
 })
+
+describe('SensorPanel.svelte favourite star', () => {
+  const star = (target) => target.querySelector('button.panel-star')
+
+  it('is a pressed-state toggle named for what the next click does', () => {
+    const off = render({ favourite: false, favSave: 'Save as my sensor', favRemove: 'Remove my sensor', onstar: () => {} })
+    expect(star(off).getAttribute('aria-pressed')).toBe('false')
+    expect(star(off).getAttribute('aria-label')).toBe('Save as my sensor')
+    expect(star(off).getAttribute('title')).toBe('Save as my sensor')
+    expect(star(off).textContent).toBe('\u2606')
+    unmount(component)
+
+    const on = render({ favourite: true, favSave: 'Save as my sensor', favRemove: 'Remove my sensor', onstar: () => {} })
+    expect(star(on).getAttribute('aria-pressed')).toBe('true')
+    expect(star(on).getAttribute('aria-label')).toBe('Remove my sensor')
+    expect(star(on).textContent).toBe('\u2605')
+  })
+
+  it('sits in the header beside the close button', () => {
+    const target = render({ onstar: () => {}, favSave: 'Save', favRemove: 'Remove' })
+    const actions = target.querySelector('header .panel-actions')
+    expect(actions.contains(star(target))).toBe(true)
+    expect(actions.contains(target.querySelector('.panel-close'))).toBe(true)
+  })
+
+  it('calls onstar when clicked', () => {
+    const onstar = vi.fn()
+    const target = render({ onstar, favSave: 'Save', favRemove: 'Remove' })
+    star(target).click()
+    expect(onstar).toHaveBeenCalledOnce()
+  })
+
+  it('renders no star when no handler is given', () => {
+    expect(star(render())).toBeNull()
+  })
+})
+
