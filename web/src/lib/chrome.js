@@ -218,6 +218,16 @@ export function mountChrome(el, cfg) {
   // the same element on both sides of the trip.
   // The open sensor's gauges ride along too, in a sheet (lib/sensorsheet.svelte.js).
   let fullButton = null
+  // The overlay rows (top controls, bottom-left refresh/window/play) ride along too: real fullscreen paints only the frame.
+  const rows = ['.map-controls', '.map-freshness']
+    .map((sel) => el.closest('.map-shell')?.querySelector(sel))
+    .filter(Boolean)
+    .map((node) => {
+      // A marker, not the next sibling: that sibling may be a row that is itself away in the frame.
+      const home = document.createComment('')
+      node.before(home)
+      return { node, home }
+    })
   const sheet = createSensorSheet(el, {
     closeLabel: cfg.t.close,
     historyLabel: cfg.t.sheetHistory,
@@ -230,6 +240,10 @@ export function mountChrome(el, cfg) {
     exitLabel: cfg.t.fullscreenExit,
     onChange: (full) => {
       (full ? el : shell).appendChild(legend)
+      for (const { node, home } of rows) {
+        if (full) el.appendChild(node)
+        else home.before(node)
+      }
       // The gauges have one home at a time: the dock lets go before the sheet takes them, and the reverse on exit.
       if (full) { dock.setFull(true); sheet.setFull(true) } else { sheet.setFull(false); dock.setFull(false) }
     },
