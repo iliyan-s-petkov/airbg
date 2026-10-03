@@ -217,7 +217,7 @@ describe('the wind disclosure', () => {
 // bad day for the network, and it reads as "nothing here" rather than "nobody
 // is measuring here". The status filter already governed the markers; the grid
 // is the tier that actually covers the country, so it is governed too.
-describe('the inactive-sensors toggle', () => {
+describe('the inactive-stations toggle', () => {
   const hexCfg = { metric: 'P2', noDataColour: '#cccccc' }
   const scales = [{ metric: 'P2', bands: [{ upper: 10, colour: '#00ff00' }, { upper: null, colour: '#ff0000' }] }]
   const mixed = {
@@ -261,9 +261,12 @@ describe('the inactive-sensors toggle', () => {
   it('offers the option unticked, and flips the shared status', () => {
     const el = document.createElement('div')
     document.body.appendChild(el)
-    const { layerViews } = mountChrome(el, readConfig(el))
-    const view = layerViews.find((v) => v.id === 'inactiveSensors')
-    expect(view, 'no inactive-sensors view in the layers menu').toBeTruthy()
+    const { inactiveView: view, layerViews } = mountChrome(el, readConfig(el))
+    expect(view, 'no inactive-stations view').toBeTruthy()
+    // The id is what visitors' saved choices are keyed on.
+    expect(view.id).toBe('inactiveSensors')
+    // Placed by the map loader, next to the other station toggles.
+    expect(layerViews.map((v) => v.id)).not.toContain('inactiveSensors')
 
     // Unticked on arrival: the default is the quieter map.
     expect(view.defaultOff).toBe(true)

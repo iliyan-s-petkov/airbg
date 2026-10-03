@@ -172,8 +172,8 @@ func TestFooterProjectColumnLinks(t *testing.T) {
 	foot := footerOf(t, fetch(t, renderer(t, cityFixture(t)), "/en/").Body.String())
 	for _, want := range []string{
 		`href="/en/about"`, `href="/en/about-the-data"`, `href="/en/privacy"`, `href="/en/licences"`,
-		`href="https://github.com/iliyan-s-petkov/airbg"`,
-		`href="https://github.com/iliyan-s-petkov/airbg/issues"`,
+		`href="https://github.com/iliyan-s-petkov/kanarche"`,
+		`href="https://github.com/iliyan-s-petkov/kanarche/issues"`,
 	} {
 		if !strings.Contains(foot, want) {
 			t.Errorf("footer lacks %s", want)
@@ -269,7 +269,7 @@ func TestLicencesPageListsEverySourceAndTheCodeLicence(t *testing.T) {
 		"https://eea.government.bg/kav/",
 		"Open-Meteo", "CC BY 4.0", "https://creativecommons.org/licenses/by/4.0/",
 		"© OpenStreetMap contributors", "https://www.openstreetmap.org/copyright",
-		"MIT", "https://github.com/iliyan-s-petkov/airbg/blob/master/LICENSE",
+		"MIT", "https://github.com/iliyan-s-petkov/kanarche/blob/master/LICENSE",
 	} {
 		if !strings.Contains(body, want) {
 			t.Errorf("licences page lacks %q", want)
