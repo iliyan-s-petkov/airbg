@@ -5,7 +5,7 @@
 // mismatch entirely.
 import { Map as MapLibreMap } from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
-import { installZoom } from '../lib/mapcontrols.js'
+import { installZoom, installOrientation } from '../lib/mapcontrols.js'
 import { getJSON } from '../lib/api.js'
 import { getViewState } from '../lib/viewstate.svelte.js'
 import { readWindow } from '../lib/mapwindow.js'
@@ -98,6 +98,7 @@ export function mount(el) {
   // page at — the country fit on /, the area's own centre on /area/{slug} — so
   // reset needs no branch on which page it is standing in.
   installZoom(map, chrome.zoomButtons, { centre: [cfg.lon, cfg.lat], zoom: cfg.zoom })
+  installOrientation(map, chrome.orient)
 
   // On /area/{slug} the slug is fixed, one area, ever. On / it starts empty and
   // is only ever set by a deliberate click — never derived from the viewport.

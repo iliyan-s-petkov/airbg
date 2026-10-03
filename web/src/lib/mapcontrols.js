@@ -216,3 +216,140 @@ export function installZoom(map, buttons, home) {
   paint()
   return paint
 }
+
+// mountOrientation builds the compass button and its popover, unwired: like
+// the zoom stack it needs a camera that does not exist yet when chrome is built.
+// It is a sibling of .map-zoom in the same frame, so it stays visible in fullscreen.
+export function mountOrientation(frame, labels) {
+  const el = document.createElement('div')
+  el.className = 'map-orient'
+
+  const button = document.createElement('button')
+  button.type = 'button'
+  button.className = 'map-orient__btn'
+  button.setAttribute('aria-label', labels.label)
+  button.setAttribute('title', labels.label)
+  button.setAttribute('aria-haspopup', 'dialog')
+  button.setAttribute('aria-expanded', 'false')
+  button.setAttribute('aria-controls', 'map-orient-panel')
+
+  // Needle: red north tip over a neutral south tip; the group turns with the bearing.
+  const svg = document.createElementNS(SVG_NS, 'svg')
+  svg.setAttribute('class', 'map-orient__ico')
+  svg.setAttribute('viewBox', '0 0 16 16')
+  svg.setAttribute('width', '20')
+  svg.setAttribute('height', '20')
+  svg.setAttribute('aria-hidden', 'true')
+  svg.setAttribute('focusable', 'false')
+  const needle = document.createElementNS(SVG_NS, 'g')
+  needle.setAttribute('data-needle', '')
+  needle.setAttribute('transform', 'rotate(0 8 8)')
+  for (const [d, cls] of [['M8 1.5 11 8H5Z', 'map-orient__north'], ['M8 14.5 5 8h6Z', 'map-orient__south']]) {
+    const path = document.createElementNS(SVG_NS, 'path')
+    path.setAttribute('d', d)
+    path.setAttribute('class', cls)
+    needle.appendChild(path)
+  }
+  svg.appendChild(needle)
+  button.appendChild(svg)
+
+  const panel = document.createElement('div')
+  panel.className = 'map-orient__panel'
+  panel.id = 'map-orient-panel'
+  panel.setAttribute('role', 'dialog')
+  panel.setAttribute('aria-label', labels.label)
+  panel.hidden = true
+
+  const head = document.createElement('div')
+  head.className = 'map-orient__head'
+  const tip = document.createElement('p')
+  tip.className = 'map-orient__tip'
+  tip.textContent = labels.tip
+  const close = document.createElement('button')
+  close.type = 'button'
+  close.className = 'map-orient__close'
+  close.setAttribute('aria-label', labels.closeLabel)
+  close.setAttribute('title', labels.closeLabel)
+  close.appendChild(icon(['M3.5 3.5l9 9M12.5 3.5l-9 9'], 'map-orient__close-ico'))
+  head.append(tip, close)
+
+  const row = (cls, text, min, max) => {
+    const wrap = document.createElement('label')
+    wrap.className = 'map-orient__row'
+    const name = document.createElement('span')
+    name.textContent = text
+    const out = document.createElement('output')
+    out.className = 'map-orient__val'
+    const input = document.createElement('input')
+    input.type = 'range'
+    input.className = cls
+    input.min = String(min)
+    input.max = String(max)
+    input.step = '1'
+    input.value = '0'
+    wrap.append(name, out, input)
+    return { wrap, input, out }
+  }
+  const tilt = row('map-orient__tilt', labels.tiltLabel, 0, 60)
+  const heading = row('map-orient__heading', labels.headingLabel, -180, 180)
+
+  const north = document.createElement('button')
+  north.type = 'button'
+  north.className = 'map-orient__north-btn'
+  north.textContent = labels.northLabel
+
+  panel.append(head, tilt.wrap, heading.wrap, north)
+  el.append(button, panel)
+  frame.appendChild(el)
+  return { el, button, panel, close, tilt, heading, north, needle }
+}
+
+// installOrientation wires the compass to the camera and keeps the needle and
+// both sliders reading back what the map actually shows, however it was moved.
+export function installOrientation(map, parts, doc = document) {
+  const { el, button, panel, close, tilt, heading, north, needle } = parts
+  const norm = (b) => ((((b + 180) % 360) + 360) % 360) - 180
+
+  const paint = () => {
+    const bearing = norm(map.getBearing())
+    const pitch = map.getPitch()
+    needle.setAttribute('transform', `rotate(${-bearing} 8 8)`)
+    heading.input.value = String(Math.round(bearing))
+    heading.out.textContent = `${Math.round(bearing)}\u00b0`
+    tilt.input.value = String(Math.round(pitch))
+    tilt.out.textContent = `${Math.round(pitch)}\u00b0`
+  }
+
+  tilt.input.max = String(map.getMaxPitch())
+  tilt.input.addEventListener('input', () => map.setPitch(Number(tilt.input.value), USER_MOVE))
+  heading.input.addEventListener('input', () => map.setBearing(Number(heading.input.value), USER_MOVE))
+  // easeTo names no centre or zoom, so both stay where they are.
+  north.addEventListener('click', () => map.easeTo({ pitch: 0, bearing: 0 }, USER_MOVE))
+
+  const onKey = (e) => { if (e.key === 'Escape') shut(true) }
+  const onOutside = (e) => {
+    if (el.contains(e.target)) return
+    shut(el.contains(doc.activeElement))
+  }
+  function shut(refocus) {
+    panel.hidden = true
+    button.setAttribute('aria-expanded', 'false')
+    doc.removeEventListener('keydown', onKey)
+    doc.removeEventListener('pointerdown', onOutside)
+    if (refocus) button.focus()
+  }
+  function open() {
+    panel.hidden = false
+    button.setAttribute('aria-expanded', 'true')
+    doc.addEventListener('keydown', onKey)
+    doc.addEventListener('pointerdown', onOutside)
+    tilt.input.focus()
+  }
+  button.addEventListener('click', () => (panel.hidden ? open() : shut(true)))
+  close.addEventListener('click', () => shut(true))
+
+  map.on('rotate', paint)
+  map.on('pitch', paint)
+  paint()
+  return paint
+}

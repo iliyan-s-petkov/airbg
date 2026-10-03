@@ -4,7 +4,7 @@
 // the pure builders it calls stay importable on their own.
 import { LEGEND_CLASSES, buildWindRow, legendRows, legendTitle, renderLegend, setWindRow } from './legend.js'
 import { createScaleDialog } from './scaledialog.js'
-import { mountFullscreen, mountZoom, mountLocate } from './mapcontrols.js'
+import { mountFullscreen, mountZoom, mountLocate, mountOrientation } from './mapcontrols.js'
 import { mountLayers } from './maplayers.js'
 import { setSensorStatus } from './sensorfilter.svelte.js'
 import { readFlag, writeFlag, safeStorage } from './storage.js'
@@ -253,6 +253,14 @@ export function mountChrome(el, cfg) {
     outLabel: cfg.t.zoomOut,
     resetLabel: cfg.t.zoomReset,
   })
+  const orient = mountOrientation(el, {
+    label: cfg.t.orientLabel,
+    tip: cfg.t.orientTip,
+    tiltLabel: cfg.t.orientTilt,
+    headingLabel: cfg.t.orientHeading,
+    northLabel: cfg.t.orientNorth,
+    closeLabel: cfg.t.close,
+  })
 
   // The averaging window. Built with the chrome and wired by mount(), which
   // owns what a pick costs — see lib/mapwindow.js on why it is a menu in the
@@ -490,6 +498,7 @@ export function mountChrome(el, cfg) {
     foldWind,
     dock,
     zoomButtons: zoom.buttons,
+    orient,
     windowMenu,
     player,
     layersUI: layers,
