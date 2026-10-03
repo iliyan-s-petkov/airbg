@@ -121,3 +121,23 @@ test('393x873: an open sensor sheet hides the button even when scrolled past the
   await expect(page.locator(BTN)).toBeHidden()
   await ctx.close()
 })
+
+test('393x873: below the map exactly one floating up button shows, and it returns to the map', async ({ browser }) => {
+  const ctx = await browser.newContext(VIEWPORTS[1].opts)
+  for (const path of ['/', '/en/area/sofia']) {
+    const page = await ctx.newPage()
+    await page.goto(path)
+    await padPageFoot(page)
+    await jump(page, await bottom(page))
+    await expect(page.locator(BTN)).toBeVisible()
+    // Any fixed button whose class names a back-to-* control counts, so a second one cannot hide.
+    await expect(page.locator('button[class*="back-to-"]:visible')).toHaveCount(1)
+    await page.locator(BTN).click()
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0)
+    const top = await page.evaluate(() => document.querySelector('.map-shell').getBoundingClientRect().top)
+    expect(top).toBeGreaterThanOrEqual(0)
+    expect(top).toBeLessThan(873)
+    await page.close()
+  }
+  await ctx.close()
+})
