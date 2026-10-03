@@ -48,10 +48,10 @@ for (const [name, size] of Object.entries(sizes)) {
   })
 }
 
-test('1440 with the side dock open: the tip still sits over the locate button', async ({ browser }) => {
+test('1440 with the map docked: the tip still sits over the locate button', async ({ browser }) => {
   const { context, page } = await visit(browser, sizes.desktop)
   await expect(hint(page)).toBeVisible()
-  // The dock shifts the controls by a class; the hint must travel with the button.
+  // The docked class must not move the hint off the button.
   await page.evaluate(() => document.querySelector('.map-shell').classList.add('map-shell--docked'))
   const h = await box(hint(page))
   const locate = await box(page.locator('.map-locate'))

@@ -549,7 +549,6 @@ strong, b { font-weight: var(--weight-emphasis); }
 .map-shell--docked .map-freshness { bottom: calc(12px + var(--map-panel-h, 0px)); }
 .map-shell.map-shell--docked .scale--onmap, .map-shell--docked .map-wind-label { inset-block-end: calc(3.5rem + var(--map-panel-h, 0px)); }
 .map-shell--docked .map-locate { bottom: calc(var(--space-2) + var(--map-panel-h, 0px)); }
-.map-shell--docked .map-locate-hint { inset-block-end: calc(var(--locate-hint-lift) + var(--map-panel-h, 0px)); }
 .map-shell--docked .maplibregl-ctrl-bottom-right, .map-shell--docked .maplibregl-ctrl-bottom-left { bottom: var(--map-panel-h, 0px); }
 @media (hover: none) {
   .map-dock__fold, .map-dock__close, .map-dock__more { min-block-size: 44px; min-inline-size: 44px; }
