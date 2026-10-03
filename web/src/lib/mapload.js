@@ -45,6 +45,7 @@ import {
   locateVisitor, openDeepLinkedSensor, placeVisitor, prefetchPlacement, LOCATE_TIMEOUT_MS,
 } from './placement.js'
 import { restoreLastView } from './lastview.js'
+import { openFavouriteSensor } from './favourite.js'
 import { installTimelapse } from './timelapse-island.js'
 import { hexExtrusionPaint, installHexRise } from './hexrise.js'
 
@@ -445,6 +446,7 @@ export function installMapLoad({ map, state, cfg, chrome, vs, windState, boundar
       // own centre and there is nothing for /api/v1/locate to improve.
       // The saved view comes next: it beats the visitor's geoip city, and the
       // default overview is what a first visit (no saved view) still gets.
+      if (!placed) placed = await openFavouriteSensor(map, state, cfg, chrome, vs)
       if (!placed) placed = restoreLastView(map, cfg)
 
       if (!placed && !cfg.slug) {

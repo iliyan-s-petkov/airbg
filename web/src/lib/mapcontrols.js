@@ -206,8 +206,9 @@ export function installZoom(map, buttons, home) {
   buttons.out.addEventListener('click', () => map.zoomOut({}, USER_MOVE))
   // flyTo, not jumpTo: this one IS a deliberate click, so the flight explains
   // where the reader was taken. locateVisitor's jump is the opposite case — a
-  // move nobody asked for.
-  buttons.reset.addEventListener('click', () => map.flyTo({ center: home.centre, zoom: home.zoom }, USER_MOVE))
+  // move nobody asked for. Pitch and bearing return too: north-up and flat.
+  buttons.reset.addEventListener('click', () =>
+    map.flyTo({ center: home.centre, zoom: home.zoom, pitch: 0, bearing: 0 }, USER_MOVE))
 
   // 'zoom', not 'zoomend': the buttons must go dead at the limit during the
   // animation, not a beat after it, or a held click keeps firing past the stop.

@@ -352,6 +352,27 @@ strong, b { font-weight: var(--weight-emphasis); }
 }
 .map-locate:hover { background: var(--surface); }
 .map-locate:focus-visible { box-shadow: var(--focus-ring); }
+/* First-visit tip over the locate button; arrow points down at it. One axis anchored each way. */
+.map-locate-hint {
+  position: absolute; z-index: 3; inset-block-end: var(--locate-hint-lift); inset-inline-end: var(--space-2);
+  max-inline-size: min(16rem, calc(100% - 2 * var(--space-2)));
+}
+.map-locate-hint__btn {
+  display: block; inline-size: 100%; padding: var(--space-1) var(--space-3); border-radius: var(--radius);
+  background: var(--glass-bg); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border); box-shadow: var(--elev-raised);
+  color: var(--fg); font: inherit; font-size: var(--text-compact); text-align: start; cursor: pointer;
+}
+.map-locate-hint__btn:focus-visible { box-shadow: var(--focus-ring); }
+.map-locate-hint::after {
+  content: ""; position: absolute; inset-block-start: 100%; inset-inline-end: var(--locate-hint-arrow-inset);
+  inline-size: 14px; block-size: 7px; background: var(--glass-bg);
+  clip-path: polygon(0 0, 100% 0, 50% 100%); pointer-events: none;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .map-locate-hint { animation: locate-hint-in 200ms ease-out; }
+}
+@keyframes locate-hint-in { from { opacity: 0; } to { opacity: 1; } }
 /* MapLibre pins its attribution to this same corner, and its compact form is a
    round (i) the same size as the button above. Left unmoved the two sat on top
    of each other: one control to look at, two to click. The margin is the
@@ -405,6 +426,16 @@ strong, b { font-weight: var(--weight-emphasis); }
 }
 .panel-close { display: inline-flex; align-items: center; gap: var(--space-2); flex: none; }
 .panel-close__ico { flex: none; }
+/* Favourite star: sits next to the close button wherever the card is. */
+.panel-star {
+  display: inline-flex; align-items: center; justify-content: center; flex: none;
+  min-inline-size: 2rem; min-block-size: 2rem; padding: 0; font-size: 1.25rem; line-height: 1;
+  color: var(--muted); background: none; border: 1px solid transparent; border-radius: 999px; cursor: pointer;
+}
+.panel-star:hover { color: var(--fg); background: var(--surface-2); }
+.panel-star[aria-pressed="true"] { color: var(--fg); }
+.panel-star:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.map-dock__title, .map-sensor-sheet__title { flex: 1 1 auto; min-inline-size: 0; }
 /* Phones: card scrolls in under the masthead; title row stays pinned. */
 @media (hover: none) {
   .sensor-panel { scroll-margin-block-start: calc(var(--masthead-h) + var(--space-2)); }
@@ -413,6 +444,7 @@ strong, b { font-weight: var(--weight-emphasis); }
     background: var(--bg); border-block-end: 1px solid var(--border-faint);
     padding-block: var(--space-2); margin-inline: calc(-1 * var(--space-4)); padding-inline: var(--space-4);
   }
+  .panel-star { min-block-size: 44px; min-inline-size: 44px; }
   .panel-close {
     min-block-size: 44px; min-inline-size: 44px; padding-inline: var(--space-3);
     border: 1px solid var(--border); border-radius: 999px; background: var(--surface-2); color: var(--fg);
@@ -481,7 +513,7 @@ strong, b { font-weight: var(--weight-emphasis); }
   display: inline-block; padding: var(--space-1) 0; border: 0; background: none;
   color: var(--accent); font: inherit; text-decoration: underline; cursor: pointer;
 }
-.map-shell--docked .map-zoom, .map-shell--docked .map-locate, .map-shell--docked .map-wind-label {
+.map-shell--docked .map-zoom, .map-shell--docked .map-locate, .map-shell--docked .map-locate-hint, .map-shell--docked .map-wind-label {
   inset-inline-end: calc(var(--space-2) + min(400px, 34vw) + var(--space-2));
 }
 @media (hover: none) {
@@ -835,10 +867,10 @@ html:has(> body.embed) { block-size: 100%; }
 }
 .scaleinfo__close:focus-visible { box-shadow: var(--focus-ring); }
 
-/* "More below" pull tab hanging from the map's bottom edge; phones only. */
+/* "More below" pull tab hanging from the map's bottom edge; phones only. Two chevrons, 28px tall. */
 .scroll-cue {
   position: absolute; z-index: 3; inset-block-start: 100%; inset-inline-start: 50%; translate: -50% 0;
-  display: grid; place-items: center; inline-size: 56px; block-size: 20px; padding: 0;
+  display: grid; place-items: center; inline-size: 56px; block-size: 28px; padding: 0;
   color: var(--fg); text-decoration: none; -webkit-tap-highlight-color: transparent;
 }
 /* Visual tab; clipped here so the clip doesn't cut the ::before tap target. */
@@ -848,12 +880,14 @@ html:has(> body.embed) { block-size: 100%; }
   background: var(--bg); box-shadow: var(--elev-raised);
   clip-path: inset(0 -12px -12px -12px);
 }
-/* 64x44 tap target. */
+/* 64x52 tap target. */
 .scroll-cue::before { content: ''; position: absolute; inset: -12px -4px -12px; }
 .scroll-cue:focus-visible { outline: none; }
 .scroll-cue:focus-visible::after { box-shadow: var(--focus-ring); }
-.scroll-cue__chevron { animation: cue-bob 1.8s ease-in-out 3; }
-@keyframes cue-bob { 50% { transform: translateY(3px); } }
+/* Nudge and fade cascade, lower chevron lagging; three loops, then rest. The reduced-motion rule below turns it off. */
+.scroll-cue__chevron { animation: cue-bob 2.2s ease-in-out 0.3s 3 backwards; }
+.scroll-cue__chevron:first-child { animation-delay: 0s; }
+@keyframes cue-bob { 0%, 100% { transform: translateY(0); opacity: 1; } 45% { transform: translateY(3px); opacity: 0.4; } }
 @media (hover: hover) { .scroll-cue { display: none; } }
 /* The home map ends at the viewport bottom on desktop, so its tab sits inside the edge instead of hanging off it. */
 @media (hover: hover) {
@@ -866,7 +900,7 @@ html:has(> body.embed) { block-size: 100%; }
 }
 .map-shell:has(.map:fullscreen, .map--faux-full) .scroll-cue { display: none; }
 /* The caption clears the tab. */
-.map-shell:has(.scroll-cue) + .map-tier { margin-block-start: calc(20px + var(--space-1)); }
+.map-shell:has(.scroll-cue) + .map-tier { margin-block-start: calc(28px + var(--space-1)); }
 @media (hover: hover) { .map-shell:has(.scroll-cue) + .map-tier { margin-block-start: var(--space-2); } }
 
 /* Phone-only back-to-map button (web/src/lib/backtomap.js); z-index above the key and sensor sheet (4). */
@@ -913,14 +947,13 @@ html:has(> body.embed) { block-size: 100%; }
 }
 /* The transient map note drops under the controls row instead of sharing it. */
 .map-shell:has(.map-controls) .map-note { inset-inline-start: 12px; top: calc(var(--space-2) + 40px + var(--space-2)); }
-.map-shell:has(.map:fullscreen, .map--faux-full) .map-controls { display: none; }
 @media (min-width: 672px) {
   .map-shell:has(> .map--hero) { max-inline-size: none; block-size: auto; max-block-size: none; }
   .map--hero { aspect-ratio: auto; block-size: calc(100svh - var(--masthead-h)); min-block-size: 22rem; max-block-size: none; }
 }
-/* A touch tablet's pull tab hangs 20px below the map, so the map gives that back. */
+/* A touch tablet's pull tab hangs 28px below the map, so the map gives that back. */
 @media (min-width: 672px) and (hover: none) {
-  .map--hero { block-size: calc(100svh - var(--masthead-h) - 20px); }
+  .map--hero { block-size: calc(100svh - var(--masthead-h) - 28px); }
 }
 
 /* Phone layout: masthead wraps, map taller, scale horizontal, replay row wraps. */
@@ -943,16 +976,16 @@ html:has(> body.embed) { block-size: 100%; }
      .map--hero instead. The shell no longer fixes its own height too — a
      fixed-height shell clipped the static, in-flow scale below the map. */
   .map-shell:has(.map--hero) { block-size: auto; max-block-size: none; }
-  /* Fills what is left: the tier caption (1.5rem) and the 20px pull tab stay in the first viewport. */
+  /* Fills what is left: the tier caption (1.5rem) and the 28px pull tab stay in the first viewport. */
   .map--hero {
-    aspect-ratio: auto; block-size: calc(100svh - var(--masthead-h) - 1.5rem - 20px);
+    aspect-ratio: auto; block-size: calc(100svh - var(--masthead-h) - 1.5rem - 28px);
     min-block-size: 20rem; max-block-size: none;
   }
   .map--wide { block-size: calc(100svh - 15rem); min-block-size: 18rem; }
   /* Area pages, covered or not: shrink so the pull tab stays above the fold on touch phones. */
   @media (hover: none) {
     .map--wide {
-      block-size: calc(100svh - var(--phone-chrome-area) - 20px); min-block-size: 55svh;
+      block-size: calc(100svh - var(--phone-chrome-area) - 28px); min-block-size: 55svh;
     }
   }
   /* Portrait touch phones: a one-column grid so .area-summary can move below the map. */
@@ -1073,6 +1106,8 @@ html:has(> body.embed) { block-size: 100%; }
   .map-note { inset-inline-start: calc(12px + 44px + var(--space-2)); }
   /* The same card as the other map buttons: a bare glyph vanished on the map. */
   .map-locate { bottom: var(--space-2); background: var(--bg); border-radius: var(--radius); }
+  /* The phone button is 44px, so the bubble sits higher and the arrow is centred on it. */
+  .map-locate-hint { --locate-hint-lift: 4rem; --locate-hint-arrow-inset: 15px; }
   /* One button until there is something to play: the row unfolds across the
      map only while a timelapse is loaded. The speed and exit buttons carry
      .map-play__btn too, so only the scrubber, clock and note fold away. */
@@ -1150,10 +1185,10 @@ html:has(> body.embed) { block-size: 100%; }
    of height and the shell collapses to 0. Height-led instead, chrome on top. */
 @media (orientation: landscape) and (max-height: 520px) and (hover: none) {
   .map-shell:has(.map--hero) { max-inline-size: none; block-size: auto; max-block-size: none; }
-  /* 40px masthead, the 1.5rem tier caption and the 20px pull tab. */
-  .map--hero { aspect-ratio: auto; block-size: calc(100svh - 40px - 1.5rem - 20px); min-block-size: 12rem; max-block-size: none; }
-  /* 7rem: measured 6rem of chrome above the map left the pull tab on the fold; 20px is the pull tab. */
-  .map--wide { block-size: calc(100svh - 7rem - 20px); min-block-size: 12rem; }
+  /* 40px masthead, the 1.5rem tier caption and the 28px pull tab. */
+  .map--hero { aspect-ratio: auto; block-size: calc(100svh - 40px - 1.5rem - 28px); min-block-size: 12rem; max-block-size: none; }
+  /* 7rem: measured 6rem of chrome above the map left the pull tab on the fold; 28px is the pull tab. */
+  .map--wide { block-size: calc(100svh - 7rem - 28px); min-block-size: 12rem; }
 
   /* Slimmer than the portrait 48px bar: landscape has no height to spare. */
   .masthead { block-size: 40px; min-block-size: 40px; }
@@ -1287,16 +1322,18 @@ html:has(> body.embed) { block-size: 100%; }
 
 /* Solid fallbacks for the issue-578 glass: no backdrop-filter, or reduced transparency. */
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .map__layers .colmenu__panel, .map-shell .scale--onmap[open] {
+  .map__layers .colmenu__panel, .map-shell .scale--onmap[open], .map-locate-hint__btn {
     background: var(--bg);
   }
+  .map-locate-hint::after { background: var(--bg); }
 }
 @media (prefers-reduced-transparency: reduce) {
-  .map__layers .colmenu__panel, .map-shell .scale--onmap[open] {
+  .map__layers .colmenu__panel, .map-shell .scale--onmap[open], .map-locate-hint__btn {
     background: var(--bg);
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
   }
+  .map-locate-hint::after { background: var(--bg); }
 }
 
 /* Sensor card, phone layout. The base rules keep the phone-only parts

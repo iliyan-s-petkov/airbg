@@ -250,6 +250,8 @@
      data-compare-colour="{{.ChartCompareColour}}"
      data-t-title="{{.T "panel.title"}}"
      data-t-close="{{.T "panel.close"}}"
+     data-t-fav-save="{{.T "panel.favourite.save"}}"
+     data-t-fav-remove="{{.T "panel.favourite.remove"}}"
      data-t-no-value="{{.T "panel.no_value"}}"
      data-t-flag-clamped="{{.T "panel.flag.clamped"}}"
      data-t-flag-out-of-range="{{.T "panel.flag.out_of_range"}}"
@@ -343,7 +345,7 @@
   >{{with .StripReadouts}}{{template "readouts" .}}{{end}}</div>{{end}}
 
 {{/* The "more below" strip under the map; web/src/lib/scrollcue.js scrolls to #below-map. */}}
-{{define "scrollCue"}}<a class="scroll-cue" href="#below-map" aria-label="{{.T "map.more_below"}}"><svg class="scroll-cue__chevron" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false"><path fill="none" stroke="currentColor" stroke-width="2" d="M3 6l5 5 5-5"/></svg></a>{{end}}
+{{define "scrollCue"}}<a class="scroll-cue" href="#below-map" aria-label="{{.T "map.more_below"}}"><svg viewBox="0 0 16 18" width="14" height="16" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2"><path class="scroll-cue__chevron" d="M3 3l5 4.5L13 3"/><path class="scroll-cue__chevron" d="M3 9l5 4.5L13 9"/></svg></a>{{end}}
 
 {{/* Phone-only return to the map once it is off-screen; web/src/lib/backtomap.js. */}}
 {{define "backToMap"}}<button type="button" class="back-to-map" aria-label="{{.T "map.back_to_map"}}"><svg class="back-to-map__ico" viewBox="0 0 16 16" width="18" height="18" aria-hidden="true" focusable="false"><path fill="none" stroke="currentColor" stroke-width="2" d="M3 10l5-5 5 5"/></svg></button>{{end}}

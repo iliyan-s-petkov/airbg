@@ -122,6 +122,20 @@ describe('resolveOpeningView precedence', () => {
   it('a settings-only hash does not suppress the saved view', () => {
     expect(resolveOpeningView({ hash: '#metric=P1', search: '', saved: good }).source).toBe('saved')
   })
+
+  it('explicit beats a favourite', () => {
+    expect(resolveOpeningView({ hash: '#sensor=5', search: '', saved: good, favourite: 42 }))
+      .toEqual({ source: 'explicit', view: null })
+  })
+
+  it('a favourite beats the saved view and names the sensor', () => {
+    expect(resolveOpeningView({ hash: '', search: '', saved: good, favourite: 42 }))
+      .toEqual({ source: 'favourite', view: null, sensorId: 42 })
+  })
+
+  it('no favourite leaves the saved view in charge', () => {
+    expect(resolveOpeningView({ hash: '', search: '', saved: good, favourite: null }).source).toBe('saved')
+  })
 })
 
 // A stand-in for the MapLibre camera: records jumps, stores moveend handlers.
