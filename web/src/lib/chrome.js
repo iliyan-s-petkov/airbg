@@ -405,6 +405,24 @@ export function mountChrome(el, cfg) {
   windNote.append(windSummary, windText)
   el.appendChild(windNote)
 
+  // Folds on a click on the note body (links still navigate) and on Escape.
+  // A map click calls foldWind from the map island. aria-expanded mirrors open.
+  const syncWindExpanded = () => windSummary.setAttribute('aria-expanded', String(windNote.open))
+  const foldWind = () => {
+    windNote.open = false
+    syncWindExpanded()
+  }
+  syncWindExpanded()
+  windNote.addEventListener('toggle', syncWindExpanded)
+  windNote.addEventListener('click', (event) => {
+    if (windNote.open && !windSummary.contains(event.target)) foldWind()
+  })
+  document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape' || !windNote.open) return
+    foldWind()
+    windSummary.focus()
+  }, { signal: live.signal })
+
   // The precedence rule lives in hintController; this is only the wiring from
   // its decision to the banner. textContent, never innerHTML.
   const hintCtl = hintController((text) => {
@@ -455,6 +473,7 @@ export function mountChrome(el, cfg) {
       note.hidden = !text
     },
     showLegend,
+    foldWind,
     dock,
     zoomButtons: zoom.buttons,
     windowMenu,
