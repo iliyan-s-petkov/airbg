@@ -320,7 +320,7 @@ export function installMapLoad({ map, state, cfg, chrome, vs, windState, boundar
     installLayers(map, chrome.layersUI, {
       labels: cfg.t.layers,
       caption: cfg.t.layersCaption,
-      views: [...chrome.layerViews, ...sourceViews, faultyView, windView, boundaryView],
+      views: [...chrome.layerViews, ...sourceViews, chrome.inactiveView, faultyView, windView, boundaryView],
     })
 
     setSourceViewAvailability(chrome, cfg.metric, cfg.t, state.coverage)

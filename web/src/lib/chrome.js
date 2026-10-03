@@ -319,15 +319,6 @@ export function mountChrome(el, cfg) {
       apply: (on, map) => setCellValues(map, on),
     },
     {
-      id: 'inactiveSensors',
-      label: cfg.t.viewInactiveSensors,
-      // Off by default: a sensor that stopped reporting has no reading to show,
-      // and a grid full of no-data cells reads as an empty country rather than
-      // a quiet one. The subscription in mount() repaints both tiers.
-      defaultOff: true,
-      apply: (on) => setSensorStatus(on ? 'all' : 'active'),
-    },
-    {
       id: 'basemap',
       label: cfg.t.viewBasemap,
       needsMap: true,
@@ -342,6 +333,20 @@ export function mountChrome(el, cfg) {
       },
     },
   ]
+
+  // Not in layerViews: the map loader places it beside the station toggles.
+  const inactiveView = {
+    // The id stays 'inactiveSensors': visitors' saved choices are keyed on it.
+    id: 'inactiveSensors',
+    label: cfg.t.viewInactiveStations,
+    // Off by default: a sensor that stopped reporting has no reading to show,
+    // and a grid full of no-data cells reads as an empty country rather than
+    // a quiet one. The subscription in mount() repaints both tiers.
+    defaultOff: true,
+    // A blank slot, so the text lines up with the marked rows around it.
+    mark: 'blank',
+    apply: (on) => setSensorStatus(on ? 'all' : 'active'),
+  }
 
   const hint = document.createElement('div')
   hint.className = 'map-hint'
@@ -456,6 +461,7 @@ export function mountChrome(el, cfg) {
     player,
     layersUI: layers,
     layerViews,
+    inactiveView,
     locateButton,
     sheet,
     // Called on movestart and when the replay bar opens.

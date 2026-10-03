@@ -159,7 +159,7 @@ export function readConfig(el) {
       viewLegend: d.tViewLegend || '',
       viewBasemap: d.tViewBasemap || '',
       viewCellValues: d.tViewCellValues || '',
-      viewInactiveSensors: d.tViewInactiveSensors || '',
+      viewInactiveStations: d.tViewInactiveStations || '',
       // Its own string, not map.layer.boundaries: that one names the basemap's
       // administrative lines, which are a different set of lines from a
       // different source and switch independently.
