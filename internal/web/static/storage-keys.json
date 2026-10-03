@@ -8,7 +8,8 @@
     "kanarche:auto-refresh",
     "kanarche:map-view",
     "kanarche:locate-hint-seen",
-    "kanarche:favourite-sensor"
+    "kanarche:favourite-sensor",
+    "kanarche:panel-folded"
   ],
   "legacy": [
     "airbg:theme",
@@ -19,7 +20,8 @@
     "airbg:auto-refresh",
     "airbg:map-view",
     "airbg:locate-hint-seen",
-    "airbg:favourite-sensor"
+    "airbg:favourite-sensor",
+    "airbg:panel-folded"
   ],
   "sessionStorage": []
 }

@@ -67,3 +67,17 @@ test('localStorage after starring a sensor holds only allow-listed keys', async 
 
   await page.close()
 })
+
+test('localStorage after folding the sensor panel holds only allow-listed keys', async ({ ctx }) => {
+  const page = await ctx.newPage()
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await page.goto('/en/#sensor=101')
+  await page.locator('.map-dock').getByRole('button', { name: 'Fold' }).click({ timeout: 20000 })
+
+  const keys = await page.evaluate(() => Object.keys(localStorage))
+  expect(keys).toContain('kanarche:panel-folded')
+  const unexpected = keys.filter((k) => !allowed.has(k))
+  expect(unexpected, `unlisted localStorage keys: ${unexpected.join(', ')}`).toEqual([])
+
+  await page.close()
+})

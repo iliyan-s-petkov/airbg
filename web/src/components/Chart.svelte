@@ -23,11 +23,14 @@
   // "v". It is what lets one banded response draw three lines, and dash is how
   // those three are told apart: the sensor is solid, its surroundings dashed.
   //
+  // fill sizes the plot to whatever height its container gives the frame, with no drag handle:
+  // the sensor panel over the map hands the chart the room left after its header and gauges.
+  //
   // resizable gives the plot a drag handle: analysing a day of four metrics
   // wants more than the 240px a summary chart needs.
   let {
     url, lineColour, valueLabel, valueUnit = '', sources = null,
-    title, timeLabel, empty, unavailable, resizable = false,
+    title, timeLabel, empty, unavailable, resizable = false, fill = false,
   } = $props()
 
   const defs = $derived(sources ?? [{ url, label: valueLabel, colour: lineColour, scale: 'y', unit: valueUnit }])
@@ -51,8 +54,9 @@
     return host?.querySelector('.u-legend')?.offsetHeight || LEGEND_STRIP
   }
   function plotSize() {
-    const dragged = resizable && frame?.clientHeight ? frame.clientHeight - legendStrip() : BASE_HEIGHT
-    return { width: host.clientWidth || 600, height: Math.max(160, dragged) }
+    const measured = (resizable || fill) && frame?.clientHeight
+    const dragged = measured ? frame.clientHeight - legendStrip() : BASE_HEIGHT
+    return { width: host.clientWidth || 600, height: Math.max(fill ? 80 : 160, dragged) }
   }
 
   // Token reads, not hex literals (literals.test.js bans those in web/src).
@@ -211,7 +215,7 @@
       // The first size was computed before uPlot had drawn its legend, so the
       // strip could only be assumed. Re-fit once against the real one; the
       // frame's height is fixed, so this cannot feed the observer below.
-      if (resizable) {
+      if (resizable || fill) {
         const fitted = plotSize()
         if (fitted.width > 0 && fitted.height !== chart.height) chart.setSize(fitted)
       }
@@ -222,7 +226,7 @@
         const next = plotSize()
         if (next.width > 0) chart.setSize(next)
       })
-      observer.observe(resizable ? frame : host)
+      observer.observe(resizable || fill ? frame : host)
 
       // theme.js toggles data-theme with no reload; "auto" follows the OS
       // scheme instead. Either needs a repaint or the chart keeps the old
@@ -248,7 +252,7 @@
   })
 </script>
 
-<div bind:this={frame} class="chart-frame" class:chart-frame--resizable={resizable}>
+<div bind:this={frame} class="chart-frame" class:chart-frame--resizable={resizable} class:chart-frame--fill={fill}>
   <div bind:this={host} class="chart-host"></div>
 </div>
 {#if status === 'unavailable'}<p class="chart-message">{unavailable}</p>{/if}
