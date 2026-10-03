@@ -904,9 +904,10 @@ html:has(> body.embed) { block-size: 100%; }
 .map-shell:has(.scroll-cue) + .map-tier { margin-block-start: calc(28px + var(--space-1)); }
 @media (hover: hover) { .map-shell:has(.scroll-cue) + .map-tier { margin-block-start: var(--space-2); } }
 
-/* Phone-only back-to-map button (web/src/lib/backtomap.js); z-index above the key and sensor sheet (4). */
-.back-to-map {
-  position: fixed; z-index: 6;
+/* Back-to-top (web/src/lib/backtotop.js), every base-layout page. z-index 5 sits under the about sheet (21). */
+.back-to-top-sentinel { position: absolute; inset-block-start: 0; inset-inline-start: 0; inline-size: 1px; block-size: 100svh; pointer-events: none; visibility: hidden; }
+.back-to-top {
+  position: fixed; z-index: 5;
   inset-block-end: max(var(--space-3), env(safe-area-inset-bottom));
   inset-inline-end: max(var(--space-3), env(safe-area-inset-right));
   display: grid; place-items: center; inline-size: 44px; block-size: 44px; padding: 0;
@@ -915,11 +916,11 @@ html:has(> body.embed) { block-size: 100%; }
   opacity: 0; visibility: hidden; pointer-events: none;
   transition: opacity .2s ease, visibility 0s linear .2s;
 }
-.back-to-map--visible { opacity: 1; visibility: visible; pointer-events: auto; transition: opacity .2s ease; }
-.back-to-map:focus-visible { outline: none; box-shadow: var(--focus-ring); }
-@media (hover: hover) { .back-to-map { display: none; } }
-/* Fullscreen and faux-full pin the frame over the viewport; nothing outside it is reachable. */
-.map-shell:has(.map:fullscreen, .map--faux-full) ~ .back-to-map { display: none; }
+.back-to-top--visible { opacity: 1; visibility: visible; pointer-events: auto; transition: opacity .2s ease; }
+.back-to-top:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+/* Fullscreen frames and the open sensor sheet own the viewport bottom. */
+body:has(.map:fullscreen, .map--faux-full, .map-sensor-sheet) .back-to-top { display: none; }
+@media (prefers-reduced-motion: reduce) { .back-to-top { transition: none; } }
 
 /* Map-first home: the metric pill and the finder ride on the map's top row, between
    the kit's layers button (start) and full-screen button (end). */
