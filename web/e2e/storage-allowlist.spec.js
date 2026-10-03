@@ -1,7 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { test, expect } from './fixtures.js'
+import { test, expect, mapSettled, userMove } from './fixtures.js'
 
 // OpenProject #584: after exercising the map's real controls, every key the
 // browser actually holds in localStorage must be in the published allow-list.
@@ -22,6 +22,19 @@ test('localStorage after exercising the map holds only allow-listed keys', async
   // have already read/written kanarche:theme and kanarche:legend-open.
   await page.locator('.map__layers .colmenu__btn').click()
   await page.locator('.map__layers .colmenu__panel input[type="checkbox"]').first().click()
+
+  const keys = await page.evaluate(() => Object.keys(localStorage))
+  const unexpected = keys.filter((k) => !allowed.has(k))
+  expect(unexpected, `unlisted localStorage keys: ${unexpected.join(', ')}`).toEqual([])
+
+  await page.close()
+})
+
+test('localStorage after moving the home map holds only allow-listed keys', async ({ ctx }) => {
+  const page = await ctx.newPage()
+  await page.goto('/en/')
+  await mapSettled(page)
+  await userMove(page)
 
   const keys = await page.evaluate(() => Object.keys(localStorage))
   const unexpected = keys.filter((k) => !allowed.has(k))

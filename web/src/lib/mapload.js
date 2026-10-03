@@ -43,6 +43,7 @@ import {
 import {
   locateVisitor, openDeepLinkedSensor, placeVisitor, prefetchPlacement, LOCATE_TIMEOUT_MS,
 } from './placement.js'
+import { restoreLastView } from './lastview.js'
 import { installTimelapse } from './timelapse-island.js'
 
 // Named rather than positional: windState and boundaryState are structurally
@@ -430,6 +431,10 @@ export function installMapLoad({ map, state, cfg, chrome, vs, windState, boundar
       // Home page only: an area page's map island carries a fixed data-slug
       // (cfg.slug is non-null there), so its opening view is already the area's
       // own centre and there is nothing for /api/v1/locate to improve.
+      // The saved view comes next: it beats the visitor's geoip city, and the
+      // default overview is what a first visit (no saved view) still gets.
+      if (!placed) placed = restoreLastView(map, cfg)
+
       if (!placed && !cfg.slug) {
         placed = await placeVisitor(map, state, cfg, getJSON, { timeoutMs: LOCATE_TIMEOUT_MS })
       }

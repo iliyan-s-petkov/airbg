@@ -286,6 +286,7 @@
   "privacy.storage.kanarche:auto-refresh": "Дали картата се обновява автоматично с нови данни.",
   "privacy.storage.kanarche:legend-open": "Дали панелът с легендата на картата е отворен.",
   "privacy.storage.kanarche:map-layers": "Кои слоеве на картата са включени.",
+  "privacy.storage.kanarche:map-view": "Къде за последно е била центрирана и увеличена началната карта, за да се отвори отново там.",
   "privacy.storage.kanarche:map-window": "Периодът, който картата показва: текущи стойности или средни за по-дълъг период.",
   "privacy.storage.kanarche:play-speed": "Избраната от вас скорост на възпроизвеждане на времевата анимация.",
   "privacy.storage.kanarche:theme": "Избраната от вас цветова тема: автоматична, светла или тъмна.",

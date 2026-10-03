@@ -5,7 +5,8 @@
     "kanarche:legend-open",
     "kanarche:play-speed",
     "kanarche:map-window",
-    "kanarche:auto-refresh"
+    "kanarche:auto-refresh",
+    "kanarche:map-view"
   ],
   "legacy": [
     "airbg:theme",
@@ -13,7 +14,8 @@
     "airbg:legend-open",
     "airbg:play-speed",
     "airbg:map-window",
-    "airbg:auto-refresh"
+    "airbg:auto-refresh",
+    "airbg:map-view"
   ],
   "sessionStorage": []
 }

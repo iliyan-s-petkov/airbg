@@ -224,6 +224,7 @@ describe('installZoom', () => {
     const buttons = wire(map)
     buttons.in.click()
     buttons.out.click()
+    expect(map.zoomIn).toHaveBeenCalledWith({}, { userInitiated: true })
     expect(map.zoomIn).toHaveBeenCalledOnce()
     expect(map.zoomOut).toHaveBeenCalledOnce()
   })
@@ -233,7 +234,7 @@ describe('installZoom', () => {
     wire(map).reset.click()
     // `center`, MapLibre's spelling, out of `centre`, ours. The two sit one
     // property apart and a map handed the wrong key flies to null island.
-    expect(map.flyTo).toHaveBeenCalledWith({ center: [25.4858, 42.7339], zoom: 7 })
+    expect(map.flyTo).toHaveBeenCalledWith({ center: [25.4858, 42.7339], zoom: 7 }, { userInitiated: true })
   })
 
   it('disables a button at the limit it reports, not at a limit written here', () => {

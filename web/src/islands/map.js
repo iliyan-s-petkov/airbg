@@ -23,6 +23,7 @@ import {
   MOVE_DEBOUNCE_MS, refresh, refreshHexes, showArea, debounce,
 } from '../lib/mapdata.js'
 import { openDeepLinkedSensor, locateMe } from '../lib/placement.js'
+import { trackLastView } from '../lib/lastview.js'
 import { mountChrome } from '../lib/chrome.js'
 import { installMapLoad } from '../lib/mapload.js'
 import { findSensor } from '../lib/sensors.svelte.js'
@@ -176,6 +177,7 @@ export function mount(el) {
   installMapLoad({ map, state, cfg, chrome, vs, windState, boundaryState, onMoveEnd, subs })
 
   map.on('moveend', onMoveEnd)
+  trackLastView(map, cfg)
   // Phone-only inside chrome.closeLegend: an open key drawn over the sensor
   // the reader just panned to. movestart, not moveend — close as the pan
   // begins, not after the debounced repaint above.

@@ -1,3 +1,5 @@
+import { USER_MOVE } from './lastview.js'
+
 // The map's own controls: full screen, and the three-button zoom stack.
 //
 // Both are the kit's (.map__full and .map-zoom in components.css), and both go
@@ -199,12 +201,13 @@ export function installZoom(map, buttons, home) {
     buttons.in.disabled = z >= map.getMaxZoom() - 1e-6
   }
 
-  buttons.in.addEventListener('click', () => map.zoomIn())
-  buttons.out.addEventListener('click', () => map.zoomOut())
+  // USER_MOVE marks these as the visitor's own: MapLibre sets originalEvent only for input it handles.
+  buttons.in.addEventListener('click', () => map.zoomIn({}, USER_MOVE))
+  buttons.out.addEventListener('click', () => map.zoomOut({}, USER_MOVE))
   // flyTo, not jumpTo: this one IS a deliberate click, so the flight explains
   // where the reader was taken. locateVisitor's jump is the opposite case — a
   // move nobody asked for.
-  buttons.reset.addEventListener('click', () => map.flyTo({ center: home.centre, zoom: home.zoom }))
+  buttons.reset.addEventListener('click', () => map.flyTo({ center: home.centre, zoom: home.zoom }, USER_MOVE))
 
   // 'zoom', not 'zoomend': the buttons must go dead at the limit during the
   // animation, not a beat after it, or a held click keeps firing past the stop.
