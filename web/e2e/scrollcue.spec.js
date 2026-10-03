@@ -1,6 +1,6 @@
 import { test, expect, mapSettled } from './fixtures.js'
 
-// The pull tab (OpenProject #574, plan Task 2, spike option C): a 56x20 tab
+// The pull tab (OpenProject #574, plan Task 2, spike option C): a 56x28 tab
 // hanging from the map's bottom edge, 64x44 hit area via ::before.
 const VIEWPORTS = [
   { name: '393x873', width: 393, height: 873 },
@@ -89,7 +89,7 @@ for (const vp of VIEWPORTS) {
 
         // Visual tab is the spike's small pull tab, not the old 44px strip.
         expect(box.width).toBeLessThanOrEqual(57)
-        expect(box.height).toBeLessThanOrEqual(21)
+        expect(box.height).toBeLessThanOrEqual(29)
 
         // The tap target (::before) is still >= 44px tall.
         const tap = await tapBox(cue)
@@ -176,8 +176,8 @@ for (const vp of FOLD_VIEWPORTS) {
           const rem = parseFloat(getComputedStyle(document.documentElement).fontSize)
           const map = document.querySelector('.map--wide').getBoundingClientRect()
           const cap = portrait
-            ? Math.max(innerHeight - 22 * rem - 20, innerHeight * 0.55)
-            : Math.max(innerHeight - 7 * rem - 20, 12 * rem)
+            ? Math.max(innerHeight - 22 * rem - 28, innerHeight * 0.55)
+            : Math.max(innerHeight - 7 * rem - 28, 12 * rem)
           return { h: map.height, cap, noticeTop: notice.getBoundingClientRect().top, mapBottom: map.bottom }
         }, vp.height > vp.width)
         expect(h).toBeLessThanOrEqual(cap + 1)
@@ -242,14 +242,50 @@ test('the pull tab is shown on the 1280x800 desktop home map only, not on an are
   await page.close()
 })
 
-test('reduced motion: the chevron does not animate', async ({ browser }) => {
+test('the cue holds two stacked chevrons', async ({ browser }) => {
+  const ctx = await phoneCtx(browser, VIEWPORTS[0])
+  const page = await ctx.newPage()
+  await page.goto('/')
+  await mapSettled(page)
+  const chevrons = page.locator('a.scroll-cue .scroll-cue__chevron')
+  await expect(chevrons).toHaveCount(2)
+  const [a, b] = await chevrons.evaluateAll((els) => els.map((el) => el.getBoundingClientRect().y))
+  expect(b).toBeGreaterThan(a)
+  await expect(page.locator('a.scroll-cue')).toHaveAttribute('aria-label', /\S/)
+  await ctx.close()
+})
+
+test('393x873: the cue tap target is at least 44px tall', async ({ browser }) => {
+  const ctx = await phoneCtx(browser, VIEWPORTS[0])
+  const page = await ctx.newPage()
+  await page.goto('/')
+  await mapSettled(page)
+  const tap = await tapBox(page.locator('a.scroll-cue'))
+  expect(tap.height).toBeGreaterThanOrEqual(44)
+  await ctx.close()
+})
+
+test('reduced motion: neither chevron animates', async ({ browser }) => {
   const ctx = await phoneCtx(browser, VIEWPORTS[0])
   const page = await ctx.newPage()
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await page.goto('/')
   await mapSettled(page)
-  const name = await page.locator('.scroll-cue__chevron')
-    .evaluate((el) => getComputedStyle(el).animationName)
-  expect(name).toBe('none')
+  const names = await page.locator('.scroll-cue__chevron')
+    .evaluateAll((els) => els.map((el) => getComputedStyle(el).animationName))
+  expect(names).toEqual(['none', 'none'])
+  await ctx.close()
+})
+
+test('motion allowed: both chevrons animate', async ({ browser }) => {
+  const ctx = await phoneCtx(browser, VIEWPORTS[0])
+  const page = await ctx.newPage()
+  await page.emulateMedia({ reducedMotion: 'no-preference' })
+  await page.goto('/')
+  await mapSettled(page)
+  const names = await page.locator('.scroll-cue__chevron')
+    .evaluateAll((els) => els.map((el) => getComputedStyle(el).animationName))
+  expect(names).toHaveLength(2)
+  for (const n of names) expect(n).not.toBe('none')
   await ctx.close()
 })

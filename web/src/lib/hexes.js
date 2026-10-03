@@ -6,6 +6,7 @@
 // this file and the Go server from drifting apart the way BBOX_QUANTUM_DEG did.
 import { OFFICIAL_SOURCE, sourceOf } from './sourcefilter.svelte.js'
 import contract from './contract.json'
+import { columnHeight } from './hexrise.js'
 
 const EARTH_RADIUS_KM = contract.hex.earth_radius_km
 const HEX_REF_LAT = contract.hex.ref_lat
@@ -350,6 +351,8 @@ export function hexFeatures(body, metric, bands, noDataColour, colourOf, pointRe
       properties: {
         colour: colourOf(value, bands, noDataColour),
         value,
+        // Column height in metres when the map is tilted (hexrise.js); 0 for a point.
+        height: drawKM > 0 ? columnHeight(value, bands, drawKM) : 0,
         n: h.n,
         // The network, carried so the layers can shape and outline a cell by it.
         // Only the point tier has one to carry: an aggregate cell is a bin, and

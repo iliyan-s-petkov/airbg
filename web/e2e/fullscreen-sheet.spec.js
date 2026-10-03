@@ -106,3 +106,70 @@ for (const vp of VIEWPORTS) {
   }
 }
 
+
+// Every control on the map must survive fullscreen: real fullscreen paints only the frame,
+// so each overlay has to be inside it, sized, within the map box and not covered.
+const CONTROLS = {
+  layers: '.map__layers',
+  metric: '.map-controls__metric button',
+  finder: '.map-controls__find input',
+  fullscreen: '.map__full',
+  locate: '.map-locate',
+  legend: '.scale--onmap',
+  freshness: '.map-freshness',
+  window: '.map-window__btn',
+  play: '.map-play button',
+  // Zoom and reset are hidden on a phone, in and out of fullscreen.
+  zoomIn: '.map-zoom__btn',
+  // The refresh pair sits in the window menu's closed panel on a phone.
+  refresh: '.data-refresh',
+}
+const PHONE_HIDDEN = ['zoomIn', 'refresh']
+
+// One line per control: 'ok', or what is wrong with it.
+// inFrame: also require the control to be inside the fullscreen frame (not true again once back out).
+const controlStates = (page, controls, inFrame = true) => page.evaluate(([sels, inFrame]) => {
+  const map = document.querySelector('[data-island="map"]')
+  const frame = document.fullscreenElement ?? map
+  const m = map.getBoundingClientRect()
+  return Object.entries(sels).map(([name, sel]) => {
+    const el = document.querySelector(sel)
+    if (!el) return `${name}: missing`
+    if (inFrame && !frame.contains(el)) return `${name}: not inside the map frame`
+    const r = el.getBoundingClientRect()
+    if (r.width === 0 || r.height === 0) return `${name}: zero size`
+    if (r.left < m.left || r.top < m.top || r.right > m.right || r.bottom > m.bottom) return `${name}: outside the map box`
+    const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2)
+    return hit && (el === hit || el.contains(hit)) ? 'ok' : `${name}: covered by ${hit?.className}`
+  })
+}, [controls, inFrame])
+
+for (const vp of VIEWPORTS) {
+  for (const path of ['/', '/en/']) {
+    test(`${vp.name} ${path}: every map control stays visible in fullscreen`, async ({ browser }, testInfo) => {
+      testInfo.setTimeout(60000)
+      const { name, ...opts } = vp
+      const context = await browser.newContext(opts)
+      const page = await context.newPage()
+      await page.goto(path)
+      await expect(page.locator('.map__full')).toBeVisible()
+
+      const controls = Object.fromEntries(Object.entries(CONTROLS)
+        .filter(([k]) => !(opts.isMobile && PHONE_HIDDEN.includes(k))))
+      const names = Object.keys(controls)
+      // The baseline: outside fullscreen every control is there and sized.
+      await expect.poll(() => controlStates(page, controls, false).then((r) => r.filter((x) => /missing|zero size/.test(x))), { timeout: 15000 }).toEqual([])
+
+      await page.locator('.map__full').click()
+      await expect.poll(() => fullFrame(page)).toBe(true)
+      await expect.poll(() => controlStates(page, controls), { timeout: 10000 }).toEqual(names.map(() => 'ok'))
+
+      // Leaving fullscreen puts the rows back where they were.
+      await page.locator('.map__full').click()
+      await expect.poll(() => fullFrame(page)).toBe(false)
+      await expect.poll(() => controlStates(page, controls, false), { timeout: 10000 }).toEqual(names.map(() => 'ok'))
+
+      await context.close()
+    })
+  }
+}

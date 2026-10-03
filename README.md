@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="internal/web/static/favicon.svg" width="64" height="64" alt="">
+<img src="internal/web/static/kanarche-mascot.svg" width="160" height="160" alt="Kanarche mascot: a samurai canary">
 
 # Kanarche
 

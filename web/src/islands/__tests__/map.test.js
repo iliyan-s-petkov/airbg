@@ -60,6 +60,9 @@ vi.mock('maplibre-gl', () => {
       // a map this island can mount.
       this.getMinZoom = vi.fn(() => 5)
       this.getMaxZoom = vi.fn(() => 18)
+      this.getMaxPitch = vi.fn(() => 60)
+      this.getBearing = vi.fn(() => 0)
+      this.getPitch = vi.fn(() => 0)
       this.zoomIn = vi.fn()
       this.zoomOut = vi.fn()
       this.flyTo = vi.fn()
@@ -99,7 +102,8 @@ vi.mock('maplibre-gl', () => {
       if (event !== 'click') { this.handlers[event] = a; return }
       if (b === undefined) { this.bareClickHandlers.push(a); return }
       this.handlers.click ??= b
-      this.clickHandlers[a] = b
+      // MapLibre takes one layer id or an array of them for a single listener.
+      for (const id of [a].flat()) this.clickHandlers[id] = b
     }
 
     off(event, handler) {

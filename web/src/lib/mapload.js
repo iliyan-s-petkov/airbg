@@ -26,6 +26,7 @@ import {
 import {
   SOURCE_ID, LAYER_ID, OFFICIAL_LAYER_ID, OFFICIAL_IMAGE_ID, LABEL_LAYER_ID, FAULTY_LAYER_ID,
   HEX_SOURCE_ID, HEX_LAYER_ID, HEX_OUTLINE_LAYER_ID, HEX_POINT_LAYER_ID, HEX_LABEL_LAYER_ID,
+  HEX_COLUMN_SOURCE_ID, HEX_EXTRUSION_LAYER_ID,
 } from './mapids.js'
 import { emptyCollection } from './mapfeatures.js'
 import {
@@ -46,6 +47,7 @@ import {
 import { restoreLastView } from './lastview.js'
 import { openFavouriteSensor } from './favourite.js'
 import { installTimelapse } from './timelapse-island.js'
+import { hexExtrusionPaint, installHexRise } from './hexrise.js'
 
 // Named rather than positional: windState and boundaryState are structurally
 // identical objects, so a transposed pair would be silent here and at runtime.
@@ -83,6 +85,16 @@ export function installMapLoad({ map, state, cfg, chrome, vs, windState, boundar
       minzoom: GRID_MIN_ZOOM_FRACTIONAL,
       paint: hexOutlinePaint(cfg),
     })
+    // The cells as columns when the map is tilted, over the flat grid; opacity 0 and empty until then.
+    map.addSource(HEX_COLUMN_SOURCE_ID, { type: 'geojson', data: emptyCollection() })
+    map.addLayer({
+      id: HEX_EXTRUSION_LAYER_ID,
+      type: 'fill-extrusion',
+      source: HEX_COLUMN_SOURCE_ID,
+      minzoom: GRID_MIN_ZOOM_FRACTIONAL,
+      paint: hexExtrusionPaint(),
+    })
+    installHexRise(map)
     // The point tier's fallback, sharing the hex source. Past the finest
     // published cell the server sends devices rather than bins, and those are
     // normally drawn as cells like every other tier (see refreshHexes on why:

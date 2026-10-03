@@ -13,6 +13,8 @@
 <link rel="canonical" href="{{.BaseURL}}{{.Path "/"}}">
 <meta name="robots" content="noindex">
 <link rel="icon" href="{{.Static "favicon.svg"}}" type="image/svg+xml">
+<link rel="icon" href="{{.Static "favicon-32.png"}}" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="{{.Static "apple-touch-icon.png"}}" sizes="180x180">
 {{with .Assets.Style "theme"}}<link rel="stylesheet" href="{{.}}">
 {{else}}<link rel="stylesheet" href="{{.Static "theme.css"}}">
 {{end}}<link rel="stylesheet" href="{{.Static "app.css"}}">
@@ -69,6 +71,11 @@
      data-t-zoom-in="{{.T "map.zoom.in"}}"
      data-t-zoom-out="{{.T "map.zoom.out"}}"
      data-t-zoom-reset="{{.T "map.zoom.reset"}}"
+     data-t-orient-label="{{.T "map.orient.label"}}"
+     data-t-orient-tip="{{.T "map.orient.tip"}}"
+     data-t-orient-tilt="{{.T "map.orient.tilt"}}"
+     data-t-orient-heading="{{.T "map.orient.heading"}}"
+     data-t-orient-north="{{.T "map.orient.north"}}"
      {{template "mapLayerLabels" .}}
      data-t-hint="{{.T "map.hint.select_area"}}"
      data-t-no-sources="{{.T "map.hint.no_sources"}}"

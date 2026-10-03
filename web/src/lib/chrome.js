@@ -4,7 +4,7 @@
 // the pure builders it calls stay importable on their own.
 import { LEGEND_CLASSES, buildWindRow, legendRows, legendTitle, renderLegend, setWindRow } from './legend.js'
 import { createScaleDialog } from './scaledialog.js'
-import { mountFullscreen, mountZoom, mountLocate } from './mapcontrols.js'
+import { mountFullscreen, mountZoom, mountLocate, mountOrientation } from './mapcontrols.js'
 import { mountLayers } from './maplayers.js'
 import { setSensorStatus } from './sensorfilter.svelte.js'
 import { readFlag, writeFlag, safeStorage } from './storage.js'
@@ -218,6 +218,16 @@ export function mountChrome(el, cfg) {
   // the same element on both sides of the trip.
   // The open sensor's gauges ride along too, in a sheet (lib/sensorsheet.svelte.js).
   let fullButton = null
+  // The overlay rows (top controls, bottom-left refresh/window/play) ride along too: real fullscreen paints only the frame.
+  const rows = ['.map-controls', '.map-freshness']
+    .map((sel) => el.closest('.map-shell')?.querySelector(sel))
+    .filter(Boolean)
+    .map((node) => {
+      // A marker, not the next sibling: that sibling may be a row that is itself away in the frame.
+      const home = document.createComment('')
+      node.before(home)
+      return { node, home }
+    })
   const sheet = createSensorSheet(el, {
     closeLabel: cfg.t.close,
     historyLabel: cfg.t.sheetHistory,
@@ -236,6 +246,10 @@ export function mountChrome(el, cfg) {
     exitLabel: cfg.t.fullscreenExit,
     onChange: (full) => {
       (full ? el : shell).appendChild(legend)
+      for (const { node, home } of rows) {
+        if (full) el.appendChild(node)
+        else home.before(node)
+      }
       // The gauges have one home at a time: the dock lets go before the sheet takes them, and the reverse on exit.
       if (full) { dock.setFull(true); sheet.setFull(true) } else { sheet.setFull(false); dock.setFull(false) }
     },
@@ -244,6 +258,14 @@ export function mountChrome(el, cfg) {
     inLabel: cfg.t.zoomIn,
     outLabel: cfg.t.zoomOut,
     resetLabel: cfg.t.zoomReset,
+  })
+  const orient = mountOrientation(el, {
+    label: cfg.t.orientLabel,
+    tip: cfg.t.orientTip,
+    tiltLabel: cfg.t.orientTilt,
+    headingLabel: cfg.t.orientHeading,
+    northLabel: cfg.t.orientNorth,
+    closeLabel: cfg.t.close,
   })
 
   // The averaging window. Built with the chrome and wired by mount(), which
@@ -411,6 +433,24 @@ export function mountChrome(el, cfg) {
   windNote.append(windSummary, windText)
   el.appendChild(windNote)
 
+  // Folds on a click on the note body (links still navigate) and on Escape.
+  // A map click calls foldWind from the map island. aria-expanded mirrors open.
+  const syncWindExpanded = () => windSummary.setAttribute('aria-expanded', String(windNote.open))
+  const foldWind = () => {
+    windNote.open = false
+    syncWindExpanded()
+  }
+  syncWindExpanded()
+  windNote.addEventListener('toggle', syncWindExpanded)
+  windNote.addEventListener('click', (event) => {
+    if (windNote.open && !windSummary.contains(event.target)) foldWind()
+  })
+  document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape' || !windNote.open) return
+    foldWind()
+    windSummary.focus()
+  }, { signal: live.signal })
+
   // The precedence rule lives in hintController; this is only the wiring from
   // its decision to the banner. textContent, never innerHTML.
   const hintCtl = hintController((text) => {
@@ -461,8 +501,10 @@ export function mountChrome(el, cfg) {
       note.hidden = !text
     },
     showLegend,
+    foldWind,
     dock,
     zoomButtons: zoom.buttons,
+    orient,
     windowMenu,
     player,
     layersUI: layers,
