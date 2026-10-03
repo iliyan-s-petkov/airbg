@@ -868,10 +868,10 @@ html:has(> body.embed) { block-size: 100%; }
 }
 .scaleinfo__close:focus-visible { box-shadow: var(--focus-ring); }
 
-/* "More below" pull tab hanging from the map's bottom edge; phones only. */
+/* "More below" pull tab hanging from the map's bottom edge; phones only. Two chevrons, 28px tall. */
 .scroll-cue {
   position: absolute; z-index: 3; inset-block-start: 100%; inset-inline-start: 50%; translate: -50% 0;
-  display: grid; place-items: center; inline-size: 56px; block-size: 20px; padding: 0;
+  display: grid; place-items: center; inline-size: 56px; block-size: 28px; padding: 0;
   color: var(--fg); text-decoration: none; -webkit-tap-highlight-color: transparent;
 }
 /* Visual tab; clipped here so the clip doesn't cut the ::before tap target. */
@@ -881,12 +881,14 @@ html:has(> body.embed) { block-size: 100%; }
   background: var(--bg); box-shadow: var(--elev-raised);
   clip-path: inset(0 -12px -12px -12px);
 }
-/* 64x44 tap target. */
+/* 64x52 tap target. */
 .scroll-cue::before { content: ''; position: absolute; inset: -12px -4px -12px; }
 .scroll-cue:focus-visible { outline: none; }
 .scroll-cue:focus-visible::after { box-shadow: var(--focus-ring); }
-.scroll-cue__chevron { animation: cue-bob 1.8s ease-in-out 3; }
-@keyframes cue-bob { 50% { transform: translateY(3px); } }
+/* Nudge and fade cascade, lower chevron lagging; three loops, then rest. The reduced-motion rule below turns it off. */
+.scroll-cue__chevron { animation: cue-bob 2.2s ease-in-out 0.3s 3 backwards; }
+.scroll-cue__chevron:first-child { animation-delay: 0s; }
+@keyframes cue-bob { 0%, 100% { transform: translateY(0); opacity: 1; } 45% { transform: translateY(3px); opacity: 0.4; } }
 @media (hover: hover) { .scroll-cue { display: none; } }
 /* The home map ends at the viewport bottom on desktop, so its tab sits inside the edge instead of hanging off it. */
 @media (hover: hover) {
@@ -899,7 +901,7 @@ html:has(> body.embed) { block-size: 100%; }
 }
 .map-shell:has(.map:fullscreen, .map--faux-full) .scroll-cue { display: none; }
 /* The caption clears the tab. */
-.map-shell:has(.scroll-cue) + .map-tier { margin-block-start: calc(20px + var(--space-1)); }
+.map-shell:has(.scroll-cue) + .map-tier { margin-block-start: calc(28px + var(--space-1)); }
 @media (hover: hover) { .map-shell:has(.scroll-cue) + .map-tier { margin-block-start: var(--space-2); } }
 
 /* Phone-only back-to-map button (web/src/lib/backtomap.js); z-index above the key and sensor sheet (4). */
@@ -946,14 +948,13 @@ html:has(> body.embed) { block-size: 100%; }
 }
 /* The transient map note drops under the controls row instead of sharing it. */
 .map-shell:has(.map-controls) .map-note { inset-inline-start: 12px; top: calc(var(--space-2) + 40px + var(--space-2)); }
-.map-shell:has(.map:fullscreen, .map--faux-full) .map-controls { display: none; }
 @media (min-width: 672px) {
   .map-shell:has(> .map--hero) { max-inline-size: none; block-size: auto; max-block-size: none; }
   .map--hero { aspect-ratio: auto; block-size: calc(100svh - var(--masthead-h)); min-block-size: 22rem; max-block-size: none; }
 }
-/* A touch tablet's pull tab hangs 20px below the map, so the map gives that back. */
+/* A touch tablet's pull tab hangs 28px below the map, so the map gives that back. */
 @media (min-width: 672px) and (hover: none) {
-  .map--hero { block-size: calc(100svh - var(--masthead-h) - 20px); }
+  .map--hero { block-size: calc(100svh - var(--masthead-h) - 28px); }
 }
 
 /* Phone layout: masthead wraps, map taller, scale horizontal, replay row wraps. */
@@ -976,16 +977,16 @@ html:has(> body.embed) { block-size: 100%; }
      .map--hero instead. The shell no longer fixes its own height too — a
      fixed-height shell clipped the static, in-flow scale below the map. */
   .map-shell:has(.map--hero) { block-size: auto; max-block-size: none; }
-  /* Fills what is left: the tier caption (1.5rem) and the 20px pull tab stay in the first viewport. */
+  /* Fills what is left: the tier caption (1.5rem) and the 28px pull tab stay in the first viewport. */
   .map--hero {
-    aspect-ratio: auto; block-size: calc(100svh - var(--masthead-h) - 1.5rem - 20px);
+    aspect-ratio: auto; block-size: calc(100svh - var(--masthead-h) - 1.5rem - 28px);
     min-block-size: 20rem; max-block-size: none;
   }
   .map--wide { block-size: calc(100svh - 15rem); min-block-size: 18rem; }
   /* Area pages, covered or not: shrink so the pull tab stays above the fold on touch phones. */
   @media (hover: none) {
     .map--wide {
-      block-size: calc(100svh - var(--phone-chrome-area) - 20px); min-block-size: 55svh;
+      block-size: calc(100svh - var(--phone-chrome-area) - 28px); min-block-size: 55svh;
     }
   }
   /* Portrait touch phones: a one-column grid so .area-summary can move below the map. */
@@ -1185,10 +1186,10 @@ html:has(> body.embed) { block-size: 100%; }
    of height and the shell collapses to 0. Height-led instead, chrome on top. */
 @media (orientation: landscape) and (max-height: 520px) and (hover: none) {
   .map-shell:has(.map--hero) { max-inline-size: none; block-size: auto; max-block-size: none; }
-  /* 40px masthead, the 1.5rem tier caption and the 20px pull tab. */
-  .map--hero { aspect-ratio: auto; block-size: calc(100svh - 40px - 1.5rem - 20px); min-block-size: 12rem; max-block-size: none; }
-  /* 7rem: measured 6rem of chrome above the map left the pull tab on the fold; 20px is the pull tab. */
-  .map--wide { block-size: calc(100svh - 7rem - 20px); min-block-size: 12rem; }
+  /* 40px masthead, the 1.5rem tier caption and the 28px pull tab. */
+  .map--hero { aspect-ratio: auto; block-size: calc(100svh - 40px - 1.5rem - 28px); min-block-size: 12rem; max-block-size: none; }
+  /* 7rem: measured 6rem of chrome above the map left the pull tab on the fold; 28px is the pull tab. */
+  .map--wide { block-size: calc(100svh - 7rem - 28px); min-block-size: 12rem; }
 
   /* Slimmer than the portrait 48px bar: landscape has no height to spare. */
   .masthead { block-size: 40px; min-block-size: 40px; }
