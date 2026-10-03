@@ -107,7 +107,7 @@ func TestJSONLDHomeHasWebSiteAndOrganization(t *testing.T) {
 		if org == nil || org.Name != brand || org.URL != "https://airbg.org/" {
 			t.Fatalf("%s: Organization = %+v", path, org)
 		}
-		if len(org.SameAs) != 1 || org.SameAs[0] != "https://github.com/iliyan-s-petkov/airbg" {
+		if len(org.SameAs) != 1 || org.SameAs[0] != "https://github.com/iliyan-s-petkov/kanarche" {
 			t.Errorf("%s: Organization.sameAs = %v", path, org.SameAs)
 		}
 	}

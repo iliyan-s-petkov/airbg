@@ -157,7 +157,7 @@ func TestLanguageMenuCarriesAboutAndSourceLinks(t *testing.T) {
 			t.Fatalf("%s: no language list", path)
 		}
 		list := body[start : start+strings.Index(body[start:], "</ul>")]
-		for _, want := range []string{about, `href="https://github.com/iliyan-s-petkov/airbg"`, `rel="noopener noreferrer"`} {
+		for _, want := range []string{about, `href="https://github.com/iliyan-s-petkov/kanarche"`, `rel="noopener noreferrer"`} {
 			if !strings.Contains(list, want) {
 				t.Errorf("%s: language menu is missing %s", path, want)
 			}
