@@ -51,4 +51,22 @@ export const mapSettled = (page) => page.waitForFunction(() => {
   return !!map?.isStyleLoaded?.() && !map.isMoving()
 }, null, { timeout: 45_000 })
 
+// A real wheel zoom and mouse drag on the canvas, not a programmatic jump.
+export const userMove = async (page) => {
+  const box = await page.locator('[data-island="map"]').boundingBox()
+  const cx = box.x + box.width / 2
+  const cy = box.y + box.height / 2
+  await page.mouse.move(cx, cy)
+  await page.mouse.wheel(0, -400)
+  await mapSettled(page)
+  await page.mouse.move(cx, cy)
+  await page.mouse.down()
+  await page.mouse.move(cx - 120, cy + 60, { steps: 8 })
+  await page.mouse.up()
+  await mapSettled(page)
+  // Let the debounced write land, then make sure it is the final camera.
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('kanarche:map-view'))).not.toBeNull()
+  await page.waitForTimeout(900)
+}
+
 export { expect }

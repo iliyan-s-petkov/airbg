@@ -68,6 +68,9 @@ export function resolveOpeningView({ hash, search, saved }) {
 
 export const SAVE_DEBOUNCE_MS = 500
 
+// Event data the zoom buttons attach to their moves; see mapcontrols.js.
+export const USER_MOVE = { userInitiated: true }
+
 // Jumps the map to the saved view when nothing more specific asks for one.
 // Home map only: cfg.rememberView is server-rendered on / and nowhere else.
 export function restoreLastView(map, cfg, {
@@ -83,10 +86,12 @@ export function restoreLastView(map, cfg, {
 }
 
 // Writes the settled camera, debounced, so a pan is one write rather than many.
+// Only the visitor's own moves count: a geoip or locate placement is location data.
 export function trackLastView(map, cfg, storage = safeStorage()) {
   if (!cfg.rememberView) return
   let timer
-  map.on('moveend', () => {
+  map.on('moveend', (e) => {
+    if (!e?.originalEvent && !e?.userInitiated) return
     clearTimeout(timer)
     timer = setTimeout(() => {
       const { lng, lat } = map.getCenter()

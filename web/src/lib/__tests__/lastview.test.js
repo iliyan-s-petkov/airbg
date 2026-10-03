@@ -133,7 +133,7 @@ const fakeMap = (centre = { lng: 25.4, lat: 42.7 }, zoom = 7) => {
     on(ev, fn) { if (ev === 'moveend') handlers.push(fn) },
     getCenter: () => centre,
     getZoom: () => zoom,
-    fire() { handlers.forEach((fn) => fn()) },
+    fire(e = { originalEvent: {} }) { handlers.forEach((fn) => fn(e)) },
   }
 }
 
@@ -202,5 +202,26 @@ describe('trackLastView', () => {
     const on = vi.spyOn(map, 'on')
     trackLastView(map, { rememberView: false }, memory())
     expect(on).not.toHaveBeenCalled()
+  })
+
+  it('ignores a programmatic move: geoip, locate fly-to, restore', () => {
+    vi.useFakeTimers()
+    const storage = { getItem: () => null, setItem: vi.fn() }
+    const map = fakeMap({ lng: 25.4, lat: 42.7 }, 9)
+    trackLastView(map, { rememberView: true }, storage)
+    map.fire({})
+    map.fire(null)
+    vi.advanceTimersByTime(SAVE_DEBOUNCE_MS)
+    expect(storage.setItem).not.toHaveBeenCalled()
+  })
+
+  it('saves a move the zoom buttons flag as the visitor\'s own', () => {
+    vi.useFakeTimers()
+    const storage = memory()
+    const map = fakeMap({ lng: 25.4, lat: 42.7 }, 9)
+    trackLastView(map, { rememberView: true }, storage)
+    map.fire({ userInitiated: true })
+    vi.advanceTimersByTime(SAVE_DEBOUNCE_MS)
+    expect(JSON.parse(storage.raw())).toEqual(good)
   })
 })
