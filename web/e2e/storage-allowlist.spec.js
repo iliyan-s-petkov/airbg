@@ -29,3 +29,18 @@ test('localStorage after exercising the map holds only allow-listed keys', async
 
   await page.close()
 })
+
+test('localStorage after moving the home map holds only allow-listed keys', async ({ ctx }) => {
+  const page = await ctx.newPage()
+  await page.goto('/en/')
+  await page.waitForFunction(() => !!document.querySelector('[data-island="map"]')?.__map)
+  await page.evaluate(() => document.querySelector('[data-island="map"]').__map.jumpTo({ center: [24.75, 42.15], zoom: 9.5 }))
+  // The view is written after a debounce; wait for it so the key is really present.
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('kanarche:map-view'))).not.toBeNull()
+
+  const keys = await page.evaluate(() => Object.keys(localStorage))
+  const unexpected = keys.filter((k) => !allowed.has(k))
+  expect(unexpected, `unlisted localStorage keys: ${unexpected.join(', ')}`).toEqual([])
+
+  await page.close()
+})

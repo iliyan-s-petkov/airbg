@@ -25,6 +25,11 @@ export const test = base.extend({
   isolateSharedContext: [async ({ ctx }, use) => {
     await use()
     await ctx.clearCookies()
+    // A spec that closed every page leaves nothing above to clear, and the
+    // origin's storage outlives it; a throwaway page on the origin clears that.
+    const open = ctx.pages().filter((p) => !p.isClosed() && p.url() !== 'about:blank')
+    const sweeper = open.length ? null : await ctx.newPage()
+    await sweeper?.goto('/robots.txt').catch(() => {})
     for (const page of ctx.pages()) {
       if (page.isClosed() || page.url() === 'about:blank') continue
       await page.evaluate(() => {
@@ -32,6 +37,7 @@ export const test = base.extend({
         sessionStorage.clear()
       }).catch(() => {})
     }
+    await sweeper?.close()
   }, { auto: true }],
 })
 

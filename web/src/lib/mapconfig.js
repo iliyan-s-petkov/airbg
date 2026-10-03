@@ -45,6 +45,8 @@ export function readConfig(el) {
   const d = el.dataset
   return {
     slug: d.slug || null,
+    // Rendered on the home page only; area pages and the embed keep their own opening view.
+    rememberView: d.rememberView === 'true',
     // No fallbacks: the opening view is configuration
     // (frontend.default_zoom/default_lon/default_lat, or the area's own
     // centre), and the server renders all three on every map island. A
